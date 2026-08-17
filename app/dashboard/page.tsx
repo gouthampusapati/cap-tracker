@@ -36,6 +36,14 @@ export default function Dashboard() {
   const [imported, setImported] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [capItems, setCapItems] = useState<Record<string, CapItem[]>>({});
+  const [editingFinding, setEditingFinding] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    owner: '',
+    dueDate: '',
+    status: 'open',
+    notes: '',
+  });
+  const [savingFinding, setSavingFinding] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -96,6 +104,43 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Error fetching CAP items:', error);
+    }
+  };
+
+  const handleSaveCapItem = async (findingId: string) => {
+    if (!formData.owner) {
+      alert('Owner name is required');
+      return;
+    }
+
+    setSavingFinding(findingId);
+    try {
+      const res = await fetch('/api/cap-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          findingId,
+          owner: formData.owner,
+          dueDate: formData.dueDate,
+          status: formData.status,
+          notes: formData.notes,
+        }),
+      });
+
+      if (res.ok) {
+        // Refresh CAP items for this finding
+        await fetchCapItems(findingId);
+        // Reset form
+        setFormData({ owner: '', dueDate: '', status: 'open', notes: '' });
+        setEditingFinding(null);
+      } else {
+        alert('Failed to save CAP item');
+      }
+    } catch (error) {
+      console.error('Error saving CAP item:', error);
+      alert('Error saving CAP item');
+    } finally {
+      setSavingFinding(null);
     }
   };
 
@@ -206,25 +251,86 @@ export default function Dashboard() {
 
                       <div className="mt-3 p-3 bg-white rounded border">
                         <p className="text-sm font-semibold mb-2">CAP Item</p>
-                        {capItems[finding.id]?.length > 0 ? (
-                          capItems[finding.id].map((item) => (
-                            <div key={item.id} className="p-2 bg-gray-50 rounded text-sm">
-                              <p className="font-semibold">{item.owner || '(No owner)'}</p>
-                              <p className="text-xs text-gray-600">
-                                Due: {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'Not set'}
-                              </p>
-                              <p className="text-xs">
-                                Status: <span className="font-semibold">{item.status}</span>
-                              </p>
-                              {item.notes && <p className="text-xs mt-1 italic">{item.notes}</p>}
+
+                        {editingFinding === finding.id ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              placeholder="Owner name"
+                              value={formData.owner}
+                              onChange={(e) => setFormData({ ...formData, owner: e.target.value })}
+                              className="w-full px-2 py-1 border rounded text-sm"
+                            />
+                            <input
+                              type="date"
+                              value={formData.dueDate}
+                              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                              className="w-full px-2 py-1 border rounded text-sm"
+                            />
+                            <select
+                              value={formData.status}
+                              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                              className="w-full px-2 py-1 border rounded text-sm"
+                            >
+                              <option value="open">Open</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="resolved">Resolved</option>
+                            </select>
+                            <textarea
+                              placeholder="Notes (optional)"
+                              value={formData.notes}
+                              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                              className="w-full px-2 py-1 border rounded text-sm"
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSaveCapItem(finding.id)}
+                                disabled={savingFinding === finding.id}
+                                className="flex-1 bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {savingFinding === finding.id ? 'Saving...' : 'Save CAP Item'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingFinding(null);
+                                  setFormData({ owner: '', dueDate: '', status: 'open', notes: '' });
+                                }}
+                                className="flex-1 bg-gray-300 text-gray-800 py-1 rounded text-sm hover:bg-gray-400"
+                              >
+                                Cancel
+                              </button>
                             </div>
-                          ))
+                          </div>
                         ) : (
-                          <div className="text-xs text-gray-500 italic">No CAP item yet</div>
+                          <>
+                            {capItems[finding.id]?.length > 0 ? (
+                              capItems[finding.id].map((item) => (
+                                <div key={item.id} className="p-2 bg-gray-50 rounded text-sm mb-2">
+                                  <p className="font-semibold">{item.owner || '(No owner)'}</p>
+                                  <p className="text-xs text-gray-600">
+                                    Due: {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'Not set'}
+                                  </p>
+                                  <p className="text-xs">
+                                    Status: <span className="font-semibold">{item.status}</span>
+                                  </p>
+                                  {item.notes && <p className="text-xs mt-1 italic">{item.notes}</p>}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-xs text-gray-500 italic mb-2">No CAP item yet</div>
+                            )}
+                            <button
+                              onClick={() => setEditingFinding(finding.id)}
+                              className="w-full bg-blue-500 text-white py-1 rounded text-sm hover:bg-blue-600 mb-2"
+                            >
+                              + Add CAP Item
+                            </button>
+                            <button className="w-full bg-gray-200 text-gray-800 py-1 rounded text-sm hover:bg-gray-300">
+                              Generate Draft
+                            </button>
+                          </>
                         )}
-                        <button className="mt-2 w-full bg-gray-200 text-gray-800 py-1 rounded text-sm hover:bg-gray-300">
-                          Generate Draft
-                        </button>
                       </div>
                     </div>
                   ))}
