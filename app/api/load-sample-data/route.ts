@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Database from 'better-sqlite3';
+import { randomUUID } from 'crypto';
 import { mockFindings } from '@/lib/fac-mock-data';
-import { crypto } from '@std/crypto';
 
 const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
 const sqlite = new Database(dbPath);
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     let userId: string;
     if (!user) {
-      userId = crypto.randomUUID?.() || `user_${Date.now()}`;
+      userId = randomUUID();
       const insertUser = sqlite.prepare(`
         INSERT INTO users (id, email, ein, org_name, created_at)
         VALUES (?, ?, ?, ?, ?)
