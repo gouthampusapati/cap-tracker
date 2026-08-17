@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getUser, logoutUser } from '@/lib/auth-config';
 
 interface Finding {
@@ -118,6 +119,15 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-6">
+            <div className="flex gap-4">
+              <Link
+                href="/dashboard/next-cycle-prep"
+                className="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-semibold"
+              >
+                📅 Next-Cycle Prep Report
+              </Link>
+            </div>
+
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold mb-4">Audit Findings</h2>
 
