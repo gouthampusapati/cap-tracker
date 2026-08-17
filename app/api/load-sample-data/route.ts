@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    // Insert findings
+    // Insert findings (with deduplication)
     const findingStmt = sqlite.prepare(`
-      INSERT INTO findings
+      INSERT OR REPLACE INTO findings
         (id, audit_year_id, fac_finding_id, category, description, questioned_costs, is_repeat_finding, prior_finding_refs, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
       }
 
       const auditYearId = auditYearMap[fiscal_year];
-      const findingId = `finding_${Date.now()}_${Math.random()}`;
+      // Use stable ID based on audit year and finding ID to avoid duplicates
+      const findingId = `${auditYearId}-${finding.facFindingId}`;
 
       findingStmt.run(
         findingId,
