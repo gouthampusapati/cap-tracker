@@ -10,10 +10,10 @@ const sqlite = new Database(dbPath);
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { owner, dueDate, status, notes, description } = await req.json();
 
     const now = Date.now();
@@ -76,10 +76,10 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     sqlite.prepare('DELETE FROM cap_items WHERE id = ?').run(id);
 
