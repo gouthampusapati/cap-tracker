@@ -1,7 +1,0 @@
-node_modules
-.next
-.env.local
-*.db
-*.db-wal
-*.db-shm
-.DS_Store
