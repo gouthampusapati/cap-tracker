@@ -16,6 +16,17 @@ interface Finding {
   priorRefs: string[];
 }
 
+interface CapItem {
+  id: string;
+  finding_id: string;
+  owner: string;
+  due_date?: number;
+  status: string;
+  notes: string;
+  created_at: number;
+  updated_at: number;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -24,6 +35,7 @@ export default function Dashboard() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [imported, setImported] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [capItems, setCapItems] = useState<Record<string, CapItem[]>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -65,6 +77,25 @@ export default function Dashboard() {
     if (res.ok) {
       const data = await res.json();
       setFindings(data);
+      // Fetch CAP items for each finding
+      data.forEach((finding: Finding) => {
+        fetchCapItems(finding.id);
+      });
+    }
+  };
+
+  const fetchCapItems = async (findingId: string) => {
+    try {
+      const res = await fetch(`/api/cap-items?findingId=${encodeURIComponent(findingId)}`);
+      if (res.ok) {
+        const items = await res.json();
+        setCapItems((prev) => ({
+          ...prev,
+          [findingId]: items,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching CAP items:', error);
     }
   };
 
@@ -175,20 +206,22 @@ export default function Dashboard() {
 
                       <div className="mt-3 p-3 bg-white rounded border">
                         <p className="text-sm font-semibold mb-2">CAP Item</p>
-                        <input
-                          type="text"
-                          placeholder="Owner name"
-                          className="w-full px-2 py-1 border rounded text-sm mb-2"
-                        />
-                        <input
-                          type="date"
-                          className="w-full px-2 py-1 border rounded text-sm mb-2"
-                        />
-                        <select className="w-full px-2 py-1 border rounded text-sm">
-                          <option value="open">Open</option>
-                          <option value="in_progress">In Progress</option>
-                          <option value="resolved">Resolved</option>
-                        </select>
+                        {capItems[finding.id]?.length > 0 ? (
+                          capItems[finding.id].map((item) => (
+                            <div key={item.id} className="p-2 bg-gray-50 rounded text-sm">
+                              <p className="font-semibold">{item.owner || '(No owner)'}</p>
+                              <p className="text-xs text-gray-600">
+                                Due: {item.due_date ? new Date(item.due_date).toLocaleDateString() : 'Not set'}
+                              </p>
+                              <p className="text-xs">
+                                Status: <span className="font-semibold">{item.status}</span>
+                              </p>
+                              {item.notes && <p className="text-xs mt-1 italic">{item.notes}</p>}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs text-gray-500 italic">No CAP item yet</div>
+                        )}
                         <button className="mt-2 w-full bg-gray-200 text-gray-800 py-1 rounded text-sm hover:bg-gray-300">
                           Generate Draft
                         </button>
