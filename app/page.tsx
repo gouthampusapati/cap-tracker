@@ -1,28 +1,32 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Metadata } from 'next';
+import { SITE_URL } from '@/lib/site-url';
+import EinSearchForm from './ein-search-form';
+
+const title = 'Single Audit Intelligence';
+const description =
+  'Search the Federal Audit Clearinghouse. See audit findings and corrective action plans for any organization that receives federal awards.';
+
+export const metadata: Metadata = {
+  title,
+  description,
+  // The homepage previously had no canonical tag at all — it's a client
+  // component (needs the EIN search form's state/router), and Next's
+  // metadata API only works in Server Components, so it silently fell
+  // back to the root layout's metadata, which doesn't set alternates.
+  // Splitting the interactive form out to ein-search-form.tsx lets this
+  // file be a plain Server Component that can declare its own canonical,
+  // same as every other page.
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    title,
+    description,
+    type: 'website',
+    url: SITE_URL,
+  },
+};
 
 export default function Home() {
-  const [ein, setEin] = useState('');
-  const [error, setError] = useState('');
-  const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = ein.trim();
-
-    // Validate EIN
-    if (!/^\d{9}$/.test(trimmed)) {
-      setError('Please enter a valid 9-digit EIN.');
-      return;
-    }
-
-    setError('');
-    router.push(`/single-audit/${trimmed}`);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Header */}
@@ -55,27 +59,7 @@ export default function Home() {
           </p>
 
           {/* Search Box */}
-          <form onSubmit={handleSearch} className="max-w-md mx-auto">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Enter EIN (9 digits)"
-                value={ein}
-                onChange={(e) => {
-                  setEin(e.target.value);
-                  setError('');
-                }}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg"
-              >
-                Search
-              </button>
-            </div>
-            {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-          </form>
+          <EinSearchForm />
 
           {/* Example links */}
           <div className="mt-8 text-sm text-gray-600">
