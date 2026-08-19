@@ -16,7 +16,7 @@ export const revalidate = 86400;
  * <sitemapindex>, not a 404.
  */
 export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://singleauditintel.com';
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com';
   const chunkCount = getSitemapChunkCount();
   const lastmod = new Date().toISOString();
 

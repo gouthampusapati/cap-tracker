@@ -123,7 +123,7 @@ export async function generateMetadata(props: {
 
   const title = `${org.name} - Single Audit | Federal Audit Clearinghouse`;
   const description = `Audit history and findings for ${org.name} (EIN: ${org.ein}). ${org.findingsCount} findings across ${org.totalReports} audits.`;
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://singleauditintel.com';
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com';
 
   return {
     title,

@@ -34,7 +34,7 @@ export default async function sitemap({
 }: {
   id: number;
 }): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://singleauditintel.com';
+  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com';
   const eins = loadOrgEins();
   const start = id * SITEMAP_CHUNK_SIZE;
   const orgEntries: MetadataRoute.Sitemap = eins
