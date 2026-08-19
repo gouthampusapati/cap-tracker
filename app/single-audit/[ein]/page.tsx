@@ -84,43 +84,60 @@ function getCategoryColor(category: string): string {
  * which breaks on Vercel when the deployment URL isn't known at build time.
  * Calling the library directly is also one less network round trip.
  * The /api/org/[ein] route still exists for external/JSON consumers.
+ *
+ * IMPORTANT: this does NOT catch fetch failures (a FAC outage, a rate
+ * limit, a network error) — those propagate as thrown errors, caught by
+ * error.tsx in this route segment. Only two things return null here: a
+ * malformed EIN, and importOrgByEin() itself returning null because FAC
+ * genuinely has zero reports for a well-formed EIN. Both of those are
+ * real "not found" — a transient fetch failure is not, and treating it
+ * the same way used to make notFound() fire for reasons that have
+ * nothing to do with whether the organization exists, telling a visitor
+ * "not found" when the truth was "FAC didn't answer this time."
  */
 async function fetchOrgData(ein: string): Promise<OrgData | null> {
   if (!/^\d{9}$/.test(ein)) return null;
 
-  try {
-    const org = await importOrgByEin(ein);
-    if (!org) return null;
+  const org = await importOrgByEin(ein);
+  if (!org) return null;
 
-    return {
-      ein: org.ein,
-      uei: org.uei,
-      name: org.name,
-      auditHistory: org.reports.map((r) => ({
-        reportId: r.report_id,
-        fiscalYearEnd: r.fy_end_date,
-        fiscalYearStart: r.fy_start_date,
-        totalAmountExpended: r.total_amount_expended,
-        entityType: r.entity_type,
-        isLowRiskAuditee: r.is_low_risk_auditee === 'Y',
-        facAcceptedDate: r.fac_accepted_date,
-      })),
-      findings: org.findings,
-      totalReports: org.reports.length,
-      findingsCount: org.findings.length,
-      repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
-    };
-  } catch (error) {
-    console.error(`Failed to fetch org ${ein}:`, error);
-    return null;
-  }
+  return {
+    ein: org.ein,
+    uei: org.uei,
+    name: org.name,
+    auditHistory: org.reports.map((r) => ({
+      reportId: r.report_id,
+      fiscalYearEnd: r.fy_end_date,
+      fiscalYearStart: r.fy_start_date,
+      totalAmountExpended: r.total_amount_expended,
+      entityType: r.entity_type,
+      isLowRiskAuditee: r.is_low_risk_auditee === 'Y',
+      facAcceptedDate: r.fac_accepted_date,
+    })),
+    findings: org.findings,
+    totalReports: org.reports.length,
+    findingsCount: org.findings.length,
+    repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
+  };
 }
 
 export async function generateMetadata(props: {
   params: Promise<{ ein: string }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const org = await fetchOrgData(params.ein);
+
+  let org: OrgData | null;
+  try {
+    org = await fetchOrgData(params.ein);
+  } catch {
+    // Metadata has to return *something* even when the underlying fetch
+    // failed — this deliberately doesn't say "not found," since a fetch
+    // failure says nothing about whether the org actually exists.
+    return {
+      title: 'Temporarily Unavailable',
+      description: 'This page could not be loaded right now. Try again shortly.',
+    };
+  }
 
   if (!org) {
     return {
