@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next';
 import { Providers } from './providers';
 import './globals.css';
 
@@ -14,6 +15,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
         </Providers>
+        {/* Pageview tracking only for now — no cookies, no PII. Custom
+            event tracking (portfolio EIN counts, guide-vs-org click-through)
+            lands with Task 4. */}
+        <Analytics />
       </body>
     </html>
   );
