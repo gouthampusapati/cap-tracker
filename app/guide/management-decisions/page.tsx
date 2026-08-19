@@ -99,6 +99,14 @@ export default function ManagementDecisionsGuide() {
             (April 2024), which examined FAC data quality and usability and recommended OMB take
             a more active role in improving both.
           </p>
+          <p className="text-gray-800 leading-relaxed mb-3">
+            The gap isn't specific to management decisions — GAO found it at the finding-resolution
+            level generally. As of 2021, 213 findings first reported in 2015 or earlier were still
+            unresolved, and $1.17 trillion of the $6.97 trillion in federal award funds spent from
+            2017–2021 was linked to findings that were both severe and persistent. If resolution
+            itself isn't tracked government-wide, it follows that the specific step of issuing a
+            timely management decision on any one finding isn't either.
+          </p>
           <p className="text-gray-800 leading-relaxed">
             In practice, this means a pass-through entity funding dozens of subrecipients has to
             build and maintain its own tracker of FAC acceptance dates and six-month deadlines —

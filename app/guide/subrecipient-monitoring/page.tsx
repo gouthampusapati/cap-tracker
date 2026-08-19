@@ -91,7 +91,19 @@ export default function SubrecipientMonitoringGuide() {
         <p className="text-sm text-gray-600 mb-6">
           § 200.332(b) has additional paragraphs beyond this list covering subaward terms and
           conditions, closeout requirements, and indirect cost rate negotiation — this list is
-          specifically the "Federal award identification" elements under (b)(1).
+          specifically the "Federal award identification" elements under (b)(1). Paragraph
+          lettering in Part 200 has shifted before and can shift again in future revisions even
+          when the substance stays the same — the count and content here were checked against the
+          current eCFR text as of this writing, but always confirm the letter/number against{' '}
+          <a
+            href="https://www.ecfr.gov/current/title-2/subtitle-A/chapter-II/part-200/subpart-D/subject-group-ECFR031321e29ac5bbd/section-200.332"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            the live section
+          </a>{' '}
+          rather than this page if you're citing it somewhere that matters.
         </p>
 
         <h2 className="text-xl font-bold text-gray-900 mt-8 mb-3">2. Risk assessment</h2>
