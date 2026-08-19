@@ -35,7 +35,8 @@ export default async function PortfolioPage(props: {
   const capped = eins.slice(0, PORTFOLIO_MAX_EINS);
 
   const rows = capped.length > 0 ? defaultSort(await fetchPortfolio(capped)) : [];
-  const notFoundCount = rows.filter((r) => !r.found).length;
+  const notFoundCount = rows.filter((r) => r.status === 'not-found').length;
+  const errorCount = rows.filter((r) => r.status === 'error').length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,6 +82,13 @@ export default async function PortfolioPage(props: {
                 {notFoundCount} of {rows.length} EINs {notFoundCount === 1 ? 'was' : 'were'} not
                 found in the Federal Audit Clearinghouse — that's a meaningful answer if you're
                 checking whether a subrecipient was audited at all, not an error.
+              </p>
+            )}
+            {errorCount > 0 && (
+              <p className="text-sm text-amber-700 mb-4">
+                {errorCount} of {rows.length} EIN{errorCount === 1 ? '' : 's'} couldn't be
+                checked right now — the FAC may be rate-limited or briefly unavailable. That's
+                not the same as "not found"; try again shortly for those rows.
               </p>
             )}
             <PortfolioTable initialRows={rows} />

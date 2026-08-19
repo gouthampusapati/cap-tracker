@@ -1,6 +1,6 @@
-import { unstable_cache } from 'next/cache';
-import { importOrgByEin } from '@/lib/fac-api';
+import { getPublicOrg } from '@/lib/public-org-cache';
 import { computeManagementDecisionDeadline, soonestDeadline } from '@/lib/management-decision';
+import type { ImportedOrg } from '@/lib/fac-api';
 
 export const PORTFOLIO_MAX_EINS = 50;
 
@@ -38,7 +38,12 @@ export function parseEinList(raw: string): { eins: string[]; invalid: string[] }
 
 export interface PortfolioRow {
   ein: string;
-  found: boolean;
+  // 'error' is deliberately distinct from 'not-found' — a fetch failure
+  // (FAC down/rate-limited, no cached fallback) says nothing about
+  // whether the org actually exists. Collapsing the two into one
+  // "not found" state was the same bug the org page had; see
+  // app/single-audit/[ein]/page.tsx and error.tsx for the fuller fix.
+  status: 'found' | 'not-found' | 'error';
   orgName: string | null;
   mostRecentFyEnd: string | null;
   totalFindings: number;
@@ -48,25 +53,11 @@ export interface PortfolioRow {
   managementDecisionLabel: string | null; // e.g. "34 days" / "124 days overdue" / null
 }
 
-/**
- * Same 1-hour cadence as the org pages' own `revalidate = 3600` — a
- * portfolio submission that includes an EIN someone already looked up (or
- * that appears in another portfolio) within the last hour is served from
- * Next's data cache instead of re-hitting the FAC. Keyed per-EIN so cache
- * hits are shared across every caller, not just repeat submissions of the
- * identical list.
- */
-const getCachedOrg = unstable_cache(
-  async (ein: string) => importOrgByEin(ein),
-  ['portfolio-org-lookup'],
-  { revalidate: 3600 }
-);
-
-function toRow(ein: string, org: Awaited<ReturnType<typeof importOrgByEin>>): PortfolioRow {
+function toRow(ein: string, org: ImportedOrg | null): PortfolioRow {
   if (!org) {
     return {
       ein,
-      found: false,
+      status: 'not-found',
       orgName: null,
       mostRecentFyEnd: null,
       totalFindings: 0,
@@ -83,7 +74,7 @@ function toRow(ein: string, org: Awaited<ReturnType<typeof importOrgByEin>>): Po
 
   return {
     ein,
-    found: true,
+    status: 'found',
     orgName: org.name,
     mostRecentFyEnd: org.reports[0]?.fy_end_date ?? null,
     totalFindings: org.findings.length,
@@ -98,13 +89,30 @@ function toRow(ein: string, org: Awaited<ReturnType<typeof importOrgByEin>>): Po
   };
 }
 
+function errorRow(ein: string): PortfolioRow {
+  return {
+    ein,
+    status: 'error',
+    orgName: null,
+    mostRecentFyEnd: null,
+    totalFindings: 0,
+    repeatFindings: 0,
+    materialWeaknesses: 0,
+    managementDecisionDays: null,
+    managementDecisionLabel: null,
+  };
+}
+
 /**
  * Fetches a batch of EINs with bounded concurrency — not all 50 at once.
- * Each org fetch already does up to 4 FAC calls itself (see
- * lib/fac-api.ts); running many orgs fully in parallel would multiply
- * that into a burst well beyond anything reasonable for a shared
- * ~1,000/hour key, on top of just being a lot of simultaneous connections
- * to a third-party API that doesn't belong to this site.
+ * Each org fetch already does up to 4 FAC calls itself when it's an
+ * actual cache miss (see lib/fac-api.ts); running many uncached orgs
+ * fully in parallel would multiply that into a burst well beyond
+ * anything reasonable for a shared ~1,000/hour key, on top of just being
+ * a lot of simultaneous connections to a third-party API that doesn't
+ * belong to this site. Cache hits (lib/public-org-cache.ts) are cheap
+ * DB reads and don't need this throttling, but the pool doesn't know
+ * which EINs will hit vs. miss ahead of time, so it throttles uniformly.
  */
 const CONCURRENCY = 6;
 
@@ -117,11 +125,11 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
       const i = next++;
       const ein = eins[i];
       try {
-        const org = await getCachedOrg(ein);
+        const { org } = await getPublicOrg(ein);
         results[i] = toRow(ein, org);
       } catch (error) {
         console.error(`Portfolio fetch failed for ${ein}:`, error);
-        results[i] = toRow(ein, null);
+        results[i] = errorRow(ein);
       }
     }
   }
@@ -134,8 +142,8 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
 
 /** Sort default from the spec: soonest management-decision deadline
  * first (overdue counts as "soonest" — it's already due), then most
- * repeat findings as a tiebreaker. Not-found and no-deadline rows sort
- * to the end. */
+ * repeat findings as a tiebreaker. Not-found, error, and no-deadline
+ * rows sort to the end. */
 export function defaultSort(rows: PortfolioRow[]): PortfolioRow[] {
   return [...rows].sort((a, b) => {
     const aHas = a.managementDecisionDays !== null;

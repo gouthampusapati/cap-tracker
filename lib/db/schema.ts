@@ -70,3 +70,21 @@ export const reminders = sqliteTable('reminders', {
   daysBeforeDue: integer('days_before_due'),
   enabled: integer('enabled', { mode: 'boolean' }).default(false),
 });
+
+/**
+ * Public org data cache — unrelated to the private, user-tracked tables
+ * above. Keyed on EIN only, no user association. Backs both
+ * /single-audit/[ein] and /portfolio: a cache hit serves instantly and
+ * doesn't touch the FAC at all, which matters given FAC's ~1,000/hour
+ * shared quota — see lib/public-org-cache.ts for the read/write logic.
+ * `snapshot` is the full ImportedOrg shape (lib/fac-api.ts) as JSON;
+ * `found` distinguishes "FAC genuinely has zero reports for this EIN"
+ * (cache the negative result too, worth remembering) from "we haven't
+ * looked yet" (no row at all).
+ */
+export const publicOrgCache = sqliteTable('public_org_cache', {
+  ein: text('ein').primaryKey(),
+  found: integer('found', { mode: 'boolean' }).notNull(),
+  snapshot: text('snapshot'), // JSON ImportedOrg, null when found = false
+  syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
+});

@@ -1,18 +1,19 @@
-import { importOrgByEin } from '@/lib/fac-api';
+import { getPublicOrg } from '@/lib/public-org-cache';
 import { NextResponse } from 'next/server';
 
-// Same 4-FAC-calls-per-request shape as app/single-audit/[ein]/page.tsx —
-// see the comment there for why this needs more than the default timeout.
+// Same 4-FAC-calls-per-request shape as app/single-audit/[ein]/page.tsx on
+// a cache miss — see the comment there for why this needs more than the
+// default timeout. A cache hit returns almost immediately.
 export const maxDuration = 30;
 
 /**
  * Public API endpoint: GET /api/org/[ein]
  *
  * Returns an organization's complete audit history from the FAC.
- * No authentication required. Kept for external/JSON consumers — the
- * public `/single-audit/[ein]` page calls importOrgByEin() directly rather
- * than fetching this route (a server component fetching its own relative
- * URL breaks on Vercel; see the comment on fetchOrgData in that file).
+ * No authentication required. Kept for external/JSON consumers. Reads
+ * through the same shared cache as `/single-audit/[ein]` and
+ * `/portfolio` (lib/public-org-cache.ts) — an EIN looked up through any
+ * of the three warms the cache for all of them.
  *
  * Response includes:
  * - org name, EIN, UEI
@@ -20,6 +21,8 @@ export const maxDuration = 30;
  * - all findings with CAP narratives
  * - repeat-finding flags
  * - federal expenditures by year
+ * - syncedAt: when this data was last pulled from the FAC (not necessarily
+ *   this request — could be served from cache)
  */
 
 export async function GET(
@@ -39,8 +42,7 @@ export async function GET(
       );
     }
 
-    // Fetch from FAC
-    const org = await importOrgByEin(ein);
+    const { org, syncedAt } = await getPublicOrg(ein);
 
     if (!org) {
       return NextResponse.json(
@@ -69,6 +71,7 @@ export async function GET(
         totalReports: org.reports.length,
         findingsCount: org.findings.length,
         repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
+        syncedAt: syncedAt.toISOString(),
       },
       {
         headers: {

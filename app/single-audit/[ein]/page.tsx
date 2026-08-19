@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { importOrgByEin } from '@/lib/fac-api';
+import { getPublicOrg } from '@/lib/public-org-cache';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
 import { getRequirementLink } from '@/lib/compliance-requirements';
@@ -53,6 +53,7 @@ interface OrgData {
   totalReports: number;
   findingsCount: number;
   repeatFindingsCount: number;
+  syncedAt: Date;
 }
 
 const categoryColors: Record<string, string> = {
@@ -78,33 +79,34 @@ function getCategoryColor(category: string): string {
 
 
 /**
- * Fetch straight from the FAC library — no self-referential HTTP call.
- *
- * A server component that fetches its own /api route needs an absolute URL,
- * which breaks on Vercel when the deployment URL isn't known at build time.
- * Calling the library directly is also one less network round trip.
- * The /api/org/[ein] route still exists for external/JSON consumers.
+ * Reads from the shared public-org cache (Turso-backed — see
+ * lib/public-org-cache.ts) rather than calling the FAC directly. A cache
+ * hit within 24h serves instantly with no FAC call at all; a miss fetches
+ * live and stores the result. Shared with /portfolio and
+ * /api/org/[ein], so an EIN looked up through any of the three warms the
+ * cache for all of them.
  *
  * IMPORTANT: this does NOT catch fetch failures (a FAC outage, a rate
- * limit, a network error) — those propagate as thrown errors, caught by
- * error.tsx in this route segment. Only two things return null here: a
- * malformed EIN, and importOrgByEin() itself returning null because FAC
- * genuinely has zero reports for a well-formed EIN. Both of those are
- * real "not found" — a transient fetch failure is not, and treating it
- * the same way used to make notFound() fire for reasons that have
- * nothing to do with whether the organization exists, telling a visitor
- * "not found" when the truth was "FAC didn't answer this time."
+ * limit, a network error with nothing cached to fall back to) — those
+ * propagate as thrown errors, caught by error.tsx in this route segment.
+ * Only two things return null here: a malformed EIN, and the cache
+ * genuinely recording zero FAC reports for a well-formed EIN. Both of
+ * those are real "not found" — a transient fetch failure is not, and
+ * treating it the same way used to make notFound() fire for reasons that
+ * have nothing to do with whether the organization exists, telling a
+ * visitor "not found" when the truth was "FAC didn't answer this time."
  */
 async function fetchOrgData(ein: string): Promise<OrgData | null> {
   if (!/^\d{9}$/.test(ein)) return null;
 
-  const org = await importOrgByEin(ein);
+  const { org, syncedAt } = await getPublicOrg(ein);
   if (!org) return null;
 
   return {
     ein: org.ein,
     uei: org.uei,
     name: org.name,
+    syncedAt,
     auditHistory: org.reports.map((r) => ({
       reportId: r.report_id,
       fiscalYearEnd: r.fy_end_date,
@@ -236,6 +238,14 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             </p>
             <p>
               <span className="font-semibold">UEI:</span> {org.uei}
+            </p>
+            <p className="text-xs text-gray-400">
+              Data as of{' '}
+              {org.syncedAt.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
             </p>
           </div>
         </div>

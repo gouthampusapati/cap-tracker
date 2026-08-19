@@ -76,8 +76,8 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
         </thead>
         <tbody className="divide-y divide-gray-200">
           {rows.map((row) => (
-            <tr key={row.ein} className={row.found ? '' : 'bg-gray-50'}>
-              {row.found ? (
+            <tr key={row.ein} className={row.status === 'found' ? '' : 'bg-gray-50'}>
+              {row.status === 'found' ? (
                 <>
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {row.orgName}
@@ -115,6 +115,12 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
                     </Link>
                   </td>
                 </>
+              ) : row.status === 'error' ? (
+                <td colSpan={7} className="px-4 py-3 text-amber-700 italic">
+                  <span className="font-mono not-italic">{row.ein}</span> — couldn't be checked
+                  right now (the FAC may be rate-limited or briefly unavailable); this doesn't
+                  mean it has no findings, only that we couldn't look
+                </td>
               ) : (
                 <td colSpan={7} className="px-4 py-3 text-gray-500 italic">
                   <span className="font-mono not-italic">{row.ein}</span> — not found in the
