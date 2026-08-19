@@ -6,16 +6,8 @@ on:
   pull_request:
     branches: [main, develop]
 
-# BetaHuhn/deploy-to-vercel-action uses GITHUB_TOKEN to record a GitHub
-# Deployment + deployment status (and, on a PR, to add the PR_LABELS
-# label). The default token this repo issues is read-only, which fails
-# with "Resource not accessible by integration" — grant just what the
-# action needs.
 permissions:
   contents: read
-  deployments: write
-  statuses: write
-  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -55,20 +47,35 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Vercel
-        uses: BetaHuhn/deploy-to-vercel-action@v1
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRODUCTION: true
-          PR_LABELS: deployed
+          node-version: '22'
+
+      # BetaHuhn/deploy-to-vercel-action assumes the `vercel` binary is
+      # already on PATH and never installs it, which fails as
+      # `spawn vercel ENOENT` on current runners. Vercel's own documented
+      # GitHub Actions flow (below) installs the CLI itself instead of
+      # relying on an unmaintained third-party action.
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment info
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 
   notify:
     name: Notify on Deployment
