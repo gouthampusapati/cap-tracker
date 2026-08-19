@@ -2,8 +2,9 @@ import { Providers } from './providers';
 import './globals.css';
 
 export const metadata = {
-  title: 'CAP Tracker',
-  description: 'Track corrective action plans for Single Audit findings',
+  title: 'Single Audit Intelligence',
+  description:
+    'Search the Federal Audit Clearinghouse. See audit findings and corrective action plans for any organization that receives federal awards.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

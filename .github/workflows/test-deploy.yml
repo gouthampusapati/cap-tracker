@@ -68,8 +68,20 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      # TEMPORARY debug step — reports only lengths (never values) of the
+      # three Vercel secrets, to rule out an empty/truncated/whitespace
+      # secret before digging further. Safe to view without exposing
+      # anything; remove once the deploy is confirmed working.
+      - name: Debug secret lengths
+        run: |
+          echo "VERCEL_TOKEN length: ${#VERCEL_TOKEN}"
+          echo "VERCEL_ORG_ID length: ${#VERCEL_ORG_ID} (expect ~30, starts with team_)"
+          echo "VERCEL_PROJECT_ID length: ${#VERCEL_PROJECT_ID} (expect ~30, starts with prj_)"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
       - name: Pull Vercel environment info
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} --debug
 
       - name: Build project artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
