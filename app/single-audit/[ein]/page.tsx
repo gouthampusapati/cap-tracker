@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { importOrgByEin } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
+import { ManagementDecisionBlock } from '@/app/management-decision-block';
 
 // FAC data changes at most daily; re-fetch each page hourly.
 export const revalidate = 3600;
@@ -37,6 +38,7 @@ interface AuditYear {
   totalAmountExpended: number;
   entityType: string;
   isLowRiskAuditee: boolean;
+  facAcceptedDate: string | null;
 }
 
 interface OrgData {
@@ -114,6 +116,7 @@ async function fetchOrgData(ein: string): Promise<OrgData | null> {
         totalAmountExpended: r.total_amount_expended,
         entityType: r.entity_type,
         isLowRiskAuditee: r.is_low_risk_auditee === 'Y',
+        facAcceptedDate: r.fac_accepted_date,
       })),
       findings: org.findings,
       totalReports: org.reports.length,
@@ -184,6 +187,16 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
 
   const sortedYears = Array.from(findingsByYear.keys()).sort().reverse();
 
+  // The management-decision clock is per audit REPORT, not per finding —
+  // every finding in one FY group came from the same report_id in the
+  // overwhelming common case (only a resubmission could split one FY
+  // across two reports, an edge case not worth restructuring the
+  // existing year-based grouping for). Look up each group's accepted
+  // date from its first finding's reportId.
+  const acceptedDateByReport = new Map(
+    org.auditHistory.map((ay) => [ay.reportId, ay.facAcceptedDate])
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -241,9 +254,12 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
         <div className="space-y-8">
           {sortedYears.map((year) => {
             const findings = findingsByYear.get(year) || [];
+            const reportId = findings[0]?.reportId;
+            const facAcceptedDate = reportId ? acceptedDateByReport.get(reportId) ?? null : null;
             return (
               <div key={year}>
                 <h2 className="text-xl font-bold text-gray-900 mb-4">FY {year}</h2>
+                <ManagementDecisionBlock facAcceptedDate={facAcceptedDate} />
                 <div className="space-y-4">
                   {findings.map((finding) => (
                     <div

@@ -47,6 +47,11 @@ export interface FacGeneral {
   total_amount_expended: number;
   entity_type: string;
   is_low_risk_auditee: string;
+  // Date the FAC accepted this submission — the event that starts the
+  // § 200.521(d) six-month management-decision clock. ISO date string
+  // ("YYYY-MM-DD"), confirmed against the live API 2026-08. Can be null
+  // on very recent/in-progress submissions the FAC hasn't accepted yet.
+  fac_accepted_date: string | null;
 }
 
 export interface FacFinding {
