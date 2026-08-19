@@ -30,6 +30,9 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Single Audit Intelligence</h1>
           <div className="space-x-4">
+            <Link href="/guide" className="text-blue-600 hover:text-blue-800 font-semibold">
+              Guide
+            </Link>
             <Link
               href="/auth/signin"
               className="text-blue-600 hover:text-blue-800 font-semibold"
@@ -201,6 +204,11 @@ export default function Home() {
                 <li>
                   <Link href="/" className="hover:text-white">
                     Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/guide" className="hover:text-white">
+                    Compliance guide
                   </Link>
                 </li>
                 <li>

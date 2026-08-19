@@ -48,17 +48,46 @@ export default async function sitemap({
     }));
 
   // Static pages ride along in the first chunk only, so they're not
-  // duplicated across every child sitemap. /about and /guide are left out
-  // deliberately — they don't exist yet (see app/page.tsx), and listing a
-  // URL that 404s is worse for SEO than not listing it. Add them back here
-  // once those pages exist.
-  if (id === 0) {
+  // duplicated across every child sitemap. /about doesn't exist yet — same
+  // reasoning as before, a 404'd sitemap URL is worse than an absent one.
+  //
+  // Number(id) rather than a bare === 0: Next's generateSitemaps() route
+  // segment can hand this function id as the string "0", not the number
+  // 0, depending on how the request resolves. A bare `id === 0` silently
+  // never matches in that case — the homepage/guide URLs were missing
+  // from the live sitemap since the very first version of this file and
+  // nothing errored, they just quietly never appeared.
+  if (Number(id) === 0) {
     return [
       {
         url: baseUrl,
         lastModified: new Date(),
         changeFrequency: 'daily',
         priority: 1.0,
+      },
+      {
+        url: `${baseUrl}/guide`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/guide/subrecipient-monitoring`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.9,
+      },
+      {
+        url: `${baseUrl}/guide/management-decisions`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.9,
+      },
+      {
+        url: `${baseUrl}/guide/compliance-calendar`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.9,
       },
       ...orgEntries,
     ];

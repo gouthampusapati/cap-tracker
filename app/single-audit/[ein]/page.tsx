@@ -71,6 +71,23 @@ function getCategoryColor(category: string): string {
   return categoryColors.Other;
 }
 
+// Findings whose category matches one of these keys link out to the
+// relevant compliance guide. Only Subrecipient Monitoring has a guide
+// today; add more entries here as more guides get written.
+const categoryGuides: Record<string, { href: string; label: string }> = {
+  'Subrecipient Monitoring': {
+    href: '/guide/subrecipient-monitoring',
+    label: 'What this requirement actually requires (2 CFR 200.332) →',
+  },
+};
+
+function getGuideLink(category: string): { href: string; label: string } | null {
+  for (const [key, guide] of Object.entries(categoryGuides)) {
+    if (category.includes(key)) return guide;
+  }
+  return null;
+}
+
 /**
  * Fetch straight from the FAC library — no self-referential HTTP call.
  *
@@ -172,9 +189,12 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-4">
+          <div className="mb-4 flex justify-between items-center">
             <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
               ← Back to home
+            </Link>
+            <Link href="/guide" className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
+              Compliance guide
             </Link>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{org.name}</h1>
@@ -279,13 +299,26 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
 
                       {/* Prior refs */}
                       {finding.priorRefs.length > 0 && (
-                        <div>
+                        <div className="mb-3">
                           <div className="text-xs font-semibold uppercase opacity-70 mb-1">
                             Prior Finding References
                           </div>
                           <p className="text-sm">{finding.priorRefs.join(', ')}</p>
                         </div>
                       )}
+
+                      {/* Guide link */}
+                      {(() => {
+                        const guide = getGuideLink(finding.category);
+                        return guide ? (
+                          <Link
+                            href={guide.href}
+                            className="text-sm underline font-semibold opacity-80 hover:opacity-100"
+                          >
+                            {guide.label}
+                          </Link>
+                        ) : null;
+                      })()}
                     </div>
                   ))}
                 </div>
