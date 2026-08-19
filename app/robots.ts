@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/auth/', '/dashboard/', '/.next/'],
       },
     ],
-    sitemap: `${process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com'}/sitemap.xml`,
+    sitemap: `${process.env.NEXT_PUBLIC_URL || 'https://singleauditintel.com'}/sitemap.xml`,
   };
 }
