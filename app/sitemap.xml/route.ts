@@ -1,4 +1,5 @@
 import { getSitemapChunkCount } from '@/lib/sitemap-orgs';
+import { SITE_URL } from '@/lib/site-url';
 
 // Same cadence as the child sitemaps in app/sitemap.ts — no reason for the
 // index to redeploy more often than the data behind it changes.
@@ -16,7 +17,7 @@ export const revalidate = 86400;
  * <sitemapindex>, not a 404.
  */
 export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com';
+  const baseUrl = SITE_URL;
   const chunkCount = getSitemapChunkCount();
   const lastmod = new Date().toISOString();
 

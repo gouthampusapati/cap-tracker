@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { importOrgByEin } from '@/lib/fac-api';
+import { SITE_URL } from '@/lib/site-url';
 
 // FAC data changes at most daily; re-fetch each page hourly.
 export const revalidate = 3600;
@@ -121,18 +122,27 @@ export async function generateMetadata(props: {
     };
   }
 
-  const title = `${org.name} - Single Audit | Federal Audit Clearinghouse`;
+  // Suffix used to read "| Federal Audit Clearinghouse", which in a search
+  // result reads as though the FAC published this page — the site footer
+  // already disclaims that affiliation, so the title was contradicting it.
+  const title = `${org.name} - Single Audit | Single Audit Intelligence`;
   const description = `Audit history and findings for ${org.name} (EIN: ${org.ein}). ${org.findingsCount} findings across ${org.totalReports} audits.`;
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com';
+  const canonicalUrl = `${SITE_URL}/single-audit/${org.ein}`;
 
   return {
     title,
     description,
+    alternates: {
+      // Pinned explicitly rather than left to Next's default inference, so
+      // the canonical tag can't drift from what the sitemap actually lists
+      // (see lib/site-url.ts for why that drift happened once already).
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `${baseUrl}/single-audit/${org.ein}`,
+      url: canonicalUrl,
     },
   };
 }

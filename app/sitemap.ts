@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getSitemapChunkCount, loadOrgEins, SITEMAP_CHUNK_SIZE } from '@/lib/sitemap-orgs';
+import { SITE_URL } from '@/lib/site-url';
 
 // FAC bulk data (data/fac-orgs.csv.gz) is refreshed at most daily by
 // scripts/ingest-fac-orgs.mjs; no need to regenerate these chunks more
@@ -34,7 +35,7 @@ export default async function sitemap({
 }: {
   id: number;
 }): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://www.singleauditintel.com';
+  const baseUrl = SITE_URL;
   const eins = loadOrgEins();
   const start = id * SITEMAP_CHUNK_SIZE;
   const orgEntries: MetadataRoute.Sitemap = eins
