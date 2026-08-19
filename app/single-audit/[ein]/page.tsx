@@ -411,7 +411,7 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
               Track your findings and corrective action plans across audit cycles.
             </p>
             <a
-              href="/auth/signin"
+              href={`/auth/signin?ein=${org.ein}`}
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →
@@ -425,8 +425,11 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <p className="text-sm text-green-800 mb-4">
               Monitor subrecipient audit findings and compliance status.
             </p>
+            {/* /portfolio, not sign-in — monitoring a subrecipient you
+                fund isn't "your org" (the dashboard is one org per
+                account), and /portfolio needs no account at all. */}
             <a
-              href="/auth/signin"
+              href={`/portfolio?eins=${org.ein}`}
               className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded"
             >
               Start monitoring →

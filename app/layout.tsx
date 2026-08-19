@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Providers } from './providers';
 import './globals.css';
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             event tracking (portfolio EIN counts, guide-vs-org click-through)
             lands with Task 4. */}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
