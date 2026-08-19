@@ -37,6 +37,9 @@ export default function Home() {
             <Link href="/guide" className="text-blue-600 hover:text-blue-800 font-semibold">
               Guide
             </Link>
+            <Link href="/portfolio" className="text-blue-600 hover:text-blue-800 font-semibold">
+              Portfolio
+            </Link>
             <Link
               href="/auth/signin"
               className="text-blue-600 hover:text-blue-800 font-semibold"

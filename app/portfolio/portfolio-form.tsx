@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PORTFOLIO_MAX_EINS } from '@/lib/portfolio';
+import { track } from '@vercel/analytics';
+import { PORTFOLIO_MAX_EINS, parseEinList } from '@/lib/portfolio';
+import { EVENT_PORTFOLIO_SUBMIT, bucketEinCount } from '@/lib/analytics-events';
 
 export default function PortfolioForm({ initialValue }: { initialValue: string }) {
   const [value, setValue] = useState(initialValue);
@@ -12,6 +14,15 @@ export default function PortfolioForm({ initialValue }: { initialValue: string }
     e.preventDefault();
     const trimmed = value.trim();
     if (!trimmed) return;
+
+    // The bucketed count, not the EINs themselves, is the signal the
+    // brief calls out: one EIN suggests a recipient looking up itself,
+    // twenty suggests a pass-through monitoring a portfolio.
+    const { eins } = parseEinList(trimmed);
+    if (eins.length > 0) {
+      track(EVENT_PORTFOLIO_SUBMIT, { einCountBucket: bucketEinCount(eins.length) });
+    }
+
     // Encoding the list into the URL is what makes results shareable —
     // a colleague can open the same link and see the same table.
     router.push(`/portfolio?eins=${encodeURIComponent(trimmed)}`);

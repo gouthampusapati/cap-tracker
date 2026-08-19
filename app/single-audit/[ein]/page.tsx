@@ -4,6 +4,9 @@ import { Metadata } from 'next';
 import { importOrgByEin } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
+import { getRequirementLink } from '@/lib/compliance-requirements';
+import { TrackedLink } from '@/app/tracked-link';
+import { EVENT_ORG_PAGE_CLICKTHROUGH } from '@/lib/analytics-events';
 
 // FAC data changes at most daily; re-fetch each page hourly.
 export const revalidate = 3600;
@@ -73,22 +76,6 @@ function getCategoryColor(category: string): string {
   return categoryColors.Other;
 }
 
-// Findings whose category matches one of these keys link out to the
-// relevant compliance guide. Only Subrecipient Monitoring has a guide
-// today; add more entries here as more guides get written.
-const categoryGuides: Record<string, { href: string; label: string }> = {
-  'Subrecipient Monitoring': {
-    href: '/guide/subrecipient-monitoring',
-    label: 'What this requirement actually requires (2 CFR 200.332) →',
-  },
-};
-
-function getGuideLink(category: string): { href: string; label: string } | null {
-  for (const [key, guide] of Object.entries(categoryGuides)) {
-    if (category.includes(key)) return guide;
-  }
-  return null;
-}
 
 /**
  * Fetch straight from the FAC library — no self-referential HTTP call.
@@ -206,9 +193,24 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
               ← Back to home
             </Link>
-            <Link href="/guide" className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-              Compliance guide
-            </Link>
+            <div className="space-x-4">
+              <TrackedLink
+                href="/guide"
+                event={EVENT_ORG_PAGE_CLICKTHROUGH}
+                eventData={{ destination: 'guide', source: 'header' }}
+                className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
+              >
+                Compliance guide
+              </TrackedLink>
+              <TrackedLink
+                href="/portfolio"
+                event={EVENT_ORG_PAGE_CLICKTHROUGH}
+                eventData={{ destination: 'portfolio', source: 'header' }}
+                className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
+              >
+                Portfolio
+              </TrackedLink>
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{org.name}</h1>
           <div className="text-gray-600 space-y-1">
@@ -323,16 +325,20 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
                         </div>
                       )}
 
-                      {/* Guide link */}
+                      {/* Requirement link — every finding links to its
+                          type_requirement letter's explanation, not just
+                          Subrecipient Monitoring findings. */}
                       {(() => {
-                        const guide = getGuideLink(finding.category);
-                        return guide ? (
-                          <Link
-                            href={guide.href}
+                        const link = getRequirementLink(finding.typeRequirement);
+                        return link ? (
+                          <TrackedLink
+                            href={link.href}
+                            event={EVENT_ORG_PAGE_CLICKTHROUGH}
+                            eventData={{ destination: 'guide', source: 'finding' }}
                             className="text-sm underline font-semibold opacity-80 hover:opacity-100"
                           >
-                            {guide.label}
-                          </Link>
+                            {link.label}
+                          </TrackedLink>
                         ) : null;
                       })()}
                     </div>

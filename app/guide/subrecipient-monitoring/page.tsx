@@ -197,6 +197,17 @@ export default function SubrecipientMonitoringGuide() {
           </p>
         </div>
 
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <p className="text-sm text-blue-900">
+            Monitoring more than one subrecipient?{' '}
+            <Link href="/portfolio" className="underline font-semibold hover:text-blue-700">
+              The portfolio view
+            </Link>{' '}
+            shows findings, repeat-finding counts, and management-decision deadlines across a
+            list of EINs at once — paste your subrecipients' EINs to see them all in one table.
+          </p>
+        </div>
+
         <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 mb-6">
           <p className="text-sm text-gray-700">
             <strong>Not legal advice.</strong> This page explains the regulation in plain language

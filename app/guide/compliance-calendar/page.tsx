@@ -153,7 +153,11 @@ export default function ComplianceCalendarPage() {
             >
               Management Decision Deadlines (§ 200.521)
             </Link>
-            .
+            . Tracking these dates across more than one organization? The{' '}
+            <Link href="/portfolio" className="underline font-semibold hover:text-blue-700">
+              portfolio view
+            </Link>{' '}
+            computes them for a whole pasted list of EINs at once.
           </p>
         </div>
 

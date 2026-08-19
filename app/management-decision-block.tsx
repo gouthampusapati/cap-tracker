@@ -1,8 +1,9 @@
-import Link from 'next/link';
 import {
   computeManagementDecisionDeadline,
   type ManagementDecisionState,
 } from '@/lib/management-decision';
+import { TrackedLink } from '@/app/tracked-link';
+import { EVENT_ORG_PAGE_CLICKTHROUGH } from '@/lib/analytics-events';
 
 const stateStyles: Record<ManagementDecisionState, string> = {
   // Neutral, informational — not urgent, not alarming.
@@ -52,12 +53,14 @@ export function ManagementDecisionBlock({ facAcceptedDate }: { facAcceptedDate: 
         <strong>{formatDate(deadlineLabel)}</strong>
         {state === 'past' ? ', which was' : ''} ({timing}).
       </p>
-      <Link
+      <TrackedLink
         href="/guide/management-decisions"
+        event={EVENT_ORG_PAGE_CLICKTHROUGH}
+        eventData={{ destination: 'guide', source: 'management_decision_block' }}
         className="text-sm underline font-semibold opacity-90 hover:opacity-100"
       >
         What is a management decision? →
-      </Link>
+      </TrackedLink>
     </div>
   );
 }

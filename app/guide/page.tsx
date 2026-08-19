@@ -20,6 +20,12 @@ export const metadata: Metadata = {
 
 const guides = [
   {
+    href: '/guide/compliance-requirements',
+    title: 'Compliance Requirements (A–N)',
+    description:
+      "What each compliance requirement letter on a Single Audit finding means — every finding on this site links here for its category, letter by letter.",
+  },
+  {
     href: '/guide/subrecipient-monitoring',
     title: 'Subrecipient Monitoring (2 CFR 200.332)',
     description:
@@ -69,6 +75,14 @@ export default function GuideIndexPage() {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
+          <p className="text-sm text-blue-900 mb-3">
+            Looking at more than one organization?{' '}
+            <Link href="/portfolio" className="underline font-semibold hover:text-blue-700">
+              The portfolio view
+            </Link>{' '}
+            shows findings and management-decision deadlines across a pasted list of EINs at
+            once — no login required.
+          </p>
           <p className="text-sm text-blue-900">
             These guides explain regulatory obligations under 2 CFR 200 (the OMB Uniform
             Guidance). They are independent explanations, not legal advice and not an official

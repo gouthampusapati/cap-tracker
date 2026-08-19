@@ -137,6 +137,16 @@ export default function ManagementDecisionsGuide() {
           </p>
         </div>
 
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+          <p className="text-sm text-blue-900">
+            Tracking this deadline across more than one organization?{' '}
+            <Link href="/portfolio" className="underline font-semibold hover:text-blue-700">
+              The portfolio view
+            </Link>{' '}
+            sorts a pasted list of EINs by soonest management-decision deadline first.
+          </p>
+        </div>
+
         <div className="bg-gray-100 border border-gray-200 rounded-lg p-6 mb-6">
           <p className="text-sm text-gray-700">
             <strong>Not legal advice.</strong> Verify against{' '}

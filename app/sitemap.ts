@@ -89,6 +89,18 @@ export default async function sitemap({
         changeFrequency: 'monthly',
         priority: 0.9,
       },
+      {
+        url: `${baseUrl}/guide/compliance-requirements`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.9,
+      },
+      {
+        url: `${baseUrl}/portfolio`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      },
       ...orgEntries,
     ];
   }
