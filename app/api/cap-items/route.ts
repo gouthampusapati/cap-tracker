@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
-
-const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
-const sqlite = new Database(dbPath);
+import { eq, desc } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { capItems } from '@/lib/db/schema';
+import { serializeCapItem } from '@/lib/db/serialize';
 
 /**
  * GET /api/cap-items?findingId=X
@@ -21,11 +21,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const items = sqlite
-      .prepare('SELECT * FROM cap_items WHERE finding_id = ? ORDER BY created_at DESC')
-      .all(findingId) as Array<any>;
+    const items = await db
+      .select()
+      .from(capItems)
+      .where(eq(capItems.findingId, findingId))
+      .orderBy(desc(capItems.createdAt));
 
-    return NextResponse.json(items, { status: 200 });
+    return NextResponse.json(items.map(serializeCapItem), { status: 200 });
   } catch (error) {
     console.error('Error fetching CAP items:', error);
     return NextResponse.json(
@@ -51,26 +53,23 @@ export async function POST(req: NextRequest) {
     }
 
     const id = randomUUID();
-    const now = Date.now();
+    const now = new Date();
 
-    sqlite.prepare(`
-      INSERT INTO cap_items (id, finding_id, description, owner, due_date, status, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    await db.insert(capItems).values({
       id,
       findingId,
-      description || '',
-      owner || '',
-      dueDate ? new Date(dueDate).getTime() : null,
-      status || 'open',
-      notes || '',
-      now,
-      now
-    );
+      description: description || '',
+      owner: owner || '',
+      dueDate: dueDate ? new Date(dueDate) : null,
+      status: status || 'open',
+      notes: notes || '',
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    const item = sqlite.prepare('SELECT * FROM cap_items WHERE id = ?').get(id);
+    const [item] = await db.select().from(capItems).where(eq(capItems.id, id)).limit(1);
 
-    return NextResponse.json(item, { status: 201 });
+    return NextResponse.json(serializeCapItem(item), { status: 201 });
   } catch (error) {
     console.error('Error creating CAP item:', error);
     return NextResponse.json(

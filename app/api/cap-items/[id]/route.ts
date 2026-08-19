@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
-
-const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
-const sqlite = new Database(dbPath);
+import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { capItems } from '@/lib/db/schema';
+import { serializeCapItem } from '@/lib/db/serialize';
 
 /**
  * PATCH /api/cap-items/:id
@@ -16,51 +16,27 @@ export async function PATCH(
     const { id } = await params;
     const { owner, dueDate, status, notes, description } = await req.json();
 
-    const now = Date.now();
-    const updates: string[] = [];
-    const values: any[] = [];
+    const updates: Partial<typeof capItems.$inferInsert> = { updatedAt: new Date() };
 
-    if (owner !== undefined) {
-      updates.push('owner = ?');
-      values.push(owner);
-    }
-    if (dueDate !== undefined) {
-      updates.push('due_date = ?');
-      values.push(dueDate ? new Date(dueDate).getTime() : null);
-    }
-    if (status !== undefined) {
-      updates.push('status = ?');
-      values.push(status);
-    }
-    if (notes !== undefined) {
-      updates.push('notes = ?');
-      values.push(notes);
-    }
-    if (description !== undefined) {
-      updates.push('description = ?');
-      values.push(description);
-    }
+    if (owner !== undefined) updates.owner = owner;
+    if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
+    if (status !== undefined) updates.status = status;
+    if (notes !== undefined) updates.notes = notes;
+    if (description !== undefined) updates.description = description;
 
-    if (updates.length === 0) {
+    if (Object.keys(updates).length === 1) {
+      // Only updatedAt got set — none of the actual fields were present.
       return NextResponse.json(
         { error: 'No fields to update' },
         { status: 400 }
       );
     }
 
-    updates.push('updated_at = ?');
-    values.push(now);
-    values.push(id);
+    await db.update(capItems).set(updates).where(eq(capItems.id, id));
 
-    sqlite.prepare(`
-      UPDATE cap_items
-      SET ${updates.join(', ')}
-      WHERE id = ?
-    `).run(...values);
+    const [item] = await db.select().from(capItems).where(eq(capItems.id, id)).limit(1);
 
-    const item = sqlite.prepare('SELECT * FROM cap_items WHERE id = ?').get(id);
-
-    return NextResponse.json(item, { status: 200 });
+    return NextResponse.json(serializeCapItem(item), { status: 200 });
   } catch (error) {
     console.error('Error updating CAP item:', error);
     return NextResponse.json(
@@ -81,7 +57,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    sqlite.prepare('DELETE FROM cap_items WHERE id = ?').run(id);
+    await db.delete(capItems).where(eq(capItems.id, id));
 
     return NextResponse.json(
       { success: true, message: 'CAP item deleted' },

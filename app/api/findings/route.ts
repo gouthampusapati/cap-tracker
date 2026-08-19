@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
-
-const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
-const sqlite = new Database(dbPath);
+import { eq, desc, asc, inArray } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { users, auditYears, findings, capItems } from '@/lib/db/schema';
+import { serializeCapItem } from '@/lib/db/serialize';
 
 /**
  * GET /api/findings?email=...
@@ -17,43 +17,63 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
     }
 
-    const user = sqlite
-      .prepare('SELECT id, org_name FROM users WHERE email = ?')
-      .get(email) as { id: string; org_name: string } | undefined;
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
     if (!user) return NextResponse.json([]);
 
-    const cols = sqlite
-      .prepare("PRAGMA table_info('findings')")
-      .all() as Array<{ name: string }>;
-    const hasPlannedAction = cols.some((c) => c.name === 'planned_action');
+    const rows = await db
+      .select({
+        id: findings.id,
+        facFindingId: findings.facFindingId,
+        reportId: findings.facReportId,
+        auditYear: auditYears.fiscalYearEnd,
+        category: findings.category,
+        description: findings.description,
+        plannedAction: findings.plannedAction,
+        questionedCosts: findings.questionedCosts,
+        isRepeatFinding: findings.isRepeatFinding,
+        priorFindingRefs: findings.priorFindingRefs,
+      })
+      .from(findings)
+      .innerJoin(auditYears, eq(auditYears.id, findings.auditYearId))
+      .where(eq(auditYears.userId, user.id))
+      .orderBy(desc(auditYears.fiscalYearEnd), asc(findings.facFindingId));
 
-    const rows = sqlite
-      .prepare(
-        `SELECT f.*, ay.fiscal_year_end, ay.fac_report_id AS report_id
-           FROM findings f
-           JOIN audit_years ay ON ay.id = f.audit_year_id
-          WHERE ay.user_id = ?
-       ORDER BY ay.fiscal_year_end DESC, f.fac_finding_id ASC`
-      )
-      .all(user.id) as Array<any>;
+    // One batched IN query for every finding's CAP items rather than a
+    // query per finding — same result shape as before, fewer round trips.
+    const findingIds = rows.map((r) => r.id);
+    const capRows = findingIds.length
+      ? await db
+          .select()
+          .from(capItems)
+          .where(inArray(capItems.findingId, findingIds))
+          .orderBy(desc(capItems.createdAt))
+      : [];
 
-    const capStmt = sqlite.prepare(
-      'SELECT * FROM cap_items WHERE finding_id = ? ORDER BY created_at DESC'
-    );
+    const capByFinding = new Map<string, ReturnType<typeof serializeCapItem>[]>();
+    for (const c of capRows) {
+      const serialized = serializeCapItem(c);
+      const list = capByFinding.get(c.findingId) ?? [];
+      list.push(serialized);
+      capByFinding.set(c.findingId, list);
+    }
 
     const result = rows.map((f) => ({
       id: f.id,
-      facFindingId: f.fac_finding_id,
-      reportId: f.report_id,
-      auditYear: f.fiscal_year_end,
+      facFindingId: f.facFindingId,
+      reportId: f.reportId,
+      auditYear: f.auditYear,
       category: f.category,
       description: f.description,
-      plannedAction: hasPlannedAction ? f.planned_action || '' : '',
-      questionedCosts: f.questioned_costs,
-      isRepeatFinding: !!f.is_repeat_finding,
-      priorRefs: f.prior_finding_refs ? JSON.parse(f.prior_finding_refs) : [],
-      capItems: capStmt.all(f.id),
+      plannedAction: f.plannedAction || '',
+      questionedCosts: f.questionedCosts,
+      isRepeatFinding: !!f.isRepeatFinding,
+      priorRefs: f.priorFindingRefs ? JSON.parse(f.priorFindingRefs) : [],
+      capItems: capByFinding.get(f.id) || [],
     }));
 
     return NextResponse.json(result);

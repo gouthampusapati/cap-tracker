@@ -1,30 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
+import { eq } from 'drizzle-orm';
 import { importOrgByEin } from '@/lib/fac-api';
-
-const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
-const sqlite = new Database(dbPath);
-
-/**
- * `planned_action` (the auditee's own CAP narrative from FAC) and
- * `fac_report_id` were added after the original schema. Add them if the
- * existing database predates them. SQLite has no "ADD COLUMN IF NOT
- * EXISTS", so check PRAGMA first.
- */
-function ensureColumns() {
-  const cols = sqlite
-    .prepare("PRAGMA table_info('findings')")
-    .all() as Array<{ name: string }>;
-  const names = new Set(cols.map((c) => c.name));
-
-  if (!names.has('planned_action')) {
-    sqlite.exec('ALTER TABLE findings ADD COLUMN planned_action TEXT');
-  }
-  if (!names.has('fac_report_id')) {
-    sqlite.exec('ALTER TABLE findings ADD COLUMN fac_report_id TEXT');
-  }
-}
+import { db } from '@/lib/db';
+import { users, auditYears, findings } from '@/lib/db/schema';
 
 /**
  * POST /api/import
@@ -56,8 +35,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    ensureColumns();
-
     const org = await importOrgByEin(ein);
 
     if (!org) {
@@ -71,76 +48,64 @@ export async function POST(req: NextRequest) {
     }
 
     // Get or create the user, and attach the org details we just learned.
-    const existing = sqlite
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .get(email) as { id: string } | undefined;
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
     let userId: string;
     if (existing) {
       userId = existing.id;
-      sqlite
-        .prepare('UPDATE users SET ein = ?, org_name = ? WHERE id = ?')
-        .run(ein, org.name, userId);
+      await db.update(users).set({ ein, orgName: org.name }).where(eq(users.id, userId));
     } else {
       userId = randomUUID();
-      sqlite
-        .prepare(
-          `INSERT INTO users (id, email, ein, org_name, created_at)
-           VALUES (?, ?, ?, ?, ?)`
-        )
-        .run(userId, email, ein, org.name, Date.now());
+      await db.insert(users).values({ id: userId, email, ein, orgName: org.name, createdAt: new Date() });
     }
 
-    const auditYearStmt = sqlite.prepare(`
-      INSERT OR REPLACE INTO audit_years
-        (id, user_id, ein, fiscal_year_end, fac_report_id, raw_fac_data, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
+    const now = new Date();
 
-    const findingStmt = sqlite.prepare(`
-      INSERT OR REPLACE INTO findings
-        (id, audit_year_id, fac_finding_id, fac_report_id, category, description,
-         planned_action, questioned_costs, is_repeat_finding, prior_finding_refs, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const now = Date.now();
-
-    const write = sqlite.transaction(() => {
+    await db.transaction(async (tx) => {
       // One audit_years row per FAC report, keyed on report_id so a
       // re-import replaces rather than duplicates.
       for (const report of org.reports) {
-        auditYearStmt.run(
-          `ay_${report.report_id}`,
+        const values = {
+          id: `ay_${report.report_id}`,
           userId,
           ein,
-          report.fy_end_date,
-          report.report_id,
-          JSON.stringify(report),
-          now
-        );
+          fiscalYearEnd: report.fy_end_date,
+          facReportId: report.report_id,
+          rawFacData: JSON.stringify(report),
+          createdAt: now,
+        };
+        await tx
+          .insert(auditYears)
+          .values(values)
+          .onConflictDoUpdate({ target: auditYears.id, set: values });
       }
 
       for (const f of org.findings) {
-        findingStmt.run(
-          `${f.reportId}::${f.facFindingId}`,
-          `ay_${f.reportId}`,
-          f.facFindingId,
-          f.reportId,
-          f.category,
-          f.description,
-          f.plannedAction,
+        const values = {
+          id: `${f.reportId}::${f.facFindingId}`,
+          auditYearId: `ay_${f.reportId}`,
+          facFindingId: f.facFindingId,
+          facReportId: f.reportId,
+          category: f.category,
+          description: f.description,
+          plannedAction: f.plannedAction,
           // FAC only exposes a Y/N flag, not an amount. Store null rather
           // than inventing a number; the UI shows a flag instead.
-          null,
-          f.isRepeatFinding ? 1 : 0,
-          JSON.stringify(f.priorRefs),
-          now
-        );
+          questionedCosts: null,
+          isRepeatFinding: f.isRepeatFinding,
+          priorFindingRefs: JSON.stringify(f.priorRefs),
+          createdAt: now,
+        };
+        await tx
+          .insert(findings)
+          .values(values)
+          .onConflictDoUpdate({ target: findings.id, set: values });
       }
     });
-
-    write();
 
     return NextResponse.json({
       success: true,

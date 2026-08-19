@@ -23,8 +23,19 @@ export const findings = sqliteTable('findings', {
   id: text('id').primaryKey(),
   auditYearId: text('audit_year_id').notNull(),
   facFindingId: text('fac_finding_id'),
+  // The FAC report this finding came from — distinct from audit_years.id
+  // (an internal row id) and duplicating audit_years.fac_report_id, kept
+  // directly on the finding so /api/findings can select it without
+  // depending on the join. Previously added via a runtime ALTER TABLE in
+  // app/api/import/route.ts because it was never added here; that hack is
+  // gone now that it's part of the schema.
+  facReportId: text('fac_report_id'),
   category: text('category'),
   description: text('description').notNull(),
+  // The auditee's own corrective action plan narrative, as submitted to
+  // the FAC. Same history as fac_report_id above — was runtime-patched
+  // in, now part of the schema.
+  plannedAction: text('planned_action'),
   questionedCosts: real('questioned_costs'),
   isRepeatFinding: integer('is_repeat_finding', { mode: 'boolean' }).default(false),
   priorFindingRefs: text('prior_finding_refs'), // JSON array

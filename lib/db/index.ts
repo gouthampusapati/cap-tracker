@@ -1,88 +1,29 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 import * as schema from './schema';
 
-const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
-let sqlite: Database.Database;
+/**
+ * DATABASE_URL selects the backend by scheme, so local dev and production
+ * use the exact same code path:
+ *   - "file:cap-tracker.db"        local SQLite file (default if unset)
+ *   - "libsql://<db>.turso.io"     hosted Turso database (needs TURSO_AUTH_TOKEN)
+ *
+ * Why libsql/Turso and not a plain local SQLite file in production: Vercel's
+ * serverless functions have a read-only filesystem outside /tmp, and /tmp is
+ * wiped between invocations. A local .db file works fine on a normal server
+ * (which is what this app originally targeted — see DEPLOY.md, written for
+ * Railway) but throws SQLITE_CANTOPEN on Vercel, and even /tmp would silently
+ * lose data between cold starts. libSQL is wire-compatible with SQLite and
+ * Drizzle's schema/query code is unchanged — only this client construction
+ * differs from a plain better-sqlite3 setup.
+ */
+const url = process.env.DATABASE_URL || 'file:cap-tracker.db';
+const authToken = process.env.TURSO_AUTH_TOKEN;
 
-try {
-  sqlite = new Database(dbPath);
-  sqlite.pragma('journal_mode = WAL');
-} catch (e) {
-  console.warn('SQLite failed to initialize, using fallback');
-  sqlite = new Database(':memory:');
-}
+const client = createClient(authToken ? { url, authToken } : { url });
 
-export const db = drizzle(sqlite, { schema });
+export const db = drizzle(client, { schema });
 
-// Initialize tables
-function initializeTables() {
-  try {
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE,
-        ein TEXT,
-        org_name TEXT,
-        created_at INTEGER NOT NULL,
-        last_login INTEGER
-      );
-
-      CREATE TABLE IF NOT EXISTS audit_years (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        ein TEXT NOT NULL,
-        fiscal_year_end TEXT,
-        fac_report_id TEXT,
-        raw_fac_data TEXT,
-        created_at INTEGER NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS findings (
-        id TEXT PRIMARY KEY,
-        audit_year_id TEXT NOT NULL,
-        fac_finding_id TEXT,
-        category TEXT,
-        description TEXT NOT NULL,
-        questioned_costs REAL,
-        is_repeat_finding INTEGER DEFAULT 0,
-        prior_finding_refs TEXT,
-        created_at INTEGER NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS cap_items (
-        id TEXT PRIMARY KEY,
-        finding_id TEXT NOT NULL,
-        description TEXT NOT NULL,
-        owner TEXT,
-        due_date INTEGER,
-        status TEXT DEFAULT 'open',
-        notes TEXT,
-        drafted_narrative TEXT,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      );
-
-      CREATE TABLE IF NOT EXISTS magic_link_tokens (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL,
-        token TEXT NOT NULL UNIQUE,
-        expires_at INTEGER NOT NULL,
-        used_at INTEGER
-      );
-
-      CREATE TABLE IF NOT EXISTS reminders (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        cap_item_id TEXT,
-        days_before_due INTEGER,
-        enabled INTEGER DEFAULT 0
-      );
-    `);
-    console.log('✓ Database tables initialized');
-  } catch (error) {
-    console.error('Failed to initialize tables:', error);
-  }
-}
-
-initializeTables();
+// Table creation is handled by `npx drizzle-kit push` (see drizzle.config.ts),
+// not at runtime. A remote database shouldn't have every cold serverless
+// start racing to CREATE TABLE IF NOT EXISTS against it.

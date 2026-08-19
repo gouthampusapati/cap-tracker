@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
+import { eq } from 'drizzle-orm';
 import { mockFindings } from '@/lib/fac-mock-data';
-
-const dbPath = process.env.DATABASE_URL || 'cap-tracker.db';
-const sqlite = new Database(dbPath);
+import { db } from '@/lib/db';
+import { users, auditYears, findings } from '@/lib/db/schema';
 
 /**
  * Load sample FAC data for testing
@@ -23,79 +22,69 @@ export async function POST(req: NextRequest) {
     }
 
     // Get or create user
-    const userQuery = sqlite.prepare(
-      'SELECT id FROM users WHERE email = ?'
-    );
-    let user = userQuery.get(email) as { id: string } | undefined;
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
     let userId: string;
-    if (!user) {
+    if (!existing) {
       userId = randomUUID();
-      const insertUser = sqlite.prepare(`
-        INSERT INTO users (id, email, ein, org_name, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-      insertUser.run(
-        userId,
+      await db.insert(users).values({
+        id: userId,
         email,
         ein,
-        `Organization ${ein}`,
-        Date.now()
-      );
+        orgName: `Organization ${ein}`,
+        createdAt: new Date(),
+      });
     } else {
-      userId = user.id;
+      userId = existing.id;
     }
-
-    // Create audit year record
-    const auditYearStmt = sqlite.prepare(`
-      INSERT OR IGNORE INTO audit_years
-        (id, user_id, ein, fiscal_year_end, fac_report_id, raw_fac_data, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    // Insert findings (with deduplication)
-    const findingStmt = sqlite.prepare(`
-      INSERT OR REPLACE INTO findings
-        (id, audit_year_id, fac_finding_id, category, description, questioned_costs, is_repeat_finding, prior_finding_refs, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
 
     let insertedCount = 0;
     const auditYearMap: { [key: string]: string } = {};
 
     for (const finding of mockFindings) {
-      const fiscal_year = finding.auditYear;
+      const fiscalYear = finding.auditYear;
 
       // Create audit year if not exists
-      if (!auditYearMap[fiscal_year]) {
+      if (!auditYearMap[fiscalYear]) {
         const auditYearId = `ay_${Date.now()}_${Math.random()}`;
-        auditYearStmt.run(
-          auditYearId,
-          userId,
-          ein,
-          fiscal_year,
-          `FAC-${fiscal_year}`,
-          JSON.stringify({ source: 'mock', finding_id: finding.facFindingId }),
-          Date.now()
-        );
-        auditYearMap[fiscal_year] = auditYearId;
+        await db
+          .insert(auditYears)
+          .values({
+            id: auditYearId,
+            userId,
+            ein,
+            fiscalYearEnd: fiscalYear,
+            facReportId: `FAC-${fiscalYear}`,
+            rawFacData: JSON.stringify({ source: 'mock', finding_id: finding.facFindingId }),
+            createdAt: new Date(),
+          })
+          .onConflictDoNothing();
+        auditYearMap[fiscalYear] = auditYearId;
       }
 
-      const auditYearId = auditYearMap[fiscal_year];
+      const auditYearId = auditYearMap[fiscalYear];
       // Use stable ID based on audit year and finding ID to avoid duplicates
       const findingId = `${auditYearId}-${finding.facFindingId}`;
 
-      findingStmt.run(
-        findingId,
+      const values = {
+        id: findingId,
         auditYearId,
-        finding.facFindingId,
-        finding.category,
-        finding.description,
-        finding.questionedCosts || 0,
-        finding.isRepeatFinding ? 1 : 0,
-        JSON.stringify(finding.priorRefs),
-        Date.now()
-      );
+        facFindingId: finding.facFindingId,
+        category: finding.category,
+        description: finding.description,
+        questionedCosts: finding.questionedCosts || 0,
+        isRepeatFinding: finding.isRepeatFinding,
+        priorFindingRefs: JSON.stringify(finding.priorRefs),
+        createdAt: new Date(),
+      };
+      await db
+        .insert(findings)
+        .values(values)
+        .onConflictDoUpdate({ target: findings.id, set: values });
       insertedCount++;
     }
 
