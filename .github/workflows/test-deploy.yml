@@ -6,6 +6,17 @@ on:
   pull_request:
     branches: [main, develop]
 
+# BetaHuhn/deploy-to-vercel-action uses GITHUB_TOKEN to record a GitHub
+# Deployment + deployment status (and, on a PR, to add the PR_LABELS
+# label). The default token this repo issues is read-only, which fails
+# with "Resource not accessible by integration" — grant just what the
+# action needs.
+permissions:
+  contents: read
+  deployments: write
+  statuses: write
+  pull-requests: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
