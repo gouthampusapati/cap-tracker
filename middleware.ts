@@ -17,6 +17,19 @@ export function middleware(req: NextRequest) {
     req.headers.get('x-real-ip') ||
     'unknown';
 
+  // TEMPORARY diagnostic: identify what's been discovering a new EIN on
+  // /single-audit/[ein] every ~5s (see 05d0c7f / the 86.6% error-rate
+  // investigation) — Vercel's log stream doesn't include request headers
+  // by default, so there was no way to see the User-Agent any other way.
+  // Remove once the source is confirmed (matters concretely: Googlebot
+  // ignores the Crawl-delay just added to robots.ts, so if it's
+  // Googlebot we need Search Console instead, not a robots.txt change).
+  if (req.nextUrl.pathname.startsWith('/single-audit/')) {
+    console.log(
+      `[crawler-diagnostic] ${ip} UA="${req.headers.get('user-agent') || 'none'}" ${req.nextUrl.pathname}`
+    );
+  }
+
   // Only an actual submission (?eins=...) costs FAC calls — visiting the
   // bare /portfolio form is free, so it isn't worth limiting and doing so
   // would make a shared link look broken after a few opens.
