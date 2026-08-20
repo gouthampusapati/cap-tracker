@@ -3,11 +3,18 @@
 import { useState } from 'react';
 
 /**
- * Shared inline email-capture form, replacing every CTA that used to
- * point at /auth/signin for a private workspace with no real onboarding
- * yet — see the UI/branding overhaul plan, Phase 1.5. Always-visible
- * (email input + submit button), not a hide/reveal toggle — matches the
- * site's "precise, institutional" tone better than a trick interaction.
+ * Shared inline email-capture form for lower-intent, unqualified
+ * visitors — the general public landing on the homepage, not signed in,
+ * not self-identified as anything in particular. See the UI/branding
+ * overhaul plan, Phase 1.5. Always-visible (email input + submit
+ * button), not a hide/reveal toggle — matches the site's "precise,
+ * institutional" tone better than a trick interaction.
+ *
+ * Deliberately NOT used for the org page's "Are you this organization?"
+ * CTA — someone confirming they ARE the org is a qualified early user
+ * worth routing straight into the real (if early) product for actual
+ * usage feedback, not a name on a waitlist. See
+ * app/single-audit/[ein]/page.tsx.
  *
  * `source` must be one of the values app/api/waitlist/route.ts's
  * VALID_SOURCES allowlist accepts — keep the two in sync when adding a
@@ -19,7 +26,7 @@ export function WaitlistForm({
   ctaLabel = 'Notify me',
   className = '',
 }: {
-  source: 'homepage-recipients' | 'homepage-passthroughs' | 'homepage-cta-band' | 'org-page-are-you-this-org';
+  source: 'homepage-recipients' | 'homepage-cta-band';
   ein?: string;
   ctaLabel?: string;
   className?: string;

@@ -6,7 +6,6 @@ import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
 import { TrackedLink } from '@/app/tracked-link';
 import { EVENT_ORG_PAGE_CLICKTHROUGH } from '@/lib/analytics-events';
-import { WaitlistForm } from '@/app/waitlist-form';
 import { FindingCard } from './finding-card';
 import { HashExpand } from './hash-expand';
 import { SeverityFilter } from './severity-filter';
@@ -424,12 +423,22 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
               Are you this organization?
             </h3>
             <p className="text-sm text-blue-800 mb-4">
-              Track your findings and corrective action plans across audit cycles.
+              Try tracking your findings and corrective action plans today — we're actively
+              building this out and want your input on what an organization like yours actually
+              needs.
             </p>
-            {/* Waitlist, not sign-in — there's no real onboarding behind
-                /auth/signin yet, and a CTA that leads nowhere useful costs
-                more trust than it earns clicks. */}
-            <WaitlistForm source="org-page-are-you-this-org" ein={org.ein} ctaLabel="Notify me" />
+            {/* Sign-in, not the waitlist — someone confirming they ARE this
+                organization is exactly the qualified early user worth
+                getting into the real (if early) product now, for actual
+                usage feedback rather than a name on a list. The homepage's
+                CTAs stay on the waitlist since that's a lower-intent,
+                unqualified audience. */}
+            <a
+              href={`/auth/signin?ein=${org.ein}`}
+              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
+            >
+              Start tracking findings →
+            </a>
           </div>
 
           <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-300 rounded-lg p-6">

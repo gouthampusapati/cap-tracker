@@ -15,12 +15,12 @@ import { waitlistSignups } from '@/lib/db/schema';
 
 // Kept in sync with every <WaitlistForm source="..."> call site — reject
 // anything else rather than let arbitrary strings into the source column.
-const VALID_SOURCES = [
-  'homepage-recipients',
-  'homepage-passthroughs',
-  'homepage-cta-band',
-  'org-page-are-you-this-org',
-] as const;
+// The org page's "Are you this organization?" CTA deliberately does NOT
+// use this — someone confirming they ARE the org is a qualified early
+// user worth routing straight into the real (if early) product for
+// actual usage feedback, not a waitlist signup. See
+// app/single-audit/[ein]/page.tsx.
+const VALID_SOURCES = ['homepage-recipients', 'homepage-cta-band'] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
