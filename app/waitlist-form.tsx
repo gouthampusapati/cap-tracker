@@ -3,18 +3,20 @@
 import { useState } from 'react';
 
 /**
- * Shared inline email-capture form for lower-intent, unqualified
- * visitors — the general public landing on the homepage, not signed in,
- * not self-identified as anything in particular. See the UI/branding
- * overhaul plan, Phase 1.5. Always-visible (email input + submit
- * button), not a hide/reveal toggle — matches the site's "precise,
- * institutional" tone better than a trick interaction.
+ * Shared inline email-capture form. See the UI/branding overhaul plan,
+ * Phase 1.5. Always-visible (email input + submit button), not a
+ * hide/reveal toggle — matches the site's "precise, institutional" tone
+ * better than a trick interaction.
  *
- * Deliberately NOT used for the org page's "Are you this organization?"
- * CTA — someone confirming they ARE the org is a qualified early user
- * worth routing straight into the real (if early) product for actual
- * usage feedback, not a name on a waitlist. See
- * app/single-audit/[ein]/page.tsx.
+ * The goal is real first users giving feedback through actual product
+ * usage, not a list of names to follow up with later — so every CTA
+ * that could plausibly identify a real recipient or pass-through
+ * organization (the org page's "Are you this organization?", the
+ * homepage's "For Recipients"/"For Pass-Throughs" cards) links straight
+ * into sign-in or /portfolio instead of using this form. This is left
+ * for the one CTA that's genuinely just capturing general interest —
+ * the homepage's closing "join the waitlist" band, for a visitor who
+ * hasn't identified as anything in particular yet.
  *
  * `source` must be one of the values app/api/waitlist/route.ts's
  * VALID_SOURCES allowlist accepts — keep the two in sync when adding a
@@ -26,7 +28,7 @@ export function WaitlistForm({
   ctaLabel = 'Notify me',
   className = '',
 }: {
-  source: 'homepage-recipients' | 'homepage-cta-band';
+  source: 'homepage-cta-band';
   ein?: string;
   ctaLabel?: string;
   className?: string;

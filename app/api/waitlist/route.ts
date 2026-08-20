@@ -3,10 +3,10 @@ import { db } from '@/lib/db';
 import { waitlistSignups } from '@/lib/db/schema';
 
 /**
- * Public endpoint backing every CTA that used to point at /auth/signin
- * for a private workspace with no real onboarding yet (see the UI/
- * branding overhaul plan, Phase 1.5). Collects an email + which CTA it
- * came from, nothing else — no account, no session, no redirect.
+ * Public endpoint backing the one CTA that's genuinely just capturing
+ * general interest (see the UI/branding overhaul plan, Phase 1.5).
+ * Collects an email + which CTA it came from, nothing else — no
+ * account, no session, no redirect.
  *
  * Rate-limited per IP in middleware.ts (lib/rate-limit.ts's
  * isWaitlistRateLimited) — this doesn't touch FAC, so the limit here is
@@ -15,12 +15,14 @@ import { waitlistSignups } from '@/lib/db/schema';
 
 // Kept in sync with every <WaitlistForm source="..."> call site — reject
 // anything else rather than let arbitrary strings into the source column.
-// The org page's "Are you this organization?" CTA deliberately does NOT
-// use this — someone confirming they ARE the org is a qualified early
-// user worth routing straight into the real (if early) product for
-// actual usage feedback, not a waitlist signup. See
-// app/single-audit/[ein]/page.tsx.
-const VALID_SOURCES = ['homepage-recipients', 'homepage-cta-band'] as const;
+// Every CTA that could plausibly identify a real recipient or
+// pass-through org (org page's "Are you this organization?", homepage's
+// "For Recipients"/"For Pass-Throughs") deliberately does NOT use this —
+// those route straight into sign-in or /portfolio, since getting a real
+// early user into the actual product for feedback matters more than
+// filtering for "qualified" intent. See app/single-audit/[ein]/page.tsx
+// and app/page.tsx.
+const VALID_SOURCES = ['homepage-cta-band'] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

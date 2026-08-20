@@ -104,22 +104,25 @@ export default function Home() {
         </div>
 
         {/* Info sections. Both audience framings kept as explanation, but
-            now point at working features — Pass-Throughs straight to
-            /portfolio (real, free, no login); Recipients to the
-            waitlist, since a general homepage visitor hasn't
-            self-identified as any specific org the way someone landing
-            on that org's own page has (see app/single-audit/[ein]/page.tsx's
-            "Are you this organization?" CTA, which routes straight to
-            sign-in for exactly that reason). */}
+            now point at working features — both straight into the real
+            product (sign-in / portfolio), not the waitlist. Getting real
+            first users into the actual product for feedback matters more
+            here than filtering for "qualified" intent — see the org-page
+            "Are you this organization?" CTA for the same reasoning. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
           <div className="bg-white p-6 rounded-lg border border-gray-200">
             <h3 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h3>
             <p className="text-gray-600 mb-4">
               Track your Single Audit findings across years. Monitor repeat-finding risk. Stay
-              on top of corrective action plans. We&apos;re building this out now — tell us
-              what you need.
+              on top of corrective action plans. We&apos;re actively building this out and want
+              your input on what an organization like yours actually needs.
             </p>
-            <WaitlistForm source="homepage-recipients" ctaLabel="Notify me" />
+            <Link
+              href="/auth/signin"
+              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+            >
+              Start tracking findings →
+            </Link>
           </div>
 
           <div className="bg-white p-6 rounded-lg border border-gray-200">
