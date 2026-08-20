@@ -1,8 +1,22 @@
+import 'server-only';
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
 
 /**
+ * `import 'server-only'` makes the build fail loudly if this module (or
+ * anything that imports it, transitively) ever ends up in a client
+ * bundle — instead of shipping and crashing at runtime in the browser.
+ * This exists because that exact thing happened: a 'use client'
+ * component imported from lib/portfolio.ts (which imports this file via
+ * lib/public-org-cache.ts) for an unrelated pure utility, which pulled
+ * `createClient(...)` below — a side effect that runs at module load and
+ * can't be tree-shaken — into the browser, where DATABASE_URL is
+ * undefined, throwing LibsqlError: URL_SCHEME_NOT_SUPPORTED on every
+ * visit to /portfolio. See lib/ein-list.ts for the actual fix (splitting
+ * the pure utility out); this guard just makes the next version of that
+ * mistake fail at `npm run build` instead of in a visitor's browser.
+ *
  * DATABASE_URL selects the backend by scheme, so local dev and production
  * use the exact same code path:
  *   - "file:cap-tracker.db"        local SQLite file (default if unset)

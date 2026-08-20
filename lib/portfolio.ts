@@ -1,40 +1,16 @@
+import 'server-only';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { computeManagementDecisionDeadline, soonestDeadline } from '@/lib/management-decision';
 import type { ImportedOrg } from '@/lib/fac-api';
 
-export const PORTFOLIO_MAX_EINS = 50;
-
-/**
- * Parses a pasted block of EINs — newline or comma separated, tolerating
- * extra whitespace and formatted EINs like "91-6001236". Dedupes while
- * preserving first-seen order, and reports which entries didn't look like
- * a 9-digit EIN at all (distinct from "not found in the FAC," which is a
- * live lookup result, not a parsing problem).
- */
-export function parseEinList(raw: string): { eins: string[]; invalid: string[] } {
-  const tokens = raw
-    .split(/[\n,]+/)
-    .map((t) => t.trim())
-    .filter(Boolean);
-
-  const eins: string[] = [];
-  const invalid: string[] = [];
-  const seen = new Set<string>();
-
-  for (const token of tokens) {
-    const digitsOnly = token.replace(/[^0-9]/g, '');
-    if (!/^\d{9}$/.test(digitsOnly)) {
-      invalid.push(token);
-      continue;
-    }
-    if (!seen.has(digitsOnly)) {
-      seen.add(digitsOnly);
-      eins.push(digitsOnly);
-    }
-  }
-
-  return { eins, invalid };
-}
+// Re-exported for existing importers (e.g. app/portfolio/page.tsx) — the
+// actual implementation moved to lib/ein-list.ts, which has zero
+// DB-touching imports. A 'use client' component MUST import these two
+// from lib/ein-list.ts directly, not from here: importing anything from
+// this file pulls in the `server-only` guard above and the whole
+// DB/FAC dependency chain below, which is exactly the bug that broke
+// /portfolio in production (see lib/ein-list.ts's comment for the story).
+export { PORTFOLIO_MAX_EINS, parseEinList } from '@/lib/ein-list';
 
 export interface PortfolioRow {
   ein: string;

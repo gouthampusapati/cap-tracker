@@ -3,7 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { track } from '@vercel/analytics';
-import { PORTFOLIO_MAX_EINS, parseEinList } from '@/lib/portfolio';
+// Import from lib/ein-list, NOT lib/portfolio — this is a 'use client'
+// component, and lib/portfolio.ts is guarded with `import 'server-only'`
+// specifically because importing anything from it here previously pulled
+// the DB client into the browser bundle and crashed this page in
+// production. See lib/ein-list.ts's comment for the full story.
+import { PORTFOLIO_MAX_EINS, parseEinList } from '@/lib/ein-list';
 import { EVENT_PORTFOLIO_SUBMIT, bucketEinCount } from '@/lib/analytics-events';
 
 export default function PortfolioForm({ initialValue }: { initialValue: string }) {
