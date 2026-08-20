@@ -136,8 +136,12 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
       const i = next++;
       const ein = eins[i];
       try {
-        const { org, syncedAt, stale } = await getPublicOrg(ein);
-        results[i] = toRow(ein, org, syncedAt, stale);
+        const { org, syncedAt, stale, unavailable } = await getPublicOrg(ein);
+        // Same distinction as the org page: "never checked, budget
+        // exhausted" is not "not found" — reuse the 'error' row status,
+        // which the table already renders as "couldn't be checked right
+        // now" rather than implying the org has no findings.
+        results[i] = unavailable ? errorRow(ein) : toRow(ein, org, syncedAt, stale);
       } catch (error) {
         console.error(`Portfolio fetch failed for ${ein}:`, error);
         results[i] = errorRow(ein);

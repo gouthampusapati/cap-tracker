@@ -42,7 +42,21 @@ export async function GET(
       );
     }
 
-    const { org, syncedAt, stale } = await getPublicOrg(ein);
+    const { org, syncedAt, stale, unavailable } = await getPublicOrg(ein);
+
+    // Distinct from "not found": we've never checked this EIN and the
+    // shared FAC budget is exhausted right now, so we still can't. 503 +
+    // Retry-After is the honest signal here — a 404 would tell a
+    // consumer this EIN has no audit history, which we don't actually
+    // know. See the `unavailable` field on OrgLookupResult.
+    if (unavailable) {
+      return NextResponse.json(
+        {
+          error: 'Temporarily unavailable — the shared FAC request budget is exhausted for this hour and this EIN has never been checked before. Try again shortly.',
+        },
+        { status: 503, headers: { 'Retry-After': '300' } }
+      );
+    }
 
     if (!org) {
       return NextResponse.json(

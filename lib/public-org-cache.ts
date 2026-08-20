@@ -24,6 +24,17 @@ export interface OrgLookupResult {
    * failed) rather than because it was still considered fresh. Callers
    * should say so plainly — the date alone doesn't make that obvious. */
   stale: boolean;
+  /** True when we have literally never checked this EIN and the shared
+   * FAC budget is currently exhausted, so we couldn't check now either.
+   * `org` is null here too, same as a genuine "not found" — but callers
+   * MUST treat this differently: it is not evidence the org has no
+   * audit history, only that nobody has looked yet. This used to throw
+   * (caught by error.tsx / a 500), which is both a worse experience for
+   * a real visitor and, under sustained crawler load discovering EINs
+   * faster than the budget refills, was the majority of the site's
+   * measured error rate — routine, expected demand showing up as
+   * "errors" instead of a normal response. */
+  unavailable: boolean;
 }
 
 function fromCacheRow(cached: {
@@ -47,7 +58,7 @@ export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
   const isFresh = cached && Date.now() - cached.syncedAt.getTime() < SYNC_MAX_AGE_MS;
 
   if (isFresh) {
-    return { ...fromCacheRow(cached), fromCache: true, stale: false };
+    return { ...fromCacheRow(cached), fromCache: true, stale: false, unavailable: false };
   }
 
   // Not fresh (missing or expired). Check the shared, site-wide FAC
@@ -61,11 +72,17 @@ export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
   if (!budgetOk) {
     if (cached) {
       console.warn(`FAC budget exhausted, serving stale cache for ${ein} from ${cached.syncedAt.toISOString()}`);
-      return { ...fromCacheRow(cached), fromCache: true, stale: true };
+      return { ...fromCacheRow(cached), fromCache: true, stale: true, unavailable: false };
     }
-    throw new Error(
-      'FAC request budget exhausted for this hour and no cached data exists for this EIN yet.'
-    );
+    // Never checked before, and we can't check now. This is routine
+    // under sustained crawler load (a new EIN discovered faster than
+    // the budget refills), not a bug — a thrown error here (the
+    // previous behavior) turned normal, expected demand into a 500 for
+    // every one of these, which is what actually drove the site's error
+    // rate up. Return a normal result instead; callers render a plain
+    // "come back shortly" state rather than an error page.
+    console.warn(`FAC budget exhausted, no cache for ${ein} — reporting unavailable, not an error`);
+    return { org: null, syncedAt: new Date(), fromCache: false, stale: false, unavailable: true };
   }
 
   // If FAC fails here and we have an old cached row, serve the stale
@@ -85,11 +102,11 @@ export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
         set: { found: org !== null, snapshot: org ? JSON.stringify(org) : null, syncedAt: now },
       });
 
-    return { org, syncedAt: now, fromCache: false, stale: false };
+    return { org, syncedAt: now, fromCache: false, stale: false, unavailable: false };
   } catch (error) {
     if (cached) {
       console.error(`Live fetch failed for ${ein}, serving stale cache from ${cached.syncedAt.toISOString()}:`, error);
-      return { ...fromCacheRow(cached), fromCache: true, stale: true };
+      return { ...fromCacheRow(cached), fromCache: true, stale: true, unavailable: false };
     }
     throw error;
   }

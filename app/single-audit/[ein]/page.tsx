@@ -82,6 +82,18 @@ function getCategoryColor(category: string): string {
 }
 
 
+type OrgFetchResult =
+  | { kind: 'ok'; org: OrgData }
+  | { kind: 'not-found' }
+  // Never checked before, and the shared FAC budget is exhausted right
+  // now so we can't check. NOT the same as not-found — see the
+  // `unavailable` field on OrgLookupResult in lib/public-org-cache.ts.
+  // Rendered as a normal page (see below), not thrown: under sustained
+  // crawler load this is routine, expected demand, not a bug, and
+  // throwing here was what actually drove the site's error rate up —
+  // every one of these used to be a 500.
+  | { kind: 'unavailable' };
+
 /**
  * Reads from the shared public-org cache (Turso-backed — see
  * lib/public-org-cache.ts) rather than calling the FAC directly. A cache
@@ -90,41 +102,45 @@ function getCategoryColor(category: string): string {
  * /api/org/[ein], so an EIN looked up through any of the three warms the
  * cache for all of them.
  *
- * IMPORTANT: this does NOT catch fetch failures (a FAC outage, a rate
- * limit, a network error with nothing cached to fall back to) — those
- * propagate as thrown errors, caught by error.tsx in this route segment.
- * Only two things return null here: a malformed EIN, and the cache
- * genuinely recording zero FAC reports for a well-formed EIN. Both of
- * those are real "not found" — a transient fetch failure is not, and
- * treating it the same way used to make notFound() fire for reasons that
- * have nothing to do with whether the organization exists, telling a
- * visitor "not found" when the truth was "FAC didn't answer this time."
+ * IMPORTANT: this does NOT catch every fetch failure — a genuine FAC
+ * outage or network error with nothing cached to fall back to still
+ * propagates as a thrown error, caught by error.tsx in this route
+ * segment. The routine "budget's exhausted and we've never checked this
+ * EIN" case is NOT thrown, though; it's returned as `{ kind:
+ * 'unavailable' }` and rendered inline below. Both 'not-found' and
+ * 'unavailable' leave `org` null for very different reasons — conflating
+ * them (the bug this comment used to warn about) tells a visitor "not
+ * found" when the truth is "haven't checked yet."
  */
-async function fetchOrgData(ein: string): Promise<OrgData | null> {
-  if (!/^\d{9}$/.test(ein)) return null;
+async function fetchOrgData(ein: string): Promise<OrgFetchResult> {
+  if (!/^\d{9}$/.test(ein)) return { kind: 'not-found' };
 
-  const { org, syncedAt, stale } = await getPublicOrg(ein);
-  if (!org) return null;
+  const { org, syncedAt, stale, unavailable } = await getPublicOrg(ein);
+  if (unavailable) return { kind: 'unavailable' };
+  if (!org) return { kind: 'not-found' };
 
   return {
-    ein: org.ein,
-    uei: org.uei,
-    name: org.name,
-    syncedAt,
-    stale,
-    auditHistory: org.reports.map((r) => ({
-      reportId: r.report_id,
-      fiscalYearEnd: r.fy_end_date,
-      fiscalYearStart: r.fy_start_date,
-      totalAmountExpended: r.total_amount_expended,
-      entityType: r.entity_type,
-      isLowRiskAuditee: r.is_low_risk_auditee === 'Y',
-      facAcceptedDate: r.fac_accepted_date,
-    })),
-    findings: org.findings,
-    totalReports: org.reports.length,
-    findingsCount: org.findings.length,
-    repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
+    kind: 'ok',
+    org: {
+      ein: org.ein,
+      uei: org.uei,
+      name: org.name,
+      syncedAt,
+      stale,
+      auditHistory: org.reports.map((r) => ({
+        reportId: r.report_id,
+        fiscalYearEnd: r.fy_end_date,
+        fiscalYearStart: r.fy_start_date,
+        totalAmountExpended: r.total_amount_expended,
+        entityType: r.entity_type,
+        isLowRiskAuditee: r.is_low_risk_auditee === 'Y',
+        facAcceptedDate: r.fac_accepted_date,
+      })),
+      findings: org.findings,
+      totalReports: org.reports.length,
+      findingsCount: org.findings.length,
+      repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
+    },
   };
 }
 
@@ -133,9 +149,9 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const params = await props.params;
 
-  let org: OrgData | null;
+  let result: OrgFetchResult;
   try {
-    org = await fetchOrgData(params.ein);
+    result = await fetchOrgData(params.ein);
   } catch {
     // Metadata has to return *something* even when the underlying fetch
     // failed — this deliberately doesn't say "not found," since a fetch
@@ -146,12 +162,21 @@ export async function generateMetadata(props: {
     };
   }
 
-  if (!org) {
+  if (result.kind === 'unavailable') {
+    return {
+      title: 'Temporarily Unavailable',
+      description: 'This page could not be loaded right now. Try again shortly.',
+    };
+  }
+
+  if (result.kind === 'not-found') {
     return {
       title: 'Organization Not Found',
       description: 'This organization was not found in the Federal Audit Clearinghouse.',
     };
   }
+
+  const org = result.org;
 
   // Suffix used to read "| Federal Audit Clearinghouse", which in a search
   // result reads as though the FAC published this page — the site footer
@@ -180,11 +205,38 @@ export async function generateMetadata(props: {
 
 export default async function SingleAuditPage(props: { params: Promise<{ ein: string }> }) {
   const params = await props.params;
-  const org = await fetchOrgData(params.ein);
+  const result = await fetchOrgData(params.ein);
 
-  if (!org) {
+  if (result.kind === 'not-found') {
     notFound();
   }
+
+  if (result.kind === 'unavailable') {
+    // Rendered as a normal 200, not an error page: we haven't looked up
+    // this EIN before and the shared FAC budget is fully spent for the
+    // hour, which under sustained crawler load is routine and expected,
+    // not a failure. See the OrgFetchResult comment above fetchOrgData.
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-8 text-center">
+          <h1 className="text-xl font-bold text-gray-900 mb-3">Not checked yet</h1>
+          <p className="text-gray-600 mb-6">
+            We haven&apos;t looked up this organization&apos;s Federal Audit Clearinghouse record
+            yet, and the shared FAC request budget is fully used for this hour. This doesn&apos;t
+            mean the organization has no audit history &mdash; check back in a little while.
+          </p>
+          <Link
+            href="/"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg"
+          >
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const org = result.org;
 
   // Group findings by fiscal year
   const findingsByYear = new Map<string, Finding[]>();
