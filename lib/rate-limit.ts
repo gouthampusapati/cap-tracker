@@ -54,3 +54,9 @@ export const isRateLimited = createLimiter(60_000, 30);
 // portfolio a few times an hour is nowhere near this; a script wouldn't
 // get past the first handful of submissions.
 export const isPortfolioRateLimited = createLimiter(15 * 60_000, 3);
+
+// /api/waitlist: doesn't touch FAC at all (just a DB insert), so this
+// isn't protecting a shared external quota like the two limiters above —
+// it's just stopping a script from filling the table with junk. 5/min/IP
+// is generous for a real visitor filling out one form once.
+export const isWaitlistRateLimited = createLimiter(60_000, 5);

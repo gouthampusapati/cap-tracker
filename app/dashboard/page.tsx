@@ -251,7 +251,8 @@ function DashboardInner() {
               ← Back to home
             </Link>
             <span className="text-gray-300">|</span>
-            <h1 className="text-xl font-bold">CAP Tracker</h1>
+            {/* TODO(brand): swap for the logo mark once public/brand/logo-mark.svg lands (Phase 1.2) */}
+            <h1 className="text-xl font-bold">Single Audit Intelligence</h1>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{email}</span>

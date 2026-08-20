@@ -38,7 +38,8 @@ function SignInForm() {
         <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
           ← Back to home
         </Link>
-        <h1 className="text-2xl font-bold mb-2 text-center mt-2">CAP Tracker</h1>
+        {/* TODO(brand): swap for the logo mark once public/brand/logo-mark.svg lands (Phase 1.2) */}
+        <h1 className="text-2xl font-bold mb-2 text-center mt-2">Single Audit Intelligence</h1>
 
         {ein && (
           <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-4 text-center">

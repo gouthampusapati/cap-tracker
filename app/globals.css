@@ -1,5 +1,63 @@
 @import "tailwindcss";
 
+/**
+ * Design tokens — Phase 1 of the UI/branding overhaul (see
+ * /Users/Bunnu/.claude/plans/merry-enchanting-kay.md). Tailwind v4 reads
+ * theme values from this CSS-first `@theme` block, not tailwind.config.js
+ * (that file's theme.extend stays empty deliberately — mixing the v3 JS
+ * config approach with v4 CSS tokens is asking for the two systems to
+ * disagree). Any `--color-*` / `--text-*` variable here auto-generates
+ * the matching utility classes (bg-primary, text-severity-critical,
+ * text-h1, ...) with no plugin needed.
+ *
+ * This does not replace Tailwind's built-in palette/scale — raw classes
+ * like `bg-blue-600` still work everywhere and will keep appearing until
+ * each page is touched by a later phase and converted. Coexistence is
+ * intentional; see the plan's Phase 1.1 note on gradual migration.
+ */
+@theme {
+  /* Brand colors — placeholders. Exact hex values pending the source
+     logo files; swap here in one place once they land. */
+  --color-primary: #0f3d2e;   /* dark green, from the wordmark */
+  --color-accent: #1a56db;    /* blue, from the monogram — links/focus/primary CTA ONLY, never a status badge */
+  --color-background: #fafaf9;
+  --color-surface: #ffffff;
+  --color-border: #e2e2e0;
+  --color-text: #1a1a18;
+  --color-muted: #6b6b68;
+
+  /* Severity scale — deliberately separate from brand color. Brand blue
+     must never appear in a status badge; severity communicates through
+     these three tokens only. Amber-500-on-white type combinations fail
+     WCAG AA, so --color-severity-warning is darkened, not the stock
+     Tailwind amber. */
+  --color-severity-critical: #b91c1c;  /* material weakness */
+  --color-severity-warning: #92400e;   /* repeat finding, questioned costs */
+  --color-severity-neutral: #57534e;   /* informational */
+
+  /* Type scale — one set of names for the whole site (display, h1-h4,
+     body, small, caption), each paired with its own line-height per
+     Tailwind v4 convention (--text-<name>--line-height). Apply
+     everywhere; ad-hoc text-2xl/text-3xl choices should migrate to
+     these as each page is touched. */
+  --text-display: 3rem;
+  --text-display--line-height: 1.1;
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 1.2;
+  --text-h2: 1.875rem;
+  --text-h2--line-height: 1.25;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 1.3;
+  --text-h4: 1.25rem;
+  --text-h4--line-height: 1.35;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+}
+
 html, body {
   margin: 0;
   padding: 0;
