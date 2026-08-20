@@ -4,9 +4,12 @@ import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
-import { getRequirementLink } from '@/lib/compliance-requirements';
 import { TrackedLink } from '@/app/tracked-link';
 import { EVENT_ORG_PAGE_CLICKTHROUGH } from '@/lib/analytics-events';
+import { WaitlistForm } from '@/app/waitlist-form';
+import { FindingCard } from './finding-card';
+import { HashExpand } from './hash-expand';
+import { SeverityFilter } from './severity-filter';
 
 // FAC data changes at most daily; re-fetch each page hourly.
 export const revalidate = 3600;
@@ -17,7 +20,7 @@ export const revalidate = 3600;
 // while staying under the Hobby plan's 60s ceiling so this works on any tier.
 export const maxDuration = 30;
 
-interface Finding {
+export interface Finding {
   reportId: string;
   auditYear: string;
   fiscalYearEnd: string;
@@ -59,28 +62,6 @@ interface OrgData {
   // than because it was still within the normal 24h freshness window.
   stale: boolean;
 }
-
-const categoryColors: Record<string, string> = {
-  'Cost Allowability': 'bg-red-50 border-red-200 text-red-900',
-  'Subrecipient Monitoring': 'bg-orange-50 border-orange-200 text-orange-900',
-  Procurement: 'bg-yellow-50 border-yellow-200 text-yellow-900',
-  'Cash Management': 'bg-blue-50 border-blue-200 text-blue-900',
-  Reporting: 'bg-purple-50 border-purple-200 text-purple-900',
-  Other: 'bg-gray-50 border-gray-200 text-gray-900',
-};
-
-function getCategoryColor(category: string): string {
-  // Try exact match first
-  if (categoryColors[category]) return categoryColors[category];
-
-  // Try partial match (for multi-category findings)
-  for (const [key, color] of Object.entries(categoryColors)) {
-    if (category.includes(key)) return color;
-  }
-
-  return categoryColors.Other;
-}
-
 
 type OrgFetchResult =
   | { kind: 'ok'; org: OrgData }
@@ -293,7 +274,7 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <p>
               <span className="font-semibold">EIN:</span> {org.ein}
             </p>
-            <p>
+            <p className="break-all">
               <span className="font-semibold">UEI:</span> {org.uei}
             </p>
             {org.stale ? (
@@ -320,6 +301,25 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
           </div>
         </div>
       </div>
+
+      {/* Sticky summary bar — org name + the same three counts below,
+          condensed to one line, visible while scrolling through a long
+          findings list. Pure CSS sticky, no JS needed. Hidden in print —
+          it's a scroll aid, meaningless on paper. */}
+      {org.findingsCount > 0 && (
+        <div className="no-print sticky top-0 z-10 bg-surface border-b border-border">
+          <div className="max-w-4xl mx-auto px-4 py-2 sm:px-6 lg:px-8 flex items-center gap-4 text-sm overflow-x-auto">
+            <span className="font-semibold text-text whitespace-nowrap">{org.name}</span>
+            <span className="text-muted whitespace-nowrap">{org.totalReports} audit years</span>
+            <span className="text-muted whitespace-nowrap">{org.findingsCount} findings</span>
+            {org.repeatFindingsCount > 0 && (
+              <span className="text-severity-warning font-semibold whitespace-nowrap">
+                {org.repeatFindingsCount} repeat
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Summary stats */}
       <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -349,96 +349,42 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
           </div>
         ) : null}
 
-        {/* Findings by year */}
-        <div className="space-y-8">
+        {/* Year jump-links — seven fiscal years shouldn't require
+            scrolling past six to reach the seventh. Only worth showing
+            with more than one year. */}
+        {sortedYears.length > 1 && org.findingsCount > 0 && (
+          <div className="no-print flex flex-wrap gap-2 mb-4">
+            {sortedYears.map((year) => (
+              <a
+                key={year}
+                href={`#fy-${year}`}
+                className="text-xs font-semibold text-accent border border-border rounded-full px-3 py-1.5 hover:border-accent"
+              >
+                FY {year}
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* Severity filter — only worth the chrome past ~5 findings. */}
+        {org.findingsCount > 5 && <SeverityFilter />}
+
+        {/* Findings by year. Deep-link support: arriving with a hash
+            matching a finding's id (set in finding-card.tsx) opens that
+            finding and scrolls to it — see hash-expand.tsx. */}
+        {org.findingsCount > 0 && <HashExpand />}
+        <div id="findings-list" className="space-y-8">
           {sortedYears.map((year) => {
             const findings = findingsByYear.get(year) || [];
             const reportId = findings[0]?.reportId;
             const facAcceptedDate = reportId ? acceptedDateByReport.get(reportId) ?? null : null;
             return (
-              <div key={year}>
+              <div key={year} id={`fy-${year}`} className="scroll-mt-20">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">FY {year}</h2>
                 <ManagementDecisionBlock facAcceptedDate={facAcceptedDate} />
                 <div className="space-y-4">
                   {findings.map((finding) => (
-                    <div
-                      key={`${finding.reportId}-${finding.facFindingId}`}
-                      className={`border rounded-lg p-4 ${getCategoryColor(finding.category)}`}
-                    >
-                      {/* Finding header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <div className="text-sm font-mono font-semibold">
-                            {finding.facFindingId}
-                          </div>
-                          <div className="text-sm font-semibold mt-1">{finding.category}</div>
-                        </div>
-                        <div className="flex gap-2">
-                          {finding.isRepeatFinding && (
-                            <span className="inline-block bg-red-200 text-red-800 text-xs font-bold px-2 py-1 rounded">
-                              REPEAT
-                            </span>
-                          )}
-                          {finding.isMaterialWeakness && (
-                            <span className="inline-block bg-red-200 text-red-800 text-xs font-bold px-2 py-1 rounded">
-                              MATERIAL WEAKNESS
-                            </span>
-                          )}
-                          {finding.hasQuestionedCosts && (
-                            <span className="inline-block bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-1 rounded">
-                              QUESTIONED COSTS
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Finding description */}
-                      {finding.description && (
-                        <div className="mb-3">
-                          <div className="text-xs font-semibold uppercase opacity-70 mb-1">
-                            Condition
-                          </div>
-                          <p className="text-sm line-clamp-3">{finding.description}</p>
-                        </div>
-                      )}
-
-                      {/* CAP */}
-                      {finding.plannedAction && (
-                        <div className="mb-3">
-                          <div className="text-xs font-semibold uppercase opacity-70 mb-1">
-                            Corrective Action Plan
-                          </div>
-                          <p className="text-sm line-clamp-3">{finding.plannedAction}</p>
-                        </div>
-                      )}
-
-                      {/* Prior refs */}
-                      {finding.priorRefs.length > 0 && (
-                        <div className="mb-3">
-                          <div className="text-xs font-semibold uppercase opacity-70 mb-1">
-                            Prior Finding References
-                          </div>
-                          <p className="text-sm">{finding.priorRefs.join(', ')}</p>
-                        </div>
-                      )}
-
-                      {/* Requirement link — every finding links to its
-                          type_requirement letter's explanation, not just
-                          Subrecipient Monitoring findings. */}
-                      {(() => {
-                        const link = getRequirementLink(finding.typeRequirement);
-                        return link ? (
-                          <TrackedLink
-                            href={link.href}
-                            event={EVENT_ORG_PAGE_CLICKTHROUGH}
-                            eventData={{ destination: 'guide', source: 'finding' }}
-                            className="text-sm underline font-semibold opacity-80 hover:opacity-100"
-                          >
-                            {link.label}
-                          </TrackedLink>
-                        ) : null;
-                      })()}
-                    </div>
+                    <FindingCard key={`${finding.reportId}-${finding.facFindingId}`} finding={finding} />
                   ))}
                 </div>
               </div>
@@ -480,12 +426,10 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <p className="text-sm text-blue-800 mb-4">
               Track your findings and corrective action plans across audit cycles.
             </p>
-            <a
-              href={`/auth/signin?ein=${org.ein}`}
-              className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
-            >
-              Start tracking findings →
-            </a>
+            {/* Waitlist, not sign-in — there's no real onboarding behind
+                /auth/signin yet, and a CTA that leads nowhere useful costs
+                more trust than it earns clicks. */}
+            <WaitlistForm source="org-page-are-you-this-org" ein={org.ein} ctaLabel="Notify me" />
           </div>
 
           <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-300 rounded-lg p-6">

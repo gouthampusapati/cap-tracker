@@ -67,3 +67,44 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/**
+ * Org page (Phase 2) — severity filter visibility.
+ *
+ * app/single-audit/[ein]/severity-filter.tsx sets data-severity-filter
+ * on #findings-list; each finding <details> carries a space-separated
+ * data-severity attribute (finding-card.tsx). This hides non-matching
+ * cards via CSS only — every finding stays in the DOM/server HTML
+ * regardless of which filter is active, so this can't regress the
+ * "full text in server HTML" SEO requirement the way removing cards
+ * from the React tree would.
+ */
+#findings-list[data-severity-filter="material"] .finding-card:not([data-severity~="material"]) {
+  display: none;
+}
+#findings-list[data-severity-filter="repeat"] .finding-card:not([data-severity~="repeat"]) {
+  display: none;
+}
+#findings-list[data-severity-filter="questioned"] .finding-card:not([data-severity~="questioned"]) {
+  display: none;
+}
+
+/**
+ * Org page (Phase 2) — print. People print these for meetings, so every
+ * finding should be fully expanded regardless of its on-screen
+ * open/closed state, and interactive chrome (severity filter, the
+ * show/hide toggle labels) that means nothing on paper is hidden.
+ * Print doesn't reliably run JS, so this has to be pure CSS — it can't
+ * rely on the <details> "open" attribute already being set.
+ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .finding-card:not([open]) .finding-detail {
+    display: block !important;
+  }
+  .finding-summary span {
+    display: none !important;
+  }
+}
