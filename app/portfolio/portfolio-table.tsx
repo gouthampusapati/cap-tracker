@@ -81,6 +81,18 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
                 <>
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {row.orgName}
+                    {row.stale && (
+                      <span
+                        title={
+                          row.syncedAt
+                            ? `High demand on the FAC right now — showing data from ${row.syncedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}, not necessarily today's.`
+                            : undefined
+                        }
+                        className="ml-2 inline-block text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 align-middle cursor-help"
+                      >
+                        not refreshed today
+                      </span>
+                    )}
                     <div className="text-xs text-gray-500 font-mono">{row.ein}</div>
                   </td>
                   <td className="px-4 py-3 text-gray-700 whitespace-nowrap">

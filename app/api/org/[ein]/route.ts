@@ -42,7 +42,7 @@ export async function GET(
       );
     }
 
-    const { org, syncedAt } = await getPublicOrg(ein);
+    const { org, syncedAt, stale } = await getPublicOrg(ein);
 
     if (!org) {
       return NextResponse.json(
@@ -72,6 +72,10 @@ export async function GET(
         findingsCount: org.findings.length,
         repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
         syncedAt: syncedAt.toISOString(),
+        // true when this is data older than the normal 24h freshness
+        // window, served because the shared FAC request budget was
+        // exhausted (or a refresh attempt failed) rather than discarded.
+        stale,
       },
       {
         headers: {

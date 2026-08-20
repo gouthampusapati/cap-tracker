@@ -88,3 +88,19 @@ export const publicOrgCache = sqliteTable('public_org_cache', {
   snapshot: text('snapshot'), // JSON ImportedOrg, null when found = false
   syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
 });
+
+/**
+ * One row per live FAC fetch attempt (not per FAC call — each fetch is
+ * ~4 calls, see lib/fac-api.ts). Backs the shared, site-wide throttle in
+ * lib/fac-budget.ts: counting rows in the last hour tells every
+ * serverless instance, across every consumer (org pages, /portfolio,
+ * /api/org/[ein]), how much of FAC's shared ~1,000/hour quota has
+ * already been spent — something a per-IP limiter can't do, since a
+ * crawler's requests arrive from many different IPs. Rows older than a
+ * couple of windows are pruned opportunistically; this table is meant to
+ * stay small.
+ */
+export const facFetchLog = sqliteTable('fac_fetch_log', {
+  id: text('id').primaryKey(),
+  fetchedAt: integer('fetched_at', { mode: 'timestamp' }).notNull(),
+});

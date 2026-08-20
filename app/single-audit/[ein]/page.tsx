@@ -54,6 +54,10 @@ interface OrgData {
   findingsCount: number;
   repeatFindingsCount: number;
   syncedAt: Date;
+  // True when this is cached data served because the shared FAC
+  // request budget was exhausted (or a live refresh failed) rather
+  // than because it was still within the normal 24h freshness window.
+  stale: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -99,7 +103,7 @@ function getCategoryColor(category: string): string {
 async function fetchOrgData(ein: string): Promise<OrgData | null> {
   if (!/^\d{9}$/.test(ein)) return null;
 
-  const { org, syncedAt } = await getPublicOrg(ein);
+  const { org, syncedAt, stale } = await getPublicOrg(ein);
   if (!org) return null;
 
   return {
@@ -107,6 +111,7 @@ async function fetchOrgData(ein: string): Promise<OrgData | null> {
     uei: org.uei,
     name: org.name,
     syncedAt,
+    stale,
     auditHistory: org.reports.map((r) => ({
       reportId: r.report_id,
       fiscalYearEnd: r.fy_end_date,
@@ -239,14 +244,27 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <p>
               <span className="font-semibold">UEI:</span> {org.uei}
             </p>
-            <p className="text-xs text-gray-400">
-              Data as of{' '}
-              {org.syncedAt.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
+            {org.stale ? (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-block">
+                Showing data from{' '}
+                {org.syncedAt.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}{' '}
+                — the Federal Audit Clearinghouse is under high demand right now, so this couldn't
+                be refreshed. This is the most recent data on record, not necessarily today's.
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400">
+                Data as of{' '}
+                {org.syncedAt.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
+            )}
           </div>
         </div>
       </div>

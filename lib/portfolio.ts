@@ -51,9 +51,14 @@ export interface PortfolioRow {
   materialWeaknesses: number;
   managementDecisionDays: number | null; // null = no deadline to show
   managementDecisionLabel: string | null; // e.g. "34 days" / "124 days overdue" / null
+  syncedAt: Date | null;
+  // Data older than the normal 24h freshness window, served because the
+  // shared FAC budget was exhausted (or a refresh failed) instead of
+  // discarded — see lib/public-org-cache.ts.
+  stale: boolean;
 }
 
-function toRow(ein: string, org: ImportedOrg | null): PortfolioRow {
+function toRow(ein: string, org: ImportedOrg | null, syncedAt: Date, stale: boolean): PortfolioRow {
   if (!org) {
     return {
       ein,
@@ -65,6 +70,8 @@ function toRow(ein: string, org: ImportedOrg | null): PortfolioRow {
       materialWeaknesses: 0,
       managementDecisionDays: null,
       managementDecisionLabel: null,
+      syncedAt,
+      stale,
     };
   }
 
@@ -86,6 +93,8 @@ function toRow(ein: string, org: ImportedOrg | null): PortfolioRow {
         ? `${Math.abs(deadline.daysFromToday)}d overdue`
         : `${deadline.daysFromToday}d`
       : null,
+    syncedAt,
+    stale,
   };
 }
 
@@ -100,6 +109,8 @@ function errorRow(ein: string): PortfolioRow {
     materialWeaknesses: 0,
     managementDecisionDays: null,
     managementDecisionLabel: null,
+    syncedAt: null,
+    stale: false,
   };
 }
 
@@ -125,8 +136,8 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
       const i = next++;
       const ein = eins[i];
       try {
-        const { org } = await getPublicOrg(ein);
-        results[i] = toRow(ein, org);
+        const { org, syncedAt, stale } = await getPublicOrg(ein);
+        results[i] = toRow(ein, org, syncedAt, stale);
       } catch (error) {
         console.error(`Portfolio fetch failed for ${ein}:`, error);
         results[i] = errorRow(ein);
