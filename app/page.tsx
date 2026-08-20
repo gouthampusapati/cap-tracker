@@ -131,7 +131,10 @@ export default function Home() {
               Monitor your subrecipients' audit findings. Check compliance status. Verify audit
               history.
             </p>
-            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold">
+            <Link
+              href="/portfolio"
+              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+            >
               Start monitoring →
             </Link>
           </div>
