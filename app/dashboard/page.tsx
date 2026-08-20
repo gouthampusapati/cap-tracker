@@ -246,7 +246,13 @@ function DashboardInner() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">CAP Tracker</h1>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
+              ← Back to home
+            </Link>
+            <span className="text-gray-300">|</span>
+            <h1 className="text-xl font-bold">CAP Tracker</h1>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{email}</span>
             <button
@@ -293,8 +299,8 @@ function DashboardInner() {
             )}
 
             <p className="text-xs text-gray-500 mt-3">
-              Try 916001236 (City of Cheney &mdash; has findings) or 742089103
-              (Atascosa Health Center &mdash; clean audits).
+              Try 916001236 (City of Cheney &mdash; has findings) or 237155203
+              (Council of Spanish Speaking Organizations &mdash; repeat finding).
             </p>
           </div>
         ) : (

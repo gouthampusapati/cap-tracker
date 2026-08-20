@@ -2,6 +2,7 @@
 
 import { FormEvent, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { loginUser } from '@/lib/auth-config';
 
 export default function SignIn() {
@@ -34,7 +35,10 @@ function SignInForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-lg shadow-md w-96">
-        <h1 className="text-2xl font-bold mb-2 text-center">CAP Tracker</h1>
+        <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
+          ← Back to home
+        </Link>
+        <h1 className="text-2xl font-bold mb-2 text-center mt-2">CAP Tracker</h1>
 
         {ein && (
           <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-4 text-center">

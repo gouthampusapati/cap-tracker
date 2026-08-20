@@ -123,7 +123,11 @@ export default function NextCyclePrepReport() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
+              ← Back to home
+            </Link>
+            <span className="text-gray-300">|</span>
             <Link href="/dashboard" className="text-2xl font-bold hover:text-blue-600">
               CAP Tracker
             </Link>
