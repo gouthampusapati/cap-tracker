@@ -268,22 +268,27 @@ export default function Home() {
         {/* CTA Footer — the one CTA that's genuinely just general-interest
             capture (a visitor who hasn't self-identified as anything in
             particular — unlike "For Recipients"/"For Pass-Throughs"
-            above, which now link straight into the real product). Copy
-            stays present-tense and describes what's already free and
-            live (search, portfolio) rather than promising a roadmap —
-            "developing"/"building"/"help shape" all read as prototype,
-            not product. The segment radio question (in WaitlistForm) is
-            the actual point of this block: recipient-vs-pass-through is
-            the question the whole strategy hangs on, and this is the one
-            moment a visitor is motivated to answer it. The mark sits
-            above the heading so the block reads as branded, not just an
-            arbitrary dark box. */}
+            above, which link straight into the real product). Named,
+            specific early-access pitch (two concrete alert types) rather
+            than a vague "we'll tell you when we add something" —
+            present tense for what already exists (search, portfolio),
+            "early access" only for what doesn't. Deliberately does NOT
+            mention repeat-finding alerts: that consequence thesis was
+            tested against real data and falsified, so it's not a claim
+            this site makes. The role radio question (in WaitlistForm) is
+            the actual point of this block: recipient vs. pass-through
+            vs. adviser/auditor is the split the whole strategy hangs on,
+            and this is the one moment a visitor is motivated to answer
+            it. The mark sits above the heading so the block reads as
+            branded, not just an arbitrary dark box. */}
         <div className="bg-primary text-white rounded-lg p-8 text-center mb-16">
           <img src="/brand/logo-mark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-3">Get notified</h3>
+          <h3 className="text-2xl font-bold mb-3">Early access to deeper Single Audit monitoring</h3>
           <p className="text-white/80 mb-6 max-w-md mx-auto">
-            Search and portfolio lookup are free and available now. Leave your email and
-            we&apos;ll tell you when we add something you&apos;d use.
+            Search and portfolio lookup are free and available now. We&apos;re opening limited
+            early access to ongoing monitoring — email alerts when an organization you follow
+            files a new audit, and when its §200.521(d) management-decision deadline is
+            approaching.
           </p>
           <WaitlistForm source="homepage-cta-band" className="max-w-md mx-auto" />
         </div>

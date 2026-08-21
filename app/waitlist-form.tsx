@@ -1,25 +1,38 @@
 'use client';
 
 import { useState } from 'react';
+import { track } from '@vercel/analytics';
+import { EVENT_EARLY_ACCESS_SUBMIT } from '@/lib/analytics-events';
 
-type Segment = 'recipient' | 'passthrough' | 'other';
+type Segment = 'recipient' | 'passthrough' | 'adviser' | 'other';
 
-// recipient-vs-pass-through is the question the whole product strategy
-// hangs on, and this form is the one moment a visitor is motivated to
-// answer it — an unsegmented email list tells you nothing. Kept in sync
-// with VALID_SEGMENTS in app/api/waitlist/route.ts.
+// recipient vs. pass-through vs. adviser/auditor is the question the
+// whole product strategy hangs on, and this form is the one moment a
+// visitor is motivated to answer it — an unsegmented email list tells
+// you nothing. Kept in sync with VALID_SEGMENTS in
+// app/api/waitlist/route.ts.
 const SEGMENT_OPTIONS: { value: Segment; label: string }[] = [
   { value: 'recipient', label: "I track my own organization's findings" },
-  { value: 'passthrough', label: 'I monitor organizations we fund' },
-  { value: 'other', label: 'Something else' },
+  { value: 'passthrough', label: 'I monitor organizations we fund (pass-through)' },
+  { value: 'adviser', label: 'I advise or audit recipients of federal awards' },
+  { value: 'other', label: 'Other' },
 ];
 
 /**
- * Shared inline email-capture form. See the UI/branding overhaul plan,
- * Phase 1.5, and the homepage-refinement plan's Phase 1.2 for the
- * segment question. Always-visible (no hide/reveal toggle) — matches
- * the site's "precise, institutional" tone better than a trick
- * interaction.
+ * Homepage early-access capture — see EARLY_ACCESS_BLOCK.md and
+ * /Users/Bunnu/.claude/plans/merry-enchanting-kay.md. Supersedes the
+ * earlier generic "Get notified" waitlist copy with a specific pitch
+ * (two named alert types) and a role question precise enough to be
+ * useful for positioning/pricing later.
+ *
+ * NOTE — no auto-reply email: the build order this implements treats a
+ * confirmation email as required, but no email-sending infra exists in
+ * this repo (no Resend/Postmark/SES, no API key configured) and setting
+ * one up requires an account only the site owner can create. Asked the
+ * user directly; the explicit answer was to skip the auto-reply
+ * entirely rather than stub it. This is a deliberate, approved scope
+ * cut, not an oversight — the success copy below is worded to not imply
+ * an email is coming.
  *
  * The goal is real first users giving feedback through actual product
  * usage, not a list of names to follow up with later — so every CTA
@@ -28,7 +41,7 @@ const SEGMENT_OPTIONS: { value: Segment; label: string }[] = [
  * homepage's "For Recipients"/"For Pass-Throughs" cards) links straight
  * into sign-in or /portfolio instead of using this form. This is left
  * for the one CTA that's genuinely just capturing general interest —
- * the homepage's closing waitlist band, for a visitor who hasn't
+ * the homepage's closing early-access band, for a visitor who hasn't
  * identified as anything in particular yet.
  *
  * `source` must be one of the values app/api/waitlist/route.ts's
@@ -40,7 +53,7 @@ const SEGMENT_OPTIONS: { value: Segment; label: string }[] = [
 export function WaitlistForm({
   source,
   ein,
-  ctaLabel = 'Notify me',
+  ctaLabel = 'Request early access',
   className = '',
 }: {
   source: 'homepage-cta-band';
@@ -56,7 +69,7 @@ export function WaitlistForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!segment) {
-      setError('Please choose which describes you.');
+      setError('Please choose which best describes your role.');
       setStatus('error');
       return;
     }
@@ -78,6 +91,8 @@ export function WaitlistForm({
       }
 
       setStatus('success');
+      // Role bucket only — never the email. See lib/analytics-events.ts.
+      track(EVENT_EARLY_ACCESS_SUBMIT, { role: segment });
     } catch {
       setError('Could not reach the server. Try again.');
       setStatus('error');
@@ -87,7 +102,7 @@ export function WaitlistForm({
   if (status === 'success') {
     return (
       <p className={`text-sm font-semibold text-white ${className}`}>
-        Thanks — we&apos;ll be in touch.
+        Thanks — we&apos;ve got your details. We&apos;ll follow up soon.
       </p>
     );
   }
@@ -95,7 +110,9 @@ export function WaitlistForm({
   return (
     <form onSubmit={handleSubmit} className={`text-left ${className}`}>
       <fieldset className="mb-3">
-        <legend className="text-sm font-semibold text-white mb-2">Which describes you?</legend>
+        <legend className="text-sm font-semibold text-white mb-2">
+          Which best describes your role?
+        </legend>
         <div className="space-y-1.5">
           {SEGMENT_OPTIONS.map((opt) => (
             <label
@@ -115,7 +132,7 @@ export function WaitlistForm({
                   }
                 }}
                 required
-                className="accent-accent"
+                className="accent-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               />
               {opt.label}
             </label>
@@ -142,6 +159,9 @@ export function WaitlistForm({
         </button>
       </div>
       {status === 'error' && <p className="text-xs text-red-300 mt-2">{error}</p>}
+      <p className="text-xs text-white/60 mt-2">
+        We&apos;ll only use this to follow up about early access — never shared, never sold.
+      </p>
     </form>
   );
 }

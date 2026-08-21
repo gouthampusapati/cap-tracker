@@ -24,11 +24,12 @@ import { waitlistSignups } from '@/lib/db/schema';
 // and app/page.tsx.
 const VALID_SOURCES = ['homepage-cta-band'] as const;
 
-// recipient-vs-pass-through is the question the whole product strategy
-// hangs on, and the waitlist form is the one moment a visitor is
-// motivated to answer it — see app/waitlist-form.tsx. An unsegmented
-// email list tells you nothing; this is what makes the signal usable.
-const VALID_SEGMENTS = ['recipient', 'passthrough', 'other'] as const;
+// recipient vs. pass-through vs. adviser/auditor is the question the
+// whole product strategy hangs on, and the early-access form is the one
+// moment a visitor is motivated to answer it — see app/waitlist-form.tsx.
+// An unsegmented email list tells you nothing; this is what makes the
+// signal usable.
+const VALID_SEGMENTS = ['recipient', 'passthrough', 'adviser', 'other'] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

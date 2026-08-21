@@ -21,6 +21,13 @@ export const EVENT_ORG_PAGE_CLICKTHROUGH = 'org_page_clickthrough';
  * twenty suggests a pass-through monitoring a portfolio. */
 export const EVENT_PORTFOLIO_SUBMIT = 'portfolio_submit';
 
+/** Fired when the homepage early-access form is submitted successfully.
+ * Carries the role bucket only (recipient/passthrough/adviser/other) —
+ * never the email address, per the ground rule above. This is the
+ * cleanest read available on the recipient-vs-pass-through-vs-adviser
+ * split everything downstream depends on. */
+export const EVENT_EARLY_ACCESS_SUBMIT = 'early_access_submit';
+
 export function bucketEinCount(count: number): string {
   if (count <= 1) return '1';
   if (count <= 5) return '2-5';
