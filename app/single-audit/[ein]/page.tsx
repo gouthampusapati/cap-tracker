@@ -180,6 +180,15 @@ export async function generateMetadata(props: {
       description,
       type: 'website',
       url: canonicalUrl,
+      // Defining an openGraph object here suppresses Next's automatic
+      // file-convention fallback to app/opengraph-image.png for just this
+      // route — without an explicit images entry, org pages shared a
+      // shared link with no image at all and twitter:card silently fell
+      // back to "summary". This is the static-image floor, not a
+      // per-org image; see REVISED_FINAL_PASS.md Task 3 for why a
+      // per-org dynamic image (org name/EIN/findings count) is a
+      // separate, larger follow-up rather than being built here.
+      images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
     },
   };
 }
@@ -241,8 +250,37 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
     org.auditHistory.map((ay) => [ay.reportId, ay.facAcceptedDate])
   );
 
+  // Structured data for the thousands of near-identical org pages —
+  // BreadcrumbList gives Google a sense of where each page sits, and
+  // Organization makes the entity (name + EIN) explicit rather than
+  // inferred from page text.
+  const orgCanonicalUrl = `${SITE_URL}/single-audit/${org.ein}`;
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Single Audit Intelligence', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: org.name, item: orgCanonicalUrl },
+    ],
+  };
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: org.name,
+    identifier: org.ein,
+    url: orgCanonicalUrl,
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">

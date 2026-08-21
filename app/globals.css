@@ -24,6 +24,10 @@
      #5170ff's 4.11:1, which fails the 4.5:1 body-text threshold). */
   --color-primary: #122620;   /* dark green/near-black, from the wordmark */
   --color-accent: #004aad;    /* dominant blue, from the monogram — links/focus/primary CTA ONLY, never a status badge */
+  --color-accent-soft: #5170ff; /* the monogram's lighter internal blue — fails AA as text (4.11:1) so never for
+                                    body/links, but fine for hover states and subtle fills (non-text UI only needs
+                                    3:1). Not wired into any component yet — add usages where a real need shows up,
+                                    don't force it into working UI just to use the token. */
   --color-background: #fafaf9;
   --color-surface: #ffffff;
   --color-border: #e2e2e0;
