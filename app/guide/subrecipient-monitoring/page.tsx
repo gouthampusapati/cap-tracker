@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     description,
     type: 'article',
     url: `${SITE_URL}/guide/subrecipient-monitoring`,
+    // Explicit openGraph here suppresses Next's automatic fallback to
+    // app/opengraph-image.png for this route — without this, guide pages
+    // shared with no image and twitter:card fell back to "summary".
+    images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
   },
 };
 
@@ -36,9 +40,33 @@ const subawardElements = [
   'Indirect cost rate for the federal award, including whether a de minimis rate is used',
 ];
 
+// Grounded in content that's actually on this page — the "14 required
+// subaward data elements" section below — not written to match a
+// keyword. Fabricated FAQ markup that doesn't match visible content
+// risks a manual action from Google, so only mark up what's genuinely
+// answered here.
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'How many data elements does § 200.332 require for each subaward?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: "14 required data elements under § 200.332(b)(1) for every subaward — the subrecipient's identity, federal award identification, funding amounts, and Assistance Listings information. See the full itemized list on this page.",
+      },
+    },
+  ],
+};
+
 export default function SubrecipientMonitoringGuide() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-4">

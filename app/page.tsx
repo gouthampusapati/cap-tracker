@@ -41,10 +41,14 @@ export default function Home() {
           portable email identity instead of an anonymous session. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+          {/* Not an <h1> — the page's one H1 is the hero headline below,
+              which carries the actual descriptive/keyword content. This
+              brand mark used to be the H1, which spent the page's
+              strongest on-page SEO signal on a term nobody searches. */}
+          <p className="flex items-center gap-2 text-2xl font-bold text-gray-900">
             <img src="/brand/logo-mark.svg" alt="" className="h-7 w-7" />
             Single Audit Intelligence
-          </h1>
+          </p>
           <div className="space-x-4">
             <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold">
               Guide
@@ -59,9 +63,9 @@ export default function Home() {
       {/* Hero */}
       <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h2 className="text-h1 sm:text-display font-bold text-gray-900 mb-3">
+          <h1 className="text-h1 sm:text-display font-bold text-gray-900 mb-3">
             Look up any organization&apos;s Single Audit findings
-          </h2>
+          </h1>
           <p className="text-body text-gray-600 mb-2 max-w-2xl mx-auto">
             Search the Federal Audit Clearinghouse. See audit findings and corrective action
             plans for any organization that receives federal awards.
@@ -143,7 +147,7 @@ export default function Home() {
                 d="M7.5 9h.01M7.5 12h.01M7.5 15h.01M10.5 9h.01M10.5 12h.01M10.5 15h.01"
               />
             </svg>
-            <h3 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h3>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h2>
             <p className="text-gray-600 mb-4">
               Track your Single Audit findings across years. Monitor repeat-finding risk. Stay
               on top of corrective action plans.
@@ -171,7 +175,7 @@ export default function Home() {
               <circle cx="19" cy="19" r="2" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v3M12 10L6.5 17M12 10v7M12 10l5.5 7" />
             </svg>
-            <h3 className="text-lg font-bold text-gray-900 mb-3">For Pass-Throughs</h3>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">For Pass-Throughs</h2>
             <p className="text-gray-600 mb-4">
               Monitor your subrecipients' audit findings. Check compliance status. Verify audit
               history.
@@ -187,7 +191,7 @@ export default function Home() {
 
         {/* What is a Single Audit? */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 my-16">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">What is a Single Audit?</h3>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">What is a Single Audit?</h2>
           <p className="text-gray-700 mb-4">
             Organizations that receive $1,000,000 or more in federal awards in a single fiscal
             year must have a Single Audit — a comprehensive audit that includes compliance with
@@ -228,7 +232,7 @@ export default function Home() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" />
             </svg>
-            <h4 className="font-bold text-gray-900 mb-2">Audit History</h4>
+            <h3 className="font-bold text-gray-900 mb-2">Audit History</h3>
             <p className="text-sm text-gray-600">
               See all years of audit history for any organization.
             </p>
@@ -244,7 +248,7 @@ export default function Home() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18M5 4h11l-2.5 3.5L16 11H5" />
             </svg>
-            <h4 className="font-bold text-gray-900 mb-2">Findings at a Glance</h4>
+            <h3 className="font-bold text-gray-900 mb-2">Findings at a Glance</h3>
             <p className="text-sm text-gray-600">
               View findings by category, flag repeats, and track status.
             </p>
@@ -262,7 +266,7 @@ export default function Home() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h6" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6M9 17h4" />
             </svg>
-            <h4 className="font-bold text-gray-900 mb-2">CAP Text</h4>
+            <h3 className="font-bold text-gray-900 mb-2">CAP Text</h3>
             <p className="text-sm text-gray-600">
               Read the corrective action plans organizations filed with auditors.
             </p>
@@ -286,14 +290,31 @@ export default function Home() {
             it. The mark sits above the heading so the block reads as
             branded, not just an arbitrary dark box. */}
         <div className="bg-primary text-white rounded-lg p-8 text-center mb-16">
-          <img src="/brand/logo-mark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-3">Early access to deeper Single Audit monitoring</h3>
-          <p className="text-white/80 mb-6 max-w-md mx-auto">
-            Search and portfolio lookup are free and available now. We&apos;re opening limited
-            early access to ongoing monitoring — email alerts when an organization you follow
-            files a new audit, and when its §200.521(d) management-decision deadline is
-            approaching.
-          </p>
+          {/* logo-mark-on-dark.svg, not logo-mark.svg — the regular mark
+              bakes in an opaque white background rect, so on this dark
+              band it rendered as a white square/sticker rather than a
+              blended brand mark. This variant drops that background and
+              swaps the mark's near-black shape (which is literally
+              --color-primary, the same hex as this band) for white. */}
+          <img src="/brand/logo-mark-on-dark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-3">Early access to deeper Single Audit monitoring</h2>
+          {/* Left-aligned, not centered — a ragged left edge costs
+              nothing on a two-line tagline but makes multi-line body
+              copy harder to skim; this audience is skimming. Split into
+              two labelled lines (meaning first, § citation in support)
+              instead of one flowing paragraph, so the free-vs-early-access
+              contrast — the whole pitch — isn't buried mid-sentence. */}
+          <div className="text-left max-w-md mx-auto mb-6 space-y-2">
+            <p className="text-white/80">
+              <strong className="text-white">Free today</strong> — search any organization,
+              check a portfolio of EINs, read the compliance guides.
+            </p>
+            <p className="text-white/80">
+              <strong className="text-white">Early access adds</strong> — an email when an
+              organization you follow files a new audit, and before its six-month
+              management-decision deadline (§200.521(d)).
+            </p>
+          </div>
           <WaitlistForm source="homepage-cta-band" className="max-w-md mx-auto" />
         </div>
       </div>

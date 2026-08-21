@@ -57,7 +57,11 @@ function SignInForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@organization.org"
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              // Explicit bg-white/text-gray-900 — see
+              // app/waitlist-form.tsx for why (dark-mode browsers can
+              // otherwise render a UA-default background that clashes
+              // with forced/assumed text color).
+              className="w-full px-3 py-2 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>

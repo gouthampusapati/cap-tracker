@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { waitlistSignups } from '@/lib/db/schema';
+import { sendOwnerNotification } from '@/lib/send-owner-notification';
 
 /**
  * Public endpoint backing the one CTA that's genuinely just capturing
@@ -34,7 +35,13 @@ const VALID_SEGMENTS = ['recipient', 'passthrough', 'adviser', 'other'] as const
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
-  let body: { email?: unknown; source?: unknown; ein?: unknown; segment?: unknown };
+  let body: {
+    email?: unknown;
+    source?: unknown;
+    ein?: unknown;
+    segment?: unknown;
+    referrer?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -45,6 +52,11 @@ export async function POST(request: Request) {
   const source = typeof body.source === 'string' ? body.source : '';
   const ein = typeof body.ein === 'string' && /^\d{9}$/.test(body.ein) ? body.ein : null;
   const segment = typeof body.segment === 'string' ? body.segment : '';
+  // Free qualitative signal for the owner notification only — not
+  // validated against an allowlist like the fields above, since it's
+  // never stored or used to make a decision, just reported. See
+  // lib/send-owner-notification.ts.
+  const referrer = typeof body.referrer === 'string' && body.referrer ? body.referrer : null;
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
@@ -70,6 +82,15 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Waitlist signup failed:', error);
     return NextResponse.json({ error: 'Could not save your signup. Try again.' }, { status: 500 });
+  }
+
+  // Best-effort only, strictly after the signup is already saved — a
+  // failure here must never turn into a failed response, since losing a
+  // notification is recoverable and losing a signup is not.
+  try {
+    await sendOwnerNotification({ email, segment, source, ein, referrer });
+  } catch (error) {
+    console.error('Owner notification failed (signup already saved):', error);
   }
 
   return NextResponse.json({ ok: true });

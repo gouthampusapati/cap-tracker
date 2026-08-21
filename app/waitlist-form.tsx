@@ -80,7 +80,12 @@ export function WaitlistForm({
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source, ein, segment }),
+        // referrer: free qualitative signal for the owner notification
+        // (someone converting from a guide page wants something
+        // different from someone converting from an org page) — see
+        // lib/send-owner-notification.ts. document.referrer is empty for
+        // direct navigation/new tabs, which is expected, not a bug.
+        body: JSON.stringify({ email, source, ein, segment, referrer: document.referrer }),
       });
 
       if (!res.ok) {
@@ -140,15 +145,30 @@ export function WaitlistForm({
         </div>
       </fieldset>
 
+      {/* Real label, not just placeholder+aria-label — a placeholder
+          disappears the moment someone starts typing, which leaves a
+          sighted user unsure what the field wanted once it's no longer
+          empty. aria-label alone covers assistive tech but not this. */}
+      <label htmlFor="early-access-email" className="block text-sm font-semibold text-white mb-2">
+        Email
+      </label>
       <div className="flex flex-col sm:flex-row gap-2">
         <input
+          id="early-access-email"
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@organization.org"
-          aria-label="Email address"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-accent"
+          // bg-white explicit, not assumed — the page never declares a
+          // light color-scheme, so a browser/OS in dark mode renders
+          // native inputs with a dark UA-default background by default.
+          // text-gray-900 was already forcing dark text; without an
+          // explicit light background too, that's black-on-black in
+          // dark mode. Every other bare <input> on the site has the same
+          // latent gap — see app/ein-search-form.tsx and
+          // app/auth/signin/page.tsx, fixed alongside this one.
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <button
           type="submit"

@@ -16,12 +16,39 @@ export const metadata: Metadata = {
     description,
     type: 'article',
     url: `${SITE_URL}/guide/management-decisions`,
+    // Explicit openGraph here suppresses Next's automatic fallback to
+    // app/opengraph-image.png for this route — without this, guide pages
+    // shared with no image and twitter:card fell back to "summary".
+    images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
   },
+};
+
+// Grounded in content that's actually on this page — the "six-month
+// clock" section below — not written to match a keyword. Fabricated FAQ
+// markup that doesn't match visible content risks a manual action from
+// Google, so only mark up what's genuinely answered here.
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'When is a management decision due?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: "Within six months of the Federal Audit Clearinghouse accepting the audit report — not six months from when the finding was first seen. Required under 2 CFR 200.521(d).",
+      },
+    },
+  ],
 };
 
 export default function ManagementDecisionsGuide() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-4">

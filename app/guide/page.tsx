@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     description,
     type: 'website',
     url: `${SITE_URL}/guide`,
+    // Explicit openGraph here suppresses Next's automatic fallback to
+    // app/opengraph-image.png for this route — without this, guide pages
+    // shared with no image and twitter:card fell back to "summary".
+    images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
   },
 };
 

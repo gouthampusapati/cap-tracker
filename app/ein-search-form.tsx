@@ -45,7 +45,12 @@ export default function EinSearchForm() {
             setEin(e.target.value);
             setError('');
           }}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+          // Explicit bg-white/text-gray-900, not left to browser
+          // defaults — a browser/OS in dark mode can otherwise pair a
+          // dark UA background with light text (or the reverse
+          // mismatch), and this page never declares a light
+          // color-scheme. See app/waitlist-form.tsx for where this bit.
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <button
           type="submit"
