@@ -16,10 +16,14 @@
  * intentional; see the plan's Phase 1.1 note on gradual migration.
  */
 @theme {
-  /* Brand colors — placeholders. Exact hex values pending the source
-     logo files; swap here in one place once they land. */
-  --color-primary: #0f3d2e;   /* dark green, from the wordmark */
-  --color-accent: #1a56db;    /* blue, from the monogram — links/focus/primary CTA ONLY, never a status badge */
+  /* Brand colors — real values from public/brand/logo-full.svg and
+     logo-mark.svg (landed Phase 1.2). The mark actually uses two blues
+     (#004aad on 2 of its 3 shapes, #5170ff as a lighter internal
+     accent) — #004aad is used here as it's the dominant one and the
+     only one that clears WCAG AA on white as text/links (8.13:1 vs
+     #5170ff's 4.11:1, which fails the 4.5:1 body-text threshold). */
+  --color-primary: #122620;   /* dark green/near-black, from the wordmark */
+  --color-accent: #004aad;    /* dominant blue, from the monogram — links/focus/primary CTA ONLY, never a status badge */
   --color-background: #fafaf9;
   --color-surface: #ffffff;
   --color-border: #e2e2e0;

@@ -128,8 +128,8 @@ export default function NextCyclePrepReport() {
               ← Back to home
             </Link>
             <span className="text-gray-300">|</span>
-            {/* TODO(brand): swap for the logo mark once public/brand/logo-mark.svg lands (Phase 1.2) */}
-            <Link href="/dashboard" className="text-2xl font-bold hover:text-blue-600">
+            <Link href="/dashboard" className="flex items-center gap-2 text-2xl font-bold hover:text-blue-600">
+              <img src="/brand/logo-mark.svg" alt="" className="h-6 w-6" />
               Single Audit Intelligence
             </Link>
             <span className="text-gray-400">›</span>

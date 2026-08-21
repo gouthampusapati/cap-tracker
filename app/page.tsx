@@ -40,7 +40,10 @@ export default function Home() {
           from the footer's Product column below. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Single Audit Intelligence</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+            <img src="/brand/logo-mark.svg" alt="" className="h-7 w-7" />
+            Single Audit Intelligence
+          </h1>
           <div className="space-x-4">
             <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold">
               Guide
