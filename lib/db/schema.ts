@@ -119,5 +119,10 @@ export const waitlistSignups = sqliteTable('waitlist_signups', {
   email: text('email').notNull(),
   source: text('source').notNull(),
   ein: text('ein'), // set when the signup came from an org page; null from the homepage
+  // recipient-vs-pass-through is the question the whole product strategy
+  // hangs on; nullable at the DB level (rows from before this field
+  // existed have none) but required at the form/API layer for every new
+  // signup — see app/waitlist-form.tsx and app/api/waitlist/route.ts.
+  segment: text('segment'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });

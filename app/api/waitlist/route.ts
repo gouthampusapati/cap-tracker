@@ -24,10 +24,16 @@ import { waitlistSignups } from '@/lib/db/schema';
 // and app/page.tsx.
 const VALID_SOURCES = ['homepage-cta-band'] as const;
 
+// recipient-vs-pass-through is the question the whole product strategy
+// hangs on, and the waitlist form is the one moment a visitor is
+// motivated to answer it — see app/waitlist-form.tsx. An unsegmented
+// email list tells you nothing; this is what makes the signal usable.
+const VALID_SEGMENTS = ['recipient', 'passthrough', 'other'] as const;
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
-  let body: { email?: unknown; source?: unknown; ein?: unknown };
+  let body: { email?: unknown; source?: unknown; ein?: unknown; segment?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -37,6 +43,7 @@ export async function POST(request: Request) {
   const email = typeof body.email === 'string' ? body.email.trim() : '';
   const source = typeof body.source === 'string' ? body.source : '';
   const ein = typeof body.ein === 'string' && /^\d{9}$/.test(body.ein) ? body.ein : null;
+  const segment = typeof body.segment === 'string' ? body.segment : '';
 
   if (!EMAIL_RE.test(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
@@ -46,12 +53,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
   }
 
+  if (!VALID_SEGMENTS.includes(segment as (typeof VALID_SEGMENTS)[number])) {
+    return NextResponse.json({ error: 'Please choose which describes you.' }, { status: 400 });
+  }
+
   try {
     await db.insert(waitlistSignups).values({
       id: crypto.randomUUID(),
       email,
       source,
       ein,
+      segment,
       createdAt: new Date(),
     });
   } catch (error) {
