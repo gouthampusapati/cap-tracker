@@ -104,3 +104,20 @@ export const facFetchLog = sqliteTable('fac_fetch_log', {
   id: text('id').primaryKey(),
   fetchedAt: integer('fetched_at', { mode: 'timestamp' }).notNull(),
 });
+
+/**
+ * Email signups from CTAs that used to point at /auth/signin (a private
+ * workspace with no real onboarding yet) — see the UI/branding overhaul
+ * plan, Phase 1.5. No uniqueness constraint on email: the same person
+ * signing up from two different CTAs is two useful, distinct signals for
+ * outreach (which page/EIN they were interested in), not a duplicate to
+ * collapse. `source` is validated against a fixed allowlist at the API
+ * layer (app/api/waitlist/route.ts), not here.
+ */
+export const waitlistSignups = sqliteTable('waitlist_signups', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  source: text('source').notNull(),
+  ein: text('ein'), // set when the signup came from an org page; null from the homepage
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});

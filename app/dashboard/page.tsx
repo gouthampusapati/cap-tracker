@@ -251,7 +251,10 @@ function DashboardInner() {
               ← Back to home
             </Link>
             <span className="text-gray-300">|</span>
-            <h1 className="text-xl font-bold">CAP Tracker</h1>
+            <h1 className="flex items-center gap-2 text-xl font-bold">
+              <img src="/brand/logo-mark.svg" alt="" className="h-6 w-6" />
+              Single Audit Intelligence
+            </h1>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{email}</span>

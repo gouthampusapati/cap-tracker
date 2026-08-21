@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import EinSearchForm from './ein-search-form';
+import { WaitlistForm } from './waitlist-form';
+import { Footer } from './footer';
 
 const title = 'Single Audit Intelligence';
 const description =
@@ -29,73 +31,101 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header */}
+      {/* Header. "Sign in" deliberately isn't primary nav here — there's
+          no real onboarding behind it yet for a general visitor, and a
+          CTA that leads nowhere useful costs more trust than it earns
+          clicks (see the org-page CTA discussion — a general homepage
+          visitor is a different, lower-intent audience than someone who
+          self-identifies as an actual audited org). It's still reachable
+          from the footer's Product column below. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Single Audit Intelligence</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+            <img src="/brand/logo-mark.svg" alt="" className="h-7 w-7" />
+            Single Audit Intelligence
+          </h1>
           <div className="space-x-4">
-            <Link href="/guide" className="text-blue-600 hover:text-blue-800 font-semibold">
+            <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold">
               Guide
             </Link>
-            <Link href="/portfolio" className="text-blue-600 hover:text-blue-800 font-semibold">
+            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold">
               Portfolio
-            </Link>
-            <Link
-              href="/auth/signin"
-              className="text-blue-600 hover:text-blue-800 font-semibold"
-            >
-              Sign in
             </Link>
           </div>
         </div>
       </div>
 
       {/* Hero */}
-      <div className="max-w-5xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-            Track Single Audit Findings
+      <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
+        <div className="text-center mb-10">
+          <h2 className="text-h1 sm:text-display font-bold text-gray-900 mb-3">
+            Look up any organization&apos;s Single Audit findings
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-body text-gray-600 mb-2 max-w-2xl mx-auto">
             Search the Federal Audit Clearinghouse. See audit findings and corrective action
             plans for any organization that receives federal awards.
+          </p>
+          {/* Independence statement — above the fold on purpose. The
+              visual language here is institutional and the subject is
+              federal; say plainly what this is so nobody has to infer
+              it. */}
+          <p className="text-caption text-gray-500 mb-6">
+            Independent tool built on public Federal Audit Clearinghouse data. Not affiliated
+            with GSA, OMB, or any federal agency.
           </p>
 
           {/* Search Box */}
           <EinSearchForm />
 
+          {/* Portfolio promotion — the genuinely differentiated, working,
+              no-login feature, given real visual weight here rather than
+              only living in the nav. */}
+          <p className="mt-4 text-small text-gray-600">
+            Checking more than one organization?{' '}
+            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold">
+              Try the portfolio view
+            </Link>{' '}
+            — free, no account.
+          </p>
+
           {/* Example links */}
           <div className="mt-8 text-sm text-gray-600">
             <p className="mb-3">Try these examples:</p>
             <div className="space-y-2">
-              <Link href="/single-audit/916001236" className="text-blue-600 hover:underline">
+              <Link href="/single-audit/916001236" className="text-accent hover:underline">
                 City of Cheney, WA (916001236)
               </Link>
               <br />
-              <Link href="/single-audit/237155203" className="text-blue-600 hover:underline">
-                Council of Spanish Speaking Organizations (237155203)
+              <Link href="/single-audit/742089103" className="text-accent hover:underline">
+                Atascosa Health Center (742089103)
               </Link>
               <br />
-              <Link href="/single-audit/421079767" className="text-blue-600 hover:underline">
+              <Link href="/single-audit/421079767" className="text-accent hover:underline">
                 Grinnell Housing Authority (421079767)
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Info sections */}
+        {/* Info sections. Both audience framings kept as explanation, but
+            now point at working features — both straight into the real
+            product (sign-in / portfolio), not the waitlist. Getting real
+            first users into the actual product for feedback matters more
+            here than filtering for "qualified" intent — see the org-page
+            "Are you this organization?" CTA for the same reasoning. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
           <div className="bg-white p-6 rounded-lg border border-gray-200">
             <h3 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h3>
             <p className="text-gray-600 mb-4">
               Track your Single Audit findings across years. Monitor repeat-finding risk. Stay
-              on top of corrective action plans.
+              on top of corrective action plans. We&apos;re actively building this out and want
+              your input on what an organization like yours actually needs.
             </p>
             <Link
               href="/auth/signin"
-              className="text-blue-600 hover:text-blue-800 font-semibold"
+              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
-              Start tracking →
+              Start tracking findings →
             </Link>
           </div>
 
@@ -106,8 +136,8 @@ export default function Home() {
               history.
             </p>
             <Link
-              href="/auth/signin"
-              className="text-blue-600 hover:text-blue-800 font-semibold"
+              href="/portfolio"
+              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start monitoring →
             </Link>
@@ -141,24 +171,56 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Features */}
+        {/* Features. Inline SVG on the token palette, not emoji — a
+            precise, institutional tone doesn't read well with emoji, and
+            currentColor lets these inherit text-primary without a new
+            asset/dependency for three icons. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-16">
           <div>
-            <div className="text-3xl mb-2">📊</div>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" />
+            </svg>
             <h4 className="font-bold text-gray-900 mb-2">Audit History</h4>
             <p className="text-sm text-gray-600">
               See all years of audit history for any organization.
             </p>
           </div>
           <div>
-            <div className="text-3xl mb-2">🚩</div>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18M5 4h11l-2.5 3.5L16 11H5" />
+            </svg>
             <h4 className="font-bold text-gray-900 mb-2">Findings at a Glance</h4>
             <p className="text-sm text-gray-600">
               View findings by category, flag repeats, and track status.
             </p>
           </div>
           <div>
-            <div className="text-3xl mb-2">✍️</div>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-2"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h6" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6M9 17h4" />
+            </svg>
             <h4 className="font-bold text-gray-900 mb-2">CAP Text</h4>
             <p className="text-sm text-gray-600">
               Read the corrective action plans organizations filed with auditors.
@@ -166,73 +228,28 @@ export default function Home() {
           </div>
         </div>
 
-        {/* CTA Footer */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-8 text-center mb-16">
-          <h3 className="text-2xl font-bold mb-3">Ready to track findings?</h3>
-          <p className="text-blue-100 mb-6">
-            Create an account to import your organization and start tracking.
+        {/* CTA Footer — waitlist, not a claim of a finished product. Same
+            lower-intent-general-visitor reasoning as the "For Recipients"
+            card above. The mark itself sits above the heading — a flat
+            bg-primary field with just text read as an arbitrary color
+            block; anchoring it with the actual logo ties it back to the
+            brand instead of just "a dark box." */}
+        <div className="bg-primary text-white rounded-lg p-8 text-center mb-16">
+          <img src="/brand/logo-mark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
+          <h3 className="text-2xl font-bold mb-3">Building the full toolkit</h3>
+          <p className="text-white/80 mb-6 max-w-md mx-auto">
+            We're developing the complete tracking and reporting solution — join the waitlist
+            and help shape what we build.
           </p>
-          <Link
-            href="/auth/signin"
-            className="inline-block bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg"
-          >
-            Get started free →
-          </Link>
+          <WaitlistForm
+            source="homepage-cta-band"
+            ctaLabel="Join the waitlist"
+            className="max-w-sm mx-auto"
+          />
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="bg-gray-900 text-gray-300 py-8 border-t border-gray-800">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <h4 className="font-bold text-white mb-3">Product</h4>
-              <ul className="text-sm space-y-2">
-                <li>
-                  <Link href="/" className="hover:text-white">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/guide" className="hover:text-white">
-                    Compliance guide
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/auth/signin" className="hover:text-white">
-                    Sign in
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-white mb-3">Resources</h4>
-              <ul className="text-sm space-y-2">
-                <li>
-                  <a href="https://www.fac.gov" target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                    Federal Audit Clearinghouse
-                  </a>
-                </li>
-                <li>
-                  <a href="https://www.whitehouse.gov/omb/information-regulatory-affairs/circulars/" target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                    OMB Circular A-133
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold text-white mb-3">Legal</h4>
-              <p className="text-xs">
-                Single Audit Intelligence is an independent tool. Not affiliated with GSA, OMB, or
-                any federal agency.
-              </p>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-xs text-gray-500 text-center">
-            <p>© 2026 Single Audit Intelligence. All data is public domain.</p>
-          </div>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }

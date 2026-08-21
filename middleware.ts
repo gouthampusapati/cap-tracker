@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isRateLimited, isPortfolioRateLimited } from '@/lib/rate-limit';
+import { isRateLimited, isPortfolioRateLimited, isWaitlistRateLimited } from '@/lib/rate-limit';
 
 /**
- * Rate-limits the public surfaces that each cost calls against the shared
- * FAC API quota: single-org lookups (the org page itself — the thing a
- * crawler would actually hit at scale — and the public JSON endpoint kept
- * for external consumers), and portfolio submissions, which cost up to
- * ~50x a single lookup per request and get a much tighter budget.
- * Everything else — /dashboard, /auth, /api/cap-items, /api/findings,
- * /api/import, the plain /api/org lookup-by-email route — is untouched;
- * see the matcher below.
+ * Rate-limits: (1) the public surfaces that each cost calls against the
+ * shared FAC API quota — single-org lookups (the org page itself — the
+ * thing a crawler would actually hit at scale — and the public JSON
+ * endpoint kept for external consumers) and portfolio submissions, which
+ * cost up to ~50x a single lookup per request and get a much tighter
+ * budget; and (2) /api/waitlist, which doesn't touch FAC at all but is a
+ * public POST endpoint that can still be spammed. Everything else —
+ * /dashboard, /auth, /api/cap-items, /api/findings, /api/import, the
+ * plain /api/org lookup-by-email route — is untouched; see the matcher
+ * below.
  */
 export function middleware(req: NextRequest) {
   const ip =
@@ -28,6 +30,16 @@ export function middleware(req: NextRequest) {
     console.log(
       `[crawler-diagnostic] ${ip} UA="${req.headers.get('user-agent') || 'none'}" ${req.nextUrl.pathname}`
     );
+  }
+
+  if (req.nextUrl.pathname === '/api/waitlist') {
+    if (isWaitlistRateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Try again in a minute.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
+    return NextResponse.next();
   }
 
   // Only an actual submission (?eins=...) costs FAC calls — visiting the
@@ -56,5 +68,5 @@ export const config = {
   // :path+ requires at least one segment after /api/org/, so the
   // authenticated /api/org (no EIN — lookup by signed-in user's email)
   // route is not matched here.
-  matcher: ['/single-audit/:path*', '/api/org/:path+', '/portfolio'],
+  matcher: ['/single-audit/:path*', '/api/org/:path+', '/portfolio', '/api/waitlist'],
 };

@@ -121,15 +121,16 @@ export default function NextCyclePrepReport() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
               ← Back to home
             </Link>
             <span className="text-gray-300">|</span>
-            <Link href="/dashboard" className="text-2xl font-bold hover:text-blue-600">
-              CAP Tracker
+            <Link href="/dashboard" className="flex items-center gap-2 text-2xl font-bold hover:text-blue-600">
+              <img src="/brand/logo-mark.svg" alt="" className="h-6 w-6" />
+              Single Audit Intelligence
             </Link>
             <span className="text-gray-400">›</span>
             <span className="text-lg font-semibold text-gray-700">Next-Cycle Prep</span>

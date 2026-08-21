@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { REQUIREMENT_LETTER_ORDER, REQUIREMENT_INFO } from '@/lib/compliance-requirements';
+import { Footer } from '@/app/footer';
 
-const title = 'Single Audit Compliance Requirements (A–N)';
+const title = 'Single Audit Compliance Requirements (A–P)';
 const description =
   "What each compliance requirement letter on a Single Audit finding means — the FAC's own category codes, explained in plain language.";
 
@@ -184,14 +185,7 @@ export default function ComplianceRequirementsGuide() {
         </div>
       </article>
 
-      <div className="bg-gray-100 border-t border-gray-200 py-6 mt-8">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs text-gray-600">
-            Single Audit Intelligence is an independent tool powered by Federal Audit
-            Clearinghouse data. Not affiliated with GSA, OMB, or any federal agency.
-          </p>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }

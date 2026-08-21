@@ -33,21 +33,28 @@ export default function EinSearchForm() {
         <input
           type="text"
           placeholder="Enter EIN (9 digits)"
+          aria-label="Employer Identification Number"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'ein-search-error' : undefined}
           value={ein}
           onChange={(e) => {
             setEin(e.target.value);
             setError('');
           }}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg"
+          className="bg-accent hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent text-white font-semibold px-6 py-3 rounded-lg"
         >
           Search
         </button>
       </div>
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+      {error && (
+        <p id="ein-search-error" className="text-red-600 text-sm mt-2">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
