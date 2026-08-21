@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getUser, logoutUser } from '@/lib/auth-config';
+import { getOrCreateUser, isGuestUser, logoutUser } from '@/lib/auth-config';
 
 interface CapItem {
   id: string;
@@ -84,15 +84,14 @@ function DashboardInner() {
     setMounted(true);
   }, []);
 
+  // No sign-in redirect: a first-time visitor gets a silently-created
+  // guest identity (see getOrCreateUser) instead of hitting a form. This
+  // is the entire reason "For Recipients" on the homepage can link
+  // straight to /dashboard now instead of /auth/signin.
   useEffect(() => {
     if (!mounted) return;
-    const user = getUser();
-    if (!user) {
-      router.push('/auth/signin');
-    } else {
-      setEmail(user);
-    }
-  }, [mounted, router]);
+    setEmail(getOrCreateUser());
+  }, [mounted]);
 
   // If this user imported in an earlier session, show their data straight
   // away rather than making them re-enter the EIN. An org with zero
@@ -257,7 +256,9 @@ function DashboardInner() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{email}</span>
+            <span className="text-sm text-gray-600">
+              {isGuestUser(email) ? 'Anonymous session' : email}
+            </span>
             <button
               onClick={handleSignOut}
               className="text-sm text-gray-600 hover:text-gray-900"

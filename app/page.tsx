@@ -31,13 +31,14 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header. "Sign in" deliberately isn't primary nav here — there's
-          no real onboarding behind it yet for a general visitor, and a
-          CTA that leads nowhere useful costs more trust than it earns
-          clicks (see the org-page CTA discussion — a general homepage
-          visitor is a different, lower-intent audience than someone who
-          self-identifies as an actual audited org). It's still reachable
-          from the footer's Product column below. */}
+      {/* Header. "Sign in" deliberately isn't primary nav here — a
+          general homepage visitor is a different, lower-intent audience
+          than someone who self-identifies as an actual audited org (see
+          "For Recipients" below, which now links straight into
+          /dashboard with zero typing — see getOrCreateUser in
+          lib/auth-config.ts). Explicit sign-in is still reachable from
+          the footer's Product column for anyone who wants a real,
+          portable email identity instead of an anonymous session. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
@@ -113,10 +114,13 @@ export default function Home() {
         </div>
 
         {/* Info sections. Both audience framings kept as explanation, but
-            now point at working features — both straight into the real
-            product (sign-in / portfolio), not the waitlist. Getting real
-            first users into the actual product for feedback matters more
-            here than filtering for "qualified" intent — see the org-page
+            now point at working features — straight into the real
+            product (dashboard / portfolio), not the waitlist. "For
+            Recipients" links to /dashboard directly, no sign-in step —
+            an anonymous workspace is created on arrival (see
+            getOrCreateUser in lib/auth-config.ts). Getting real first
+            users into the actual product for feedback matters more here
+            than filtering for "qualified" intent — see the org-page
             "Are you this organization?" CTA for the same reasoning. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
           <div className="bg-white p-6 rounded-lg border border-gray-200">
@@ -145,7 +149,7 @@ export default function Home() {
               on top of corrective action plans.
             </p>
             <Link
-              href="/auth/signin"
+              href="/dashboard"
               className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →
