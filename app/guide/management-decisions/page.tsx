@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
+import { Footer } from '@/app/footer';
 
 const title = 'The Management Decision Deadline Nobody Tracks (2 CFR 200.521)';
 const description =
@@ -165,14 +166,7 @@ export default function ManagementDecisionsGuide() {
         </div>
       </article>
 
-      <div className="bg-gray-100 border-t border-gray-200 py-6 mt-8">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs text-gray-600">
-            Single Audit Intelligence is an independent tool powered by Federal Audit
-            Clearinghouse data. Not affiliated with GSA, OMB, or any federal agency.
-          </p>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }

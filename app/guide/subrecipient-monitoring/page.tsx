@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
+import { Footer } from '@/app/footer';
 
 const title = 'Subrecipient Monitoring Under 2 CFR 200.332';
 const description =
@@ -226,14 +227,7 @@ export default function SubrecipientMonitoringGuide() {
         </div>
       </article>
 
-      <div className="bg-gray-100 border-t border-gray-200 py-6 mt-8">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs text-gray-600">
-            Single Audit Intelligence is an independent tool powered by Federal Audit
-            Clearinghouse data. Not affiliated with GSA, OMB, or any federal agency.
-          </p>
-        </div>
-      </div>
+      <Footer />
     </div>
   );
 }
