@@ -160,7 +160,15 @@ export function WaitlistForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@organization.org"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-accent"
+          // bg-white explicit, not assumed — the page never declares a
+          // light color-scheme, so a browser/OS in dark mode renders
+          // native inputs with a dark UA-default background by default.
+          // text-gray-900 was already forcing dark text; without an
+          // explicit light background too, that's black-on-black in
+          // dark mode. Every other bare <input> on the site has the same
+          // latent gap — see app/ein-search-form.tsx and
+          // app/auth/signin/page.tsx, fixed alongside this one.
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <button
           type="submit"

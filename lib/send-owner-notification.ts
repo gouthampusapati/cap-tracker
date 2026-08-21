@@ -52,12 +52,15 @@ export async function sendOwnerNotification(signup: {
     console.error('sendOwnerNotification: signup count query failed:', error);
   }
 
-  const timestamp = new Date().toLocaleString('en-US', {
+  // dateStyle/timeStyle combined with timeZoneName throws
+  // "Invalid option : option" in Node's ICU here (caught live in
+  // testing) — timeZoneName isn't actually needed since the zone is
+  // fixed and named explicitly below.
+  const timestamp = `${new Date().toLocaleString('en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'America/New_York',
-    timeZoneName: 'short',
-  });
+  })} ET`;
 
   const lines = [
     `Role: ${signup.segment}`,

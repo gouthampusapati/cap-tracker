@@ -284,7 +284,9 @@ function DashboardInner() {
                 placeholder="EIN (e.g. 916001236)"
                 value={ein}
                 onChange={(e) => setEin(e.target.value)}
-                className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                // Explicit bg-white/text-gray-900 — see
+                // app/waitlist-form.tsx for why.
+                className="flex-1 px-3 py-2 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
               <button
@@ -452,7 +454,9 @@ function DashboardInner() {
                                       owner: e.target.value,
                                     })
                                   }
-                                  className="w-full px-2 py-1 border rounded text-sm"
+                                  // Explicit bg-white/text-gray-900 —
+                                  // see app/waitlist-form.tsx for why.
+                                  className="w-full px-2 py-1 border rounded text-sm bg-white text-gray-900"
                                 />
                                 <input
                                   type="date"
@@ -463,7 +467,9 @@ function DashboardInner() {
                                       dueDate: e.target.value,
                                     })
                                   }
-                                  className="w-full px-2 py-1 border rounded text-sm"
+                                  // Explicit bg-white/text-gray-900 —
+                                  // see app/waitlist-form.tsx for why.
+                                  className="w-full px-2 py-1 border rounded text-sm bg-white text-gray-900"
                                 />
                                 <select
                                   value={formData.status}
@@ -473,7 +479,9 @@ function DashboardInner() {
                                       status: e.target.value,
                                     })
                                   }
-                                  className="w-full px-2 py-1 border rounded text-sm"
+                                  // Explicit bg-white/text-gray-900 —
+                                  // see app/waitlist-form.tsx for why.
+                                  className="w-full px-2 py-1 border rounded text-sm bg-white text-gray-900"
                                 >
                                   <option value="open">Open</option>
                                   <option value="in_progress">
@@ -490,7 +498,9 @@ function DashboardInner() {
                                       notes: e.target.value,
                                     })
                                   }
-                                  className="w-full px-2 py-1 border rounded text-sm"
+                                  // Explicit bg-white/text-gray-900 —
+                                  // see app/waitlist-form.tsx for why.
+                                  className="w-full px-2 py-1 border rounded text-sm bg-white text-gray-900"
                                   rows={2}
                                 />
                                 <div className="flex gap-2">
