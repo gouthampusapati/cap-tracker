@@ -69,13 +69,18 @@ export function Footer() {
                 </a>
               </li>
               <li>
+                {/* Same URL/label already used in
+                    app/guide/compliance-requirements/page.tsx — this is
+                    the specific document auditors and pass-throughs
+                    actually cite, more useful here than a link to the
+                    eCFR homepage. */}
                 <a
-                  href="https://www.ecfr.gov"
+                  href="https://www.fac.gov/compliance/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white"
                 >
-                  eCFR
+                  Compliance Supplement
                 </a>
               </li>
             </ul>

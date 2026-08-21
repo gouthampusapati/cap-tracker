@@ -374,14 +374,23 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             finding and scrolls to it — see hash-expand.tsx. */}
         {org.findingsCount > 0 && <HashExpand />}
         <div id="findings-list" className="space-y-8">
-          {sortedYears.map((year) => {
+          {sortedYears.map((year, index) => {
             const findings = findingsByYear.get(year) || [];
             const reportId = findings[0]?.reportId;
             const facAcceptedDate = reportId ? acceptedDateByReport.get(reportId) ?? null : null;
             return (
               <div key={year} id={`fy-${year}`} className="scroll-mt-20">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">FY {year}</h2>
-                <ManagementDecisionBlock facAcceptedDate={facAcceptedDate} />
+                {/* Only the most recent fiscal year (sortedYears is
+                    descending) gets the full alert-style card — an org
+                    with many years otherwise gets the same "past due"
+                    block repeated once per year, which reads as a
+                    pile-on. See the variant doc-comment in
+                    management-decision-block.tsx. */}
+                <ManagementDecisionBlock
+                  facAcceptedDate={facAcceptedDate}
+                  variant={index === 0 ? 'full' : 'plain'}
+                />
                 <div className="space-y-4">
                   {findings.map((finding) => (
                     <FindingCard key={`${finding.reportId}-${finding.facFindingId}`} finding={finding} />
@@ -424,18 +433,19 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
               Are you this organization?
             </h3>
             <p className="text-sm text-blue-800 mb-4">
-              Try tracking your findings and corrective action plans today — we're actively
-              building this out and want your input on what an organization like yours actually
-              needs.
+              Track your findings and corrective action plans across audit cycles.
             </p>
-            {/* Sign-in, not the waitlist — someone confirming they ARE this
-                organization is exactly the qualified early user worth
-                getting into the real (if early) product now, for actual
-                usage feedback rather than a name on a list. The homepage's
-                CTAs stay on the waitlist since that's a lower-intent,
-                unqualified audience. */}
+            {/* Straight into the dashboard, not sign-in and not the
+                waitlist — someone confirming they ARE this organization
+                is exactly the qualified early user worth getting into
+                the real (if early) product now, for actual usage
+                feedback rather than a name on a list or a typed email.
+                /dashboard auto-creates an anonymous workspace on arrival
+                (see getOrCreateUser in lib/auth-config.ts) and its own
+                ?ein= handling auto-imports this org, so the handoff here
+                still works exactly as before. */}
             <a
-              href={`/auth/signin?ein=${org.ein}`}
+              href={`/dashboard?ein=${org.ein}`}
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →

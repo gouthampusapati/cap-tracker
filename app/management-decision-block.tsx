@@ -26,11 +26,39 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ManagementDecisionBlock({ facAcceptedDate }: { facAcceptedDate: string | null }) {
+/**
+ * `variant`: an org with many audit years would otherwise render this
+ * same alert-style card once per year — for a finding from 2019, "past
+ * due (2,400 days ago)" repeated seven times reads as a pile-on against
+ * the audited org, even though the deadline is the pass-through's
+ * obligation, not theirs, and whether it was actually met isn't
+ * something this site can verify either way. 'full' (default) is the
+ * bordered/backgrounded card with the complete sentence and guide link;
+ * 'plain' states the same two dates factually on one muted line, no
+ * "X days ago" framing, no border, no repeated link. Callers should use
+ * 'full' only for the most recent fiscal year and 'plain' for the rest
+ * — see the sortedYears.map call site in app/single-audit/[ein]/page.tsx.
+ */
+export function ManagementDecisionBlock({
+  facAcceptedDate,
+  variant = 'full',
+}: {
+  facAcceptedDate: string | null;
+  variant?: 'full' | 'plain';
+}) {
   const result = computeManagementDecisionDeadline(facAcceptedDate);
   if (!result) return null;
 
   const { deadlineLabel, state, acceptedDate, daysFromToday: days } = result;
+
+  if (variant === 'plain') {
+    return (
+      <p className="text-xs text-gray-500 mb-4">
+        FAC accepted this audit on {formatDate(acceptedDate)} — management decision was due{' '}
+        {formatDate(deadlineLabel)}.
+      </p>
+    );
+  }
 
   let timing: string;
   if (state === 'past') {
@@ -50,8 +78,7 @@ export function ManagementDecisionBlock({ facAcceptedDate }: { facAcceptedDate: 
         The FAC accepted this audit on {formatDate(acceptedDate)}. Under 2 CFR 200.521(d), a
         pass-through entity that provided federal funds to this organization for this audit
         period must issue a management decision on these findings by{' '}
-        <strong>{formatDate(deadlineLabel)}</strong>
-        {state === 'past' ? ', which was' : ''} ({timing}).
+        <strong>{formatDate(deadlineLabel)}</strong> ({timing}).
       </p>
       <TrackedLink
         href="/guide/management-decisions"

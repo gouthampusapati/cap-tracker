@@ -19,7 +19,9 @@ export default function EinSearchForm() {
 
     // Validate EIN
     if (!/^\d{9}$/.test(trimmed)) {
-      setError('Please enter a valid 9-digit EIN.');
+      // A concrete example beats an abstract rule — "9 digits" alone
+      // doesn't tell a visitor what a valid one actually looks like.
+      setError('EINs are 9 digits — try 916001236.');
       return;
     }
 
@@ -28,7 +30,9 @@ export default function EinSearchForm() {
   };
 
   return (
-    <form onSubmit={handleSearch} className="max-w-md mx-auto">
+    // Full-width on mobile (search is the core function and should
+    // dominate the hero there too), capped at max-w-md from sm: up.
+    <form onSubmit={handleSearch} className="w-full sm:max-w-md mx-auto">
       <div className="flex gap-2">
         <input
           type="text"

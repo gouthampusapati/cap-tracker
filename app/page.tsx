@@ -31,13 +31,14 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header. "Sign in" deliberately isn't primary nav here — there's
-          no real onboarding behind it yet for a general visitor, and a
-          CTA that leads nowhere useful costs more trust than it earns
-          clicks (see the org-page CTA discussion — a general homepage
-          visitor is a different, lower-intent audience than someone who
-          self-identifies as an actual audited org). It's still reachable
-          from the footer's Product column below. */}
+      {/* Header. "Sign in" deliberately isn't primary nav here — a
+          general homepage visitor is a different, lower-intent audience
+          than someone who self-identifies as an actual audited org (see
+          "For Recipients" below, which now links straight into
+          /dashboard with zero typing — see getOrCreateUser in
+          lib/auth-config.ts). Explicit sign-in is still reachable from
+          the footer's Product column for anyone who wants a real,
+          portable email identity instead of an anonymous session. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
           <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
@@ -77,16 +78,21 @@ export default function Home() {
           {/* Search Box */}
           <EinSearchForm />
 
-          {/* Portfolio promotion — the genuinely differentiated, working,
-              no-login feature, given real visual weight here rather than
-              only living in the nav. */}
-          <p className="mt-4 text-small text-gray-600">
-            Checking more than one organization?{' '}
-            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold">
-              Try the portfolio view
-            </Link>{' '}
-            — free, no account.
-          </p>
+          {/* Portfolio promotion — a real second action in the hero, not
+              a footnote under the search box. The genuinely
+              differentiated, working, no-login feature deserves more
+              than an inline text mention; outline style keeps it
+              visually secondary to the primary Search button above
+              without burying it. */}
+          <div className="mt-5 flex flex-col items-center gap-1.5">
+            <p className="text-small text-gray-600">Checking more than one organization?</p>
+            <Link
+              href="/portfolio"
+              className="inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2 rounded-lg transition-colors"
+            >
+              Try the portfolio view — free, no account →
+            </Link>
+          </div>
 
           {/* Example links */}
           <div className="mt-8 text-sm text-gray-600">
@@ -108,21 +114,42 @@ export default function Home() {
         </div>
 
         {/* Info sections. Both audience framings kept as explanation, but
-            now point at working features — both straight into the real
-            product (sign-in / portfolio), not the waitlist. Getting real
-            first users into the actual product for feedback matters more
-            here than filtering for "qualified" intent — see the org-page
+            now point at working features — straight into the real
+            product (dashboard / portfolio), not the waitlist. "For
+            Recipients" links to /dashboard directly, no sign-in step —
+            an anonymous workspace is created on arrival (see
+            getOrCreateUser in lib/auth-config.ts). Getting real first
+            users into the actual product for feedback matters more here
+            than filtering for "qualified" intent — see the org-page
             "Are you this organization?" CTA for the same reasoning. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
           <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-3"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 21V7a1 1 0 011-1h6a1 1 0 011 1v14M14 21v-8a1 1 0 011-1h4a1 1 0 011 1v8M4 21h16"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M7.5 9h.01M7.5 12h.01M7.5 15h.01M10.5 9h.01M10.5 12h.01M10.5 15h.01"
+              />
+            </svg>
             <h3 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h3>
             <p className="text-gray-600 mb-4">
               Track your Single Audit findings across years. Monitor repeat-finding risk. Stay
-              on top of corrective action plans. We&apos;re actively building this out and want
-              your input on what an organization like yours actually needs.
+              on top of corrective action plans.
             </p>
             <Link
-              href="/auth/signin"
+              href="/dashboard"
               className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →
@@ -130,6 +157,20 @@ export default function Home() {
           </div>
 
           <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-3"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="5" r="2" />
+              <circle cx="5" cy="19" r="2" />
+              <circle cx="12" cy="19" r="2" />
+              <circle cx="19" cy="19" r="2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v3M12 10L6.5 17M12 10v7M12 10l5.5 7" />
+            </svg>
             <h3 className="text-lg font-bold text-gray-900 mb-3">For Pass-Throughs</h3>
             <p className="text-gray-600 mb-4">
               Monitor your subrecipients' audit findings. Check compliance status. Verify audit
@@ -228,24 +269,32 @@ export default function Home() {
           </div>
         </div>
 
-        {/* CTA Footer — waitlist, not a claim of a finished product. Same
-            lower-intent-general-visitor reasoning as the "For Recipients"
-            card above. The mark itself sits above the heading — a flat
-            bg-primary field with just text read as an arbitrary color
-            block; anchoring it with the actual logo ties it back to the
-            brand instead of just "a dark box." */}
+        {/* CTA Footer — the one CTA that's genuinely just general-interest
+            capture (a visitor who hasn't self-identified as anything in
+            particular — unlike "For Recipients"/"For Pass-Throughs"
+            above, which link straight into the real product). Named,
+            specific early-access pitch (two concrete alert types) rather
+            than a vague "we'll tell you when we add something" —
+            present tense for what already exists (search, portfolio),
+            "early access" only for what doesn't. Deliberately does NOT
+            mention repeat-finding alerts: that consequence thesis was
+            tested against real data and falsified, so it's not a claim
+            this site makes. The role radio question (in WaitlistForm) is
+            the actual point of this block: recipient vs. pass-through
+            vs. adviser/auditor is the split the whole strategy hangs on,
+            and this is the one moment a visitor is motivated to answer
+            it. The mark sits above the heading so the block reads as
+            branded, not just an arbitrary dark box. */}
         <div className="bg-primary text-white rounded-lg p-8 text-center mb-16">
           <img src="/brand/logo-mark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-3">Building the full toolkit</h3>
+          <h3 className="text-2xl font-bold mb-3">Early access to deeper Single Audit monitoring</h3>
           <p className="text-white/80 mb-6 max-w-md mx-auto">
-            We're developing the complete tracking and reporting solution — join the waitlist
-            and help shape what we build.
+            Search and portfolio lookup are free and available now. We&apos;re opening limited
+            early access to ongoing monitoring — email alerts when an organization you follow
+            files a new audit, and when its §200.521(d) management-decision deadline is
+            approaching.
           </p>
-          <WaitlistForm
-            source="homepage-cta-band"
-            ctaLabel="Join the waitlist"
-            className="max-w-sm mx-auto"
-          />
+          <WaitlistForm source="homepage-cta-band" className="max-w-md mx-auto" />
         </div>
       </div>
 
