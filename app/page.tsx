@@ -230,10 +230,14 @@ export default function Home() {
 
         {/* CTA Footer — waitlist, not a claim of a finished product. Same
             lower-intent-general-visitor reasoning as the "For Recipients"
-            card above. */}
+            card above. The mark itself sits above the heading — a flat
+            bg-primary field with just text read as an arbitrary color
+            block; anchoring it with the actual logo ties it back to the
+            brand instead of just "a dark box." */}
         <div className="bg-primary text-white rounded-lg p-8 text-center mb-16">
+          <img src="/brand/logo-mark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
           <h3 className="text-2xl font-bold mb-3">Building the full toolkit</h3>
-          <p className="text-blue-100 mb-6 max-w-md mx-auto">
+          <p className="text-white/80 mb-6 max-w-md mx-auto">
             We're developing the complete tracking and reporting solution — join the waitlist
             and help shape what we build.
           </p>
