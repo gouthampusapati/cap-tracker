@@ -129,7 +129,7 @@ export default function NextCyclePrepReport() {
             </Link>
             <span className="text-gray-300">|</span>
             <Link href="/dashboard" className="flex items-center gap-2 text-2xl font-bold hover:text-blue-600">
-              <img src="/brand/logo-mark.svg" alt="" className="h-6 w-6" />
+              <img src="/brand/logo-mark.png" alt="" className="h-6 w-6" />
               Single Audit Intelligence
             </Link>
             <span className="text-gray-400">›</span>
