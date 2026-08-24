@@ -103,19 +103,36 @@ function DashboardInner() {
   // page, carried through sign-in) and don't already have an org
   // imported, import that EIN automatically instead of dropping them back
   // at a blank EIN field they'd have to retype.
+  //
+  // BUG FIX: if they already have a DIFFERENT org imported (e.g. clicked
+  // a homepage example earlier), a ?ein= link for another org used to be
+  // silently ignored — the dashboard just showed whatever was already
+  // there, which reads as "the link is broken" (reported live: visiting
+  // ?ein=421079767 showed Atascosa, 0 findings, because that org had
+  // been imported previously under the same guest identity). A link
+  // naming a specific org should always show that org. Old data is
+  // deleted before importing the new EIN, not left behind — findings
+  // are queried by userId only (app/api/findings/route.ts), not scoped
+  // by EIN, so leaving old audit_years/findings rows in place would mix
+  // two different orgs' findings into one dashboard.
   useEffect(() => {
     if (!email) return;
+    const einIsValid = !!einFromLink && /^\d{9}$/.test(einFromLink);
     (async () => {
       const res = await fetch('/api/org?email=' + encodeURIComponent(email));
       const org = res.ok ? await res.json() : null;
 
-      if (org) {
+      if (org && einIsValid && org.ein !== einFromLink) {
+        await fetch('/api/org?email=' + encodeURIComponent(email), { method: 'DELETE' });
+        setEin(einFromLink!);
+        await runImport(einFromLink!);
+      } else if (org) {
         setSummary(org);
         setImported(true);
         await loadFindings(email);
-      } else if (einFromLink && /^\d{9}$/.test(einFromLink)) {
-        setEin(einFromLink);
-        await runImport(einFromLink);
+      } else if (einIsValid) {
+        setEin(einFromLink!);
+        await runImport(einFromLink!);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
