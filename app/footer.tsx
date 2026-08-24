@@ -17,51 +17,53 @@ import Link from 'next/link';
  */
 export function Footer() {
   return (
-    // bg-primary (the actual brand dark green), not the generic
-    // bg-gray-900 this used to be — the homepage's early-access CTA
-    // band directly above the footer is also bg-primary, and two
-    // different near-black-but-not-quite-matching darks stacked back to
-    // back read as a color-system mismatch, not a deliberate "dark
-    // footer zone." border-white/10 instead of border-gray-800 for the
-    // same reason — a fixed gray border barely shows against this
-    // particular dark green and doesn't visually scale with it.
-    <div className="bg-primary text-gray-300 py-8 border-t border-white/10">
+    // bg-surface-alt, not a dark fill — checked the actual stripe.com
+    // production site (per the redesign brief's own reference) rather
+    // than guess again: their "Ready to get started?" CTA and their
+    // footer are BOTH the same light mist tone (#F8FAFD, computed style
+    // confirmed live), not dark. Matches our own --color-surface-alt
+    // token almost exactly, and now matches the homepage CTA band
+    // directly above this (see app/page.tsx) — same light color, same
+    // reasoning as the "two different darks clash" fix before, just
+    // resolved by going light like Stripe actually does instead of by
+    // matching two darks.
+    <div className="bg-surface-alt text-gray-600 py-8 border-t border-gray-200">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <h4 className="font-bold text-white mb-3">Product</h4>
+            <h4 className="font-bold text-gray-900 mb-3">Product</h4>
             <ul className="text-sm space-y-2">
               <li>
-                <Link href="/" className="hover:text-white">
+                <Link href="/" className="hover:text-gray-900">
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/portfolio" className="hover:text-white">
+                <Link href="/portfolio" className="hover:text-gray-900">
                   Portfolio
                 </Link>
               </li>
               <li>
-                <Link href="/guide" className="hover:text-white">
+                <Link href="/guide" className="hover:text-gray-900">
                   Compliance guide
                 </Link>
               </li>
               <li>
-                <Link href="/auth/signin" className="hover:text-white">
+                <Link href="/auth/signin" className="hover:text-gray-900">
                   Sign in
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-white mb-3">Resources</h4>
+            <h4 className="font-bold text-gray-900 mb-3">Resources</h4>
             <ul className="text-sm space-y-2">
               <li>
                 <a
                   href="https://www.fac.gov"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white"
+                  className="hover:text-gray-900"
                 >
                   Federal Audit Clearinghouse
                 </a>
@@ -71,7 +73,7 @@ export function Footer() {
                   href="https://www.ecfr.gov/current/title-2/subtitle-A/chapter-II/part-200"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white"
+                  className="hover:text-gray-900"
                 >
                   2 CFR 200 (Uniform Guidance)
                 </a>
@@ -86,7 +88,7 @@ export function Footer() {
                   href="https://www.fac.gov/compliance/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white"
+                  className="hover:text-gray-900"
                 >
                   Compliance Supplement
                 </a>
@@ -94,22 +96,22 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-white mb-3">Legal</h4>
+            <h4 className="font-bold text-gray-900 mb-3">Legal</h4>
             <ul className="text-sm space-y-2 mb-3">
               <li>
-                <Link href="/privacy" className="hover:text-white">
+                <Link href="/privacy" className="hover:text-gray-900">
                   Privacy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white">
+                <Link href="/terms" className="hover:text-gray-900">
                   Terms
                 </Link>
               </li>
               <li>
                 {/* Placeholder inbox — swap for a real monitored address
                     before this is relied on for actual contact. */}
-                <a href="mailto:hello@singleauditintel.com" className="hover:text-white">
+                <a href="mailto:hello@singleauditintel.com" className="hover:text-gray-900">
                   Contact
                 </a>
               </li>
@@ -120,7 +122,7 @@ export function Footer() {
             </p>
           </div>
         </div>
-        <div className="border-t border-white/10 pt-8 text-xs text-gray-500 text-center">
+        <div className="border-t border-gray-200 pt-8 text-xs text-gray-500 text-center">
           <p>© 2026 Single Audit Intelligence. All data is public domain.</p>
         </div>
       </div>

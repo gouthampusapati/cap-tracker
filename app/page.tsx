@@ -50,10 +50,10 @@ export default function Home() {
             Single Audit Intelligence
           </p>
           <div className="space-x-4">
-            <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold">
+            <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold transition-colors">
               Guide
             </Link>
-            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold">
+            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold transition-colors">
               Portfolio
             </Link>
           </div>
@@ -253,14 +253,20 @@ export default function Home() {
             feature panel → dark CTA), without a full-bleed background
             change that would be a bigger structural departure. */}
         <div className="bg-surface-alt rounded-2xl p-10 sm:p-12 my-24">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Each item "lights up" on hover — bg-white + shadow lifts
+                it off the mist panel, icon shifts to the accent color —
+                the cursor-follows-the-section feedback Stripe uses on
+                its own feature grids, even though these aren't links.
+                -m-5 p-5 so the larger hit/highlight area doesn't change
+                the grid's outer spacing. */}
+            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                className="w-8 h-8 text-primary mb-3"
+                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
                 aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" />
@@ -270,13 +276,13 @@ export default function Home() {
                 See all years of audit history for any organization.
               </p>
             </div>
-            <div>
+            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                className="w-8 h-8 text-primary mb-3"
+                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
                 aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18M5 4h11l-2.5 3.5L16 11H5" />
@@ -286,13 +292,13 @@ export default function Home() {
                 View findings by category, flag repeats, and track status.
               </p>
             </div>
-            <div>
+            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                className="w-8 h-8 text-primary mb-3"
+                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
                 aria-hidden="true"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" />
@@ -323,25 +329,24 @@ export default function Home() {
           adviser/auditor is the split the whole strategy hangs on, and
           this is the one moment a visitor is motivated to answer it.
 
-          Full-bleed, not a rounded card floating in whitespace — no
-          max-w-5xl wrapper, no rounded corners, no bottom margin, so it
-          flows directly into the Footer (also bg-primary, same exact
-          color) with zero gap. Reads as one continuous dark closing
-          zone rather than a "box before a box" — that's the specific
-          thing that read as out of place before. */}
-      <div className="bg-primary text-white text-center py-16 sm:py-20">
+          Full-bleed, light mist background (bg-surface-alt), not a dark
+          box — went back to the actual stripe.com production site
+          rather than guess a third time: their own "Ready to get
+          started?" CTA-before-footer section is a light mist tone
+          (#F8FAFD, confirmed via computed style), not dark, and their
+          footer is that exact same light color too — no color break at
+          all between the two. app/footer.tsx now matches this
+          section's bg-surface-alt for the same reason. No rounded
+          corners, no bottom margin, so it still flows directly into the
+          Footer with zero gap. */}
+      <div className="bg-surface-alt text-gray-900 text-center py-16 sm:py-20">
         <div className="max-w-md mx-auto px-4">
-          {/* logo-mark-on-dark.svg, not logo-mark.svg — the regular mark
-              bakes in an opaque white background rect, so on this dark
-              band it rendered as a white square/sticker rather than a
-              blended brand mark. This variant drops that background and
-              swaps the mark's near-black shape (which is literally
-              --color-primary, the same hex as this band) for white.
-              Paired with the wordmark text, same lockup pattern as the
-              header logo. */}
+          {/* logo-mark.svg, not the dark-background knockout variant —
+              this section is light now, so the regular mark (which
+              bakes in an opaque white background) sits correctly. */}
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src="/brand/logo-mark-on-dark.svg" alt="" className="h-8 w-8" />
-            <span className="text-lg font-semibold text-white">Single Audit Intelligence</span>
+            <img src="/brand/logo-mark.svg" alt="" className="h-8 w-8" />
+            <span className="text-lg font-semibold text-gray-900">Single Audit Intelligence</span>
           </div>
           <h2 className="text-2xl font-bold mb-3">
             Early access to Enterprise-Grade Single Audit Monitoring and Intelligence
@@ -353,17 +358,17 @@ export default function Home() {
               instead of one flowing paragraph, so the free-vs-early-access
               contrast — the whole pitch — isn't buried mid-sentence. */}
           <div className="text-left mb-6 space-y-2">
-            <p className="text-white/80">
-              <strong className="text-white">Free today</strong> — search any organization,
+            <p className="text-gray-600">
+              <strong className="text-gray-900">Free today</strong> — search any organization,
               check a portfolio of EINs, read the compliance guides.
             </p>
-            <p className="text-white/80">
-              <strong className="text-white">Early access adds</strong> — an email when an
+            <p className="text-gray-600">
+              <strong className="text-gray-900">Early access adds</strong> — an email when an
               organization you follow files a new audit, and before its six-month
               management-decision deadline (§200.521(d)).
             </p>
           </div>
-          <WaitlistForm source="homepage-cta-band" />
+          <WaitlistForm source="homepage-cta-band" variant="light" />
         </div>
       </div>
 
