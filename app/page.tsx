@@ -336,9 +336,16 @@ export default function Home() {
               band it rendered as a white square/sticker rather than a
               blended brand mark. This variant drops that background and
               swaps the mark's near-black shape (which is literally
-              --color-primary, the same hex as this band) for white. */}
-          <img src="/brand/logo-mark-on-dark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-3">Early access to deeper Single Audit monitoring</h2>
+              --color-primary, the same hex as this band) for white.
+              Paired with the wordmark text, same lockup pattern as the
+              header logo. */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src="/brand/logo-mark-on-dark.svg" alt="" className="h-8 w-8" />
+            <span className="text-lg font-semibold text-white">Single Audit Intelligence</span>
+          </div>
+          <h2 className="text-2xl font-bold mb-3">
+            Early access to Enterprise-Grade Single Audit Monitoring and Intelligence
+          </h2>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
               copy harder to skim; this audience is skimming. Split into
