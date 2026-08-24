@@ -17,7 +17,15 @@ import Link from 'next/link';
  */
 export function Footer() {
   return (
-    <div className="bg-gray-900 text-gray-300 py-8 border-t border-gray-800">
+    // bg-primary (the actual brand dark green), not the generic
+    // bg-gray-900 this used to be — the homepage's early-access CTA
+    // band directly above the footer is also bg-primary, and two
+    // different near-black-but-not-quite-matching darks stacked back to
+    // back read as a color-system mismatch, not a deliberate "dark
+    // footer zone." border-white/10 instead of border-gray-800 for the
+    // same reason — a fixed gray border barely shows against this
+    // particular dark green and doesn't visually scale with it.
+    <div className="bg-primary text-gray-300 py-8 border-t border-white/10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
@@ -112,7 +120,7 @@ export function Footer() {
             </p>
           </div>
         </div>
-        <div className="border-t border-gray-800 pt-8 text-xs text-gray-500 text-center">
+        <div className="border-t border-white/10 pt-8 text-xs text-gray-500 text-center">
           <p>© 2026 Single Audit Intelligence. All data is public domain.</p>
         </div>
       </div>

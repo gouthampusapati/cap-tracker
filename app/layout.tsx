@@ -1,8 +1,23 @@
+import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Providers } from './providers';
 import { SITE_URL } from '@/lib/site-url';
 import './globals.css';
+
+// Self-hosted by Next at build time — the font files ship from this
+// site, not a Google Fonts <link> at runtime, so there's no third-party
+// request added for visitors (matches the "independent tool, not
+// tracking you" posture already established site-wide). Stripe-inspired
+// redesign pass (see /Users/Bunnu/.claude/plans/merry-enchanting-kay.md)
+// — Inter is the standard free substitute for that look, and its
+// variable weights are what let the homepage hero go lighter than the
+// old system-font bold.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata = {
   // Without this, Next.js can't resolve the relative image URL in
@@ -31,7 +46,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body>
         <Providers>
           {children}
