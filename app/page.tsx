@@ -341,7 +341,15 @@ export default function Home() {
           corners, no bottom margin, so it still flows directly into the
           Footer with zero gap. */}
       <div className="bg-surface-alt text-gray-900 text-center py-16 sm:py-20">
-        <div className="max-w-md mx-auto px-4">
+        {/* max-w-2xl, not max-w-md — that narrower width was sized for
+            just the form and left the heading (now the longer
+            "Enterprise-Grade..." version) wrapping across 3 cramped
+            lines, visibly narrower than every other heading on the
+            page. Heading/body copy get the wider column; the form
+            itself stays at max-w-md (passed via className below) so the
+            email input/button don't stretch into an awkwardly wide
+            single row. */}
+        <div className="max-w-2xl mx-auto px-4">
           {/* logo-mark.svg, not the dark-background knockout variant —
               this section is light now, so the regular mark (which
               bakes in an opaque white background) sits correctly. */}
@@ -354,8 +362,12 @@ export default function Home() {
           </h2>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
-              copy harder to skim; this audience is skimming. */}
-          <div className="text-left mb-6 space-y-3">
+              copy harder to skim; this audience is skimming. max-w-md
+              mx-auto so this block lines up with the form directly
+              below it — only the heading above uses the full max-w-2xl
+              width, to give it breathing room without also stretching
+              the paragraph/bullets wider than the form they lead into. */}
+          <div className="text-left mb-6 space-y-3 max-w-md mx-auto">
             <p className="text-gray-600">
               <strong className="text-gray-900">Free today</strong> — search any organization,
               check a portfolio of EINs, and read the compliance guides.
@@ -375,7 +387,7 @@ export default function Home() {
               recipients and subrecipients. Early access is limited.
             </p>
           </div>
-          <WaitlistForm source="homepage-cta-band" variant="light" />
+          <WaitlistForm source="homepage-cta-band" variant="light" className="max-w-md mx-auto" />
         </div>
       </div>
 
