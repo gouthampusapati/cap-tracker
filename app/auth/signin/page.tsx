@@ -39,7 +39,7 @@ function SignInForm() {
           ← Back to home
         </Link>
         <h1 className="flex items-center justify-center gap-2 text-2xl font-bold mb-2 text-center mt-2">
-          <img src="/brand/logo-mark.svg" alt="" className="h-7 w-7" />
+          <img src="/brand/logo-mark.png" alt="" className="h-7 w-7" />
           Single Audit Intelligence
         </h1>
 

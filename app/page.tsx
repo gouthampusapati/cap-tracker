@@ -46,7 +46,7 @@ export default function Home() {
               brand mark used to be the H1, which spent the page's
               strongest on-page SEO signal on a term nobody searches. */}
           <p className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-            <img src="/brand/logo-mark.svg" alt="" className="h-7 w-7" />
+            <img src="/brand/logo-mark.png" alt="" className="h-7 w-7" />
             Single Audit Intelligence
           </p>
           <div className="space-x-4">
@@ -350,11 +350,11 @@ export default function Home() {
             email input/button don't stretch into an awkwardly wide
             single row. */}
         <div className="max-w-2xl mx-auto px-4">
-          {/* logo-mark.svg, not the dark-background knockout variant —
-              this section is light now, so the regular mark (which
-              bakes in an opaque white background) sits correctly. */}
+          {/* logo-mark.png — the current red/navy "SAI" mark. This
+              section is light, so no dark-background knockout variant
+              is needed here. */}
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src="/brand/logo-mark.svg" alt="" className="h-8 w-8" />
+            <img src="/brand/logo-mark.png" alt="" className="h-8 w-8" />
             <span className="text-lg font-semibold text-gray-900">Single Audit Intelligence</span>
           </div>
           <h2 className="text-2xl font-bold mb-3">
