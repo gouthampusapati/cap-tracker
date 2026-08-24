@@ -317,17 +317,18 @@ export default function Home() {
       {/* CTA Footer — the one CTA that's genuinely just general-interest
           capture (a visitor who hasn't self-identified as anything in
           particular — unlike "For Recipients"/"For Pass-Throughs"
-          above, which link straight into the real product). Named,
-          specific early-access pitch (two concrete alert types) rather
-          than a vague "we'll tell you when we add something" —
-          present tense for what already exists (search, portfolio),
-          "early access" only for what doesn't. Deliberately does NOT
-          mention repeat-finding alerts: that consequence thesis was
-          tested against real data and falsified, so it's not a claim
-          this site makes. The role radio question (in WaitlistForm) is
-          the actual point of this block: recipient vs. pass-through vs.
-          adviser/auditor is the split the whole strategy hangs on, and
-          this is the one moment a visitor is motivated to answer it.
+          above, which link straight into the real product). Present
+          tense for what already exists (search, portfolio, guides);
+          "early access"/"upcoming" only for what doesn't — the bulleted
+          list names two concrete alerts plus a general "priority access
+          to upcoming enterprise features" line, per explicit copy
+          direction. Deliberately does NOT mention repeat-finding
+          alerts: that consequence thesis was tested against real data
+          and falsified, so it's not a claim this site makes. The role
+          radio question (in WaitlistForm) is the actual point of this
+          block: recipient vs. pass-through vs. adviser/auditor is the
+          split the whole strategy hangs on, and this is the one moment
+          a visitor is motivated to answer it.
 
           Full-bleed, light mist background (bg-surface-alt), not a dark
           box — went back to the actual stripe.com production site
@@ -353,19 +354,25 @@ export default function Home() {
           </h2>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
-              copy harder to skim; this audience is skimming. Split into
-              two labelled lines (meaning first, § citation in support)
-              instead of one flowing paragraph, so the free-vs-early-access
-              contrast — the whole pitch — isn't buried mid-sentence. */}
-          <div className="text-left mb-6 space-y-2">
+              copy harder to skim; this audience is skimming. */}
+          <div className="text-left mb-6 space-y-3">
             <p className="text-gray-600">
               <strong className="text-gray-900">Free today</strong> — search any organization,
-              check a portfolio of EINs, read the compliance guides.
+              check a portfolio of EINs, and read the compliance guides.
             </p>
+            <div>
+              <p className="text-gray-600 mb-2">
+                Early access members get advanced monitoring capabilities, including:
+              </p>
+              <ul className="list-disc list-outside pl-5 text-gray-600 space-y-1">
+                <li>Instant notification when an organization you track files a new audit</li>
+                <li>Automated reminders before the six-month management-decision deadline</li>
+                <li>Priority access to upcoming enterprise features</li>
+              </ul>
+            </div>
             <p className="text-gray-600">
-              <strong className="text-gray-900">Early access adds</strong> — an email when an
-              organization you follow files a new audit, and before its six-month
-              management-decision deadline (§200.521(d)).
+              We&apos;re expanding the platform for teams that need continuous visibility across
+              recipients and subrecipients. Early access is limited.
             </p>
           </div>
           <WaitlistForm source="homepage-cta-band" variant="light" />
