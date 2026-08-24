@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-background">
       {/* Header. "Sign in" deliberately isn't primary nav here — a
           general homepage visitor is a different, lower-intent audience
           than someone who self-identifies as an actual audited org (see
@@ -50,73 +50,101 @@ export default function Home() {
             Single Audit Intelligence
           </p>
           <div className="space-x-4">
-            <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold">
+            <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold transition-colors">
               Guide
             </Link>
-            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold">
+            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold transition-colors">
               Portfolio
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Hero */}
-      <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <h1 className="text-h1 sm:text-display font-bold text-gray-900 mb-3">
-            Look up any organization&apos;s Single Audit findings
-          </h1>
-          <p className="text-body text-gray-600 mb-2 max-w-2xl mx-auto">
-            Search the Federal Audit Clearinghouse. See audit findings and corrective action
-            plans for any organization that receives federal awards.
-          </p>
-          {/* Independence statement — above the fold on purpose. The
-              visual language here is institutional and the subject is
-              federal; say plainly what this is so nobody has to infer
-              it. */}
-          <p className="text-caption text-gray-500 mb-6">
-            Independent tool built on public Federal Audit Clearinghouse data. Not affiliated
-            with GSA, OMB, or any federal agency.
-          </p>
+      {/* Hero. relative + overflow-hidden contains the decorative blurred
+          shapes below without letting them affect page layout/scroll
+          width; the actual content sits in a `relative z-10` wrapper so
+          it always renders above them. Stripe-inspired redesign pass —
+          existing brand blues, not Stripe's violet (see the plan's
+          Context section for why). */}
+      <div className="relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-accent/10 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+        <div className="absolute top-24 -left-32 w-80 h-80 bg-accent-soft/10 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
+        <div className="absolute top-0 left-1/3 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
 
-          {/* Search Box */}
-          <EinSearchForm />
+        <div className="relative z-10 max-w-5xl mx-auto px-4 py-14 sm:py-20 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h1 className="text-h1 sm:text-display font-medium tracking-tight text-gray-900 mb-4">
+              Look up any organization&apos;s Single Audit findings
+            </h1>
+            <p className="text-lg text-gray-600 mb-2 max-w-2xl mx-auto font-light">
+              Search the Federal Audit Clearinghouse. See audit findings and corrective action
+              plans for any organization that receives federal awards.
+            </p>
+            {/* Independence statement — above the fold on purpose. The
+                visual language here is institutional and the subject is
+                federal; say plainly what this is so nobody has to infer
+                it. */}
+            <p className="text-caption text-gray-500 mb-8">
+              Independent tool built on public Federal Audit Clearinghouse data. Not affiliated
+              with GSA, OMB, or any federal agency.
+            </p>
 
-          {/* Portfolio promotion — a real second action in the hero, not
-              a footnote under the search box. The genuinely
-              differentiated, working, no-login feature deserves more
-              than an inline text mention; outline style keeps it
-              visually secondary to the primary Search button above
-              without burying it. */}
-          <div className="mt-5 flex flex-col items-center gap-1.5">
-            <p className="text-small text-gray-600">Checking more than one organization?</p>
-            <Link
-              href="/portfolio"
-              className="inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2 rounded-lg transition-colors"
-            >
-              Try the portfolio view — free, no account →
-            </Link>
-          </div>
+            {/* Search Box */}
+            <EinSearchForm />
 
-          {/* Example links */}
-          <div className="mt-8 text-sm text-gray-600">
-            <p className="mb-3">Try these examples:</p>
-            <div className="space-y-2">
-              <Link href="/single-audit/916001236" className="text-accent hover:underline">
-                City of Cheney, WA (916001236)
+            {/* Portfolio promotion — a real second action in the hero, not
+                a footnote under the search box. The genuinely
+                differentiated, working, no-login feature deserves more
+                than an inline text mention; outline style keeps it
+                visually secondary to the primary Search button above
+                without burying it. Pushed further down (mt-8, was mt-5)
+                so search reads as the undeniable single focal point per
+                the redesign brief. */}
+            <div className="mt-8 flex flex-col items-center gap-1.5">
+              <p className="text-small text-gray-600">Checking more than one organization?</p>
+              <Link
+                href="/portfolio"
+                className="inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2 rounded-lg transition-colors"
+              >
+                Try the portfolio view — free, no account →
               </Link>
-              <br />
-              <Link href="/single-audit/742089103" className="text-accent hover:underline">
-                Atascosa Health Center (742089103)
-              </Link>
-              <br />
-              <Link href="/single-audit/421079767" className="text-accent hover:underline">
-                Grinnell Housing Authority (421079767)
-              </Link>
+            </div>
+
+            {/* Example links — clickable chips, not plain text links +
+                <br>, per the redesign brief's Components section.
+                tabular-nums keeps the EINs from jittering in width as
+                the eye scans across them. */}
+            <div className="mt-10">
+              <p className="text-small text-gray-500 mb-3">Try these examples</p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Link
+                  href="/single-audit/916001236"
+                  className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                >
+                  City of Cheney, WA
+                  <span className="text-gray-400 tabular-nums">916001236</span>
+                </Link>
+                <Link
+                  href="/single-audit/742089103"
+                  className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                >
+                  Atascosa Health Center
+                  <span className="text-gray-400 tabular-nums">742089103</span>
+                </Link>
+                <Link
+                  href="/single-audit/421079767"
+                  className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                >
+                  Grinnell Housing Authority
+                  <span className="text-gray-400 tabular-nums">421079767</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Info sections. Both audience framings kept as explanation, but
             now point at working features — straight into the real
             product (dashboard / portfolio), not the waitlist. "For
@@ -126,8 +154,8 @@ export default function Home() {
             users into the actual product for feedback matters more here
             than filtering for "qualified" intent — see the org-page
             "Are you this organization?" CTA for the same reasoning. */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-16">
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-24">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -160,7 +188,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -190,7 +218,7 @@ export default function Home() {
         </div>
 
         {/* What is a Single Audit? */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 my-16">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 sm:p-10 my-24">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">What is a Single Audit?</h2>
           <p className="text-gray-700 mb-4">
             Organizations that receive $1,000,000 or more in federal awards in a single fiscal
@@ -219,103 +247,128 @@ export default function Home() {
         {/* Features. Inline SVG on the token palette, not emoji — a
             precise, institutional tone doesn't read well with emoji, and
             currentColor lets these inherit text-primary without a new
-            asset/dependency for three icons. */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-16">
-          <div>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-8 h-8 text-primary mb-2"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" />
-            </svg>
-            <h3 className="font-bold text-gray-900 mb-2">Audit History</h3>
-            <p className="text-sm text-gray-600">
-              See all years of audit history for any organization.
-            </p>
-          </div>
-          <div>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-8 h-8 text-primary mb-2"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18M5 4h11l-2.5 3.5L16 11H5" />
-            </svg>
-            <h3 className="font-bold text-gray-900 mb-2">Findings at a Glance</h3>
-            <p className="text-sm text-gray-600">
-              View findings by category, flag repeats, and track status.
-            </p>
-          </div>
-          <div>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-8 h-8 text-primary mb-2"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h6" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6M9 17h4" />
-            </svg>
-            <h3 className="font-bold text-gray-900 mb-2">CAP Text</h3>
-            <p className="text-sm text-gray-600">
-              Read the corrective action plans organizations filed with auditors.
-            </p>
+            asset/dependency for three icons. Wrapped in a bg-surface-alt
+            "mist" panel — the alternating section rhythm the redesign
+            brief asks for (white hero/cards → tinted explainer → mist
+            feature panel → dark CTA), without a full-bleed background
+            change that would be a bigger structural departure. */}
+        <div className="bg-surface-alt rounded-2xl p-10 sm:p-12 my-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Each item "lights up" on hover — bg-white + shadow lifts
+                it off the mist panel, icon shifts to the accent color —
+                the cursor-follows-the-section feedback Stripe uses on
+                its own feature grids, even though these aren't links.
+                -m-5 p-5 so the larger hit/highlight area doesn't change
+                the grid's outer spacing. */}
+            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" />
+              </svg>
+              <h3 className="font-semibold text-gray-900 mb-2">Audit History</h3>
+              <p className="text-sm text-gray-600">
+                See all years of audit history for any organization.
+              </p>
+            </div>
+            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18M5 4h11l-2.5 3.5L16 11H5" />
+              </svg>
+              <h3 className="font-semibold text-gray-900 mb-2">Findings at a Glance</h3>
+              <p className="text-sm text-gray-600">
+                View findings by category, flag repeats, and track status.
+              </p>
+            </div>
+            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h6" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6M9 17h4" />
+              </svg>
+              <h3 className="font-semibold text-gray-900 mb-2">CAP Text</h3>
+              <p className="text-sm text-gray-600">
+                Read the corrective action plans organizations filed with auditors.
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* CTA Footer — the one CTA that's genuinely just general-interest
-            capture (a visitor who hasn't self-identified as anything in
-            particular — unlike "For Recipients"/"For Pass-Throughs"
-            above, which link straight into the real product). Named,
-            specific early-access pitch (two concrete alert types) rather
-            than a vague "we'll tell you when we add something" —
-            present tense for what already exists (search, portfolio),
-            "early access" only for what doesn't. Deliberately does NOT
-            mention repeat-finding alerts: that consequence thesis was
-            tested against real data and falsified, so it's not a claim
-            this site makes. The role radio question (in WaitlistForm) is
-            the actual point of this block: recipient vs. pass-through
-            vs. adviser/auditor is the split the whole strategy hangs on,
-            and this is the one moment a visitor is motivated to answer
-            it. The mark sits above the heading so the block reads as
-            branded, not just an arbitrary dark box. */}
-        <div className="bg-primary text-white rounded-lg p-8 text-center mb-16">
-          {/* logo-mark-on-dark.svg, not logo-mark.svg — the regular mark
-              bakes in an opaque white background rect, so on this dark
-              band it rendered as a white square/sticker rather than a
-              blended brand mark. This variant drops that background and
-              swaps the mark's near-black shape (which is literally
-              --color-primary, the same hex as this band) for white. */}
-          <img src="/brand/logo-mark-on-dark.svg" alt="" className="h-10 w-10 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-3">Early access to deeper Single Audit monitoring</h2>
+      {/* CTA Footer — the one CTA that's genuinely just general-interest
+          capture (a visitor who hasn't self-identified as anything in
+          particular — unlike "For Recipients"/"For Pass-Throughs"
+          above, which link straight into the real product). Named,
+          specific early-access pitch (two concrete alert types) rather
+          than a vague "we'll tell you when we add something" —
+          present tense for what already exists (search, portfolio),
+          "early access" only for what doesn't. Deliberately does NOT
+          mention repeat-finding alerts: that consequence thesis was
+          tested against real data and falsified, so it's not a claim
+          this site makes. The role radio question (in WaitlistForm) is
+          the actual point of this block: recipient vs. pass-through vs.
+          adviser/auditor is the split the whole strategy hangs on, and
+          this is the one moment a visitor is motivated to answer it.
+
+          Full-bleed, light mist background (bg-surface-alt), not a dark
+          box — went back to the actual stripe.com production site
+          rather than guess a third time: their own "Ready to get
+          started?" CTA-before-footer section is a light mist tone
+          (#F8FAFD, confirmed via computed style), not dark, and their
+          footer is that exact same light color too — no color break at
+          all between the two. app/footer.tsx now matches this
+          section's bg-surface-alt for the same reason. No rounded
+          corners, no bottom margin, so it still flows directly into the
+          Footer with zero gap. */}
+      <div className="bg-surface-alt text-gray-900 text-center py-16 sm:py-20">
+        <div className="max-w-md mx-auto px-4">
+          {/* logo-mark.svg, not the dark-background knockout variant —
+              this section is light now, so the regular mark (which
+              bakes in an opaque white background) sits correctly. */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <img src="/brand/logo-mark.svg" alt="" className="h-8 w-8" />
+            <span className="text-lg font-semibold text-gray-900">Single Audit Intelligence</span>
+          </div>
+          <h2 className="text-2xl font-bold mb-3">
+            Early access to Enterprise-Grade Single Audit Monitoring and Intelligence
+          </h2>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
               copy harder to skim; this audience is skimming. Split into
               two labelled lines (meaning first, § citation in support)
               instead of one flowing paragraph, so the free-vs-early-access
               contrast — the whole pitch — isn't buried mid-sentence. */}
-          <div className="text-left max-w-md mx-auto mb-6 space-y-2">
-            <p className="text-white/80">
-              <strong className="text-white">Free today</strong> — search any organization,
+          <div className="text-left mb-6 space-y-2">
+            <p className="text-gray-600">
+              <strong className="text-gray-900">Free today</strong> — search any organization,
               check a portfolio of EINs, read the compliance guides.
             </p>
-            <p className="text-white/80">
-              <strong className="text-white">Early access adds</strong> — an email when an
+            <p className="text-gray-600">
+              <strong className="text-gray-900">Early access adds</strong> — an email when an
               organization you follow files a new audit, and before its six-month
               management-decision deadline (§200.521(d)).
             </p>
           </div>
-          <WaitlistForm source="homepage-cta-band" className="max-w-md mx-auto" />
+          <WaitlistForm source="homepage-cta-band" variant="light" />
         </div>
       </div>
 

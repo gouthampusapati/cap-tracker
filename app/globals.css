@@ -30,6 +30,9 @@
                                     don't force it into working UI just to use the token. */
   --color-background: #fafaf9;
   --color-surface: #ffffff;
+  --color-surface-alt: #f5f7fa; /* very light cool-gray "mist" — for alternating section
+                                    backgrounds against white, distinct from --color-background
+                                    but not a new brand color. Stripe-inspired redesign pass. */
   --color-border: #e2e2e0;
   --color-text: #1a1a18;
   --color-muted: #6b6b68;
@@ -64,13 +67,27 @@
   --text-small--line-height: 1.5;
   --text-caption: 0.75rem;
   --text-caption--line-height: 1.4;
+
+  /* Shadow tokens — nothing on the site used a shadow at all before this
+     (flat borders everywhere). Cool-tinted (accent blue at low alpha),
+     not flat gray, per the Stripe-inspired redesign brief's "atmospheric"
+     note — two layers each for a soft, not-flat feel. --shadow-card is
+     the resting state for elevated cards/inputs; --shadow-card-hover is
+     for hover/focus. */
+  --shadow-card: 0 1px 2px 0 rgba(0, 74, 173, 0.04), 0 1px 3px 0 rgba(0, 74, 173, 0.06);
+  --shadow-card-hover: 0 4px 12px -2px rgba(0, 74, 173, 0.12), 0 2px 6px -2px rgba(0, 74, 173, 0.08);
 }
 
 html, body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  /* var(--font-inter) is set by next/font/google on <html> in
+     app/layout.tsx (self-hosted, no runtime Google Fonts request); the
+     old system-font stack stays as the fallback chain in case the font
+     variable is ever missing (e.g. a component rendered outside the
+     root layout in a test). */
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

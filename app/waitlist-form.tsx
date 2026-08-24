@@ -46,21 +46,29 @@ const SEGMENT_OPTIONS: { value: Segment; label: string }[] = [
  *
  * `source` must be one of the values app/api/waitlist/route.ts's
  * VALID_SOURCES allowlist accepts — keep the two in sync when adding a
- * new call site. Styled for its one current context (a dark bg-primary
- * band) — revisit label/input colors if this ever gets reused on a
- * light background.
+ * new call site.
+ *
+ * `variant` controls text color only (the email input and submit button
+ * are already small white/accent surfaces that read fine on either
+ * background). Originally built for one dark bg-primary context;
+ * app/page.tsx's CTA band went light instead (see its own comment for
+ * why — the actual stripe.com site's equivalent section is light, not
+ * dark), so this now supports both rather than assuming dark.
  */
 export function WaitlistForm({
   source,
   ein,
   ctaLabel = 'Request early access',
   className = '',
+  variant = 'dark',
 }: {
   source: 'homepage-cta-band';
   ein?: string;
   ctaLabel?: string;
   className?: string;
+  variant?: 'dark' | 'light';
 }) {
+  const isLight = variant === 'light';
   const [email, setEmail] = useState('');
   const [segment, setSegment] = useState<Segment | ''>('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -106,7 +114,7 @@ export function WaitlistForm({
 
   if (status === 'success') {
     return (
-      <p className={`text-sm font-semibold text-white ${className}`}>
+      <p className={`text-sm font-semibold ${isLight ? 'text-gray-900' : 'text-white'} ${className}`}>
         Thanks — we&apos;ve got your details. We&apos;ll follow up soon.
       </p>
     );
@@ -115,14 +123,14 @@ export function WaitlistForm({
   return (
     <form onSubmit={handleSubmit} className={`text-left ${className}`}>
       <fieldset className="mb-3">
-        <legend className="text-sm font-semibold text-white mb-2">
+        <legend className={`text-sm font-semibold mb-2 ${isLight ? 'text-gray-900' : 'text-white'}`}>
           Which best describes your role?
         </legend>
         <div className="space-y-1.5">
           {SEGMENT_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className="flex items-center gap-2 text-sm text-white/80 cursor-pointer"
+              className={`flex items-center gap-2 text-sm cursor-pointer ${isLight ? 'text-gray-700' : 'text-white/80'}`}
             >
               <input
                 type="radio"
@@ -137,7 +145,7 @@ export function WaitlistForm({
                   }
                 }}
                 required
-                className="accent-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className={`accent-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${isLight ? 'focus-visible:outline-accent' : 'focus-visible:outline-white'}`}
               />
               {opt.label}
             </label>
@@ -149,7 +157,10 @@ export function WaitlistForm({
           disappears the moment someone starts typing, which leaves a
           sighted user unsure what the field wanted once it's no longer
           empty. aria-label alone covers assistive tech but not this. */}
-      <label htmlFor="early-access-email" className="block text-sm font-semibold text-white mb-2">
+      <label
+        htmlFor="early-access-email"
+        className={`block text-sm font-semibold mb-2 ${isLight ? 'text-gray-900' : 'text-white'}`}
+      >
         Email
       </label>
       <div className="flex flex-col sm:flex-row gap-2">
@@ -178,8 +189,10 @@ export function WaitlistForm({
           {status === 'submitting' ? 'Sending…' : ctaLabel}
         </button>
       </div>
-      {status === 'error' && <p className="text-xs text-red-300 mt-2">{error}</p>}
-      <p className="text-xs text-white/60 mt-2">
+      {status === 'error' && (
+        <p className={`text-xs mt-2 ${isLight ? 'text-red-600' : 'text-red-300'}`}>{error}</p>
+      )}
+      <p className={`text-xs mt-2 ${isLight ? 'text-gray-500' : 'text-white/60'}`}>
         We&apos;ll only use this to follow up about early access — never shared, never sold.
       </p>
     </form>
