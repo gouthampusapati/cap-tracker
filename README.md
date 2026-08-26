@@ -32,6 +32,6 @@ Email magic-link login. Test with any email address (no actual sending in MVP).
 ## Tech Stack
 
 - Next.js 15 + TypeScript
-- NextAuth (email provider)
+- Auth.js (next-auth v5) — Google OAuth, plus an anonymous guest identity for zero-friction entry
 - SQLite + Drizzle
 - Tailwind CSS

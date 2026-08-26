@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
 import { getUser, logoutUser } from '@/lib/auth-config';
 import Link from 'next/link';
 
@@ -59,6 +60,7 @@ function isResolved(finding: Finding): boolean {
 
 export default function NextCyclePrepReport() {
   const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const [email, setEmail] = useState('');
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,17 +71,22 @@ export default function NextCyclePrepReport() {
     setMounted(true);
   }, []);
 
+  // A Google session (session.user.email) takes priority over the
+  // localStorage identity, same as app/dashboard/page.tsx — otherwise a
+  // signed-in visitor who reaches this page without localStorage set
+  // (e.g. a different browser/device) would get bounced to /auth/signin
+  // despite already being signed in.
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || sessionStatus === 'loading') return;
 
-    const user = getUser();
+    const user = session?.user?.email || getUser();
     if (!user) {
       router.push('/auth/signin');
       return;
     }
     setEmail(user);
     fetchFindings(user);
-  }, [mounted, router]);
+  }, [mounted, sessionStatus, session, router]);
 
   const fetchFindings = async (userEmail: string) => {
     try {
@@ -94,6 +101,10 @@ export default function NextCyclePrepReport() {
   };
 
   const handleSignOut = () => {
+    if (session) {
+      signOut({ callbackUrl: '/auth/signin' });
+      return;
+    }
     logoutUser();
     router.push('/auth/signin');
   };

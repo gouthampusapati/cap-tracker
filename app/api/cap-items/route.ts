@@ -4,6 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { capItems } from '@/lib/db/schema';
 import { serializeCapItem } from '@/lib/db/serialize';
+import { authorizeFindingAccess } from '@/lib/auth-guard';
 
 /**
  * GET /api/cap-items?findingId=X
@@ -20,6 +21,10 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const authorized = await authorizeFindingAccess(findingId);
+    if ('notFound' in authorized) return NextResponse.json([]);
+    if ('response' in authorized) return authorized.response;
 
     const items = await db
       .select()
@@ -51,6 +56,12 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const authorized = await authorizeFindingAccess(findingId);
+    if ('notFound' in authorized) {
+      return NextResponse.json({ error: 'Finding not found' }, { status: 404 });
+    }
+    if ('response' in authorized) return authorized.response;
 
     const id = randomUUID();
     const now = new Date();

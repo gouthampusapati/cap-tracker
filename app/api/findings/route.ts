@@ -3,6 +3,7 @@ import { eq, desc, asc, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users, auditYears, findings, capItems } from '@/lib/db/schema';
 import { serializeCapItem } from '@/lib/db/serialize';
+import { authorizeEmailAccess } from '@/lib/auth-guard';
 
 /**
  * GET /api/findings?email=...
@@ -16,6 +17,9 @@ export async function GET(req: NextRequest) {
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
     }
+
+    const authorized = await authorizeEmailAccess(email);
+    if ('response' in authorized) return authorized.response;
 
     const [user] = await db
       .select({ id: users.id })

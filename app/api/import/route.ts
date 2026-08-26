@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { importOrgByEin } from '@/lib/fac-api';
 import { db } from '@/lib/db';
 import { users, auditYears, findings } from '@/lib/db/schema';
+import { authorizeEmailAccess } from '@/lib/auth-guard';
 
 /**
  * POST /api/import
@@ -24,6 +25,11 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Checked before the FAC fetch below (not after) — no reason to
+    // spend shared FAC quota on a request that's getting rejected anyway.
+    const authorized = await authorizeEmailAccess(email);
+    if ('response' in authorized) return authorized.response;
 
     if (!process.env.FAC_API_KEY) {
       return NextResponse.json(
