@@ -195,9 +195,9 @@ export default function Home() {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 sm:p-10 my-24">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">What is a Single Audit?</h2>
           <p className="text-gray-700 mb-4">
-            Organizations that receive $1,000,000 or more in federal awards in a single fiscal
-            year must have a Single Audit — a comprehensive audit that includes compliance with
-            federal requirements.
+            A non-Federal entity that expends $1,000,000 or more during the non-Federal entity&apos;s
+            fiscal year in Federal awards must have a single or program-specific audit conducted
+            for that year in accordance with the provisions of this part.
           </p>
           <p className="text-gray-700 mb-4">
             When auditors find a problem, they report it as a "finding." The organization must
