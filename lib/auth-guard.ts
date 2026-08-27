@@ -19,39 +19,59 @@ import { auth } from '@/auth';
  * security model, by design, and that doesn't change here.
  *
  * The gap this closes is specifically for accounts that HAVE signed in
- * with Google (see ../auth.ts): once an account has a row in `accounts`,
- * anyone passing its email as a bare parameter should no longer get in —
- * only a session that actually matches should. A route can't just say
- * "no session cookie present → fall back to trusting the param", because
- * an attacker calling the API directly never has a session cookie either
- * — that fallback would silently undo the whole fix. So every check here
- * looks up whether the *target* identity is Google-linked before
- * deciding whether a session is required at all.
+ * with Google or verified via magic-link email (see ../auth.ts): once an
+ * account is verified either way, anyone passing its email as a bare
+ * parameter should no longer get in — only a session that actually
+ * matches should. A route can't just say "no session cookie present →
+ * fall back to trusting the param", because an attacker calling the API
+ * directly never has a session cookie either — that fallback would
+ * silently undo the whole fix. So every check here looks up whether the
+ * *target* identity is verified before deciding whether a session is
+ * required at all.
+ *
+ * "Verified" means two different things depending on provider, both
+ * checked here: a Google sign-in gets a row in `accounts`; a magic-link
+ * sign-in does NOT (confirmed by reading @auth/core's
+ * handle-login.js — its dedicated `account.type === "email"` branch
+ * calls `updateUser({ emailVerified })` directly for both new and
+ * existing users, never `linkAccount`, whether the user is new or
+ * already exists) but does set `users.emailVerified`. Missing this
+ * originally left magic-link-only accounts with the exact same
+ * unauthenticated-access gap this whole guard exists to close — caught
+ * live: a real magic-link sign-in produced zero `accounts` rows, only an
+ * updated `emailVerified` timestamp.
  */
 
 type AuthResult = { email: string } | { response: NextResponse };
 type EntityAuthResult = AuthResult | { notFound: true };
 
-async function hasLinkedAccount(userId: string): Promise<boolean> {
-  const rows = await db
+async function hasVerifiedIdentity(userId: string): Promise<boolean> {
+  const [account] = await db
     .select({ userId: accounts.userId })
     .from(accounts)
     .where(eq(accounts.userId, userId))
     .limit(1);
-  return rows.length > 0;
+  if (account) return true;
+
+  const [user] = await db
+    .select({ emailVerified: users.emailVerified })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return !!user?.emailVerified;
 }
 
 function unauthorized(): NextResponse {
   return NextResponse.json(
-    { error: 'This account is signed in with Google — sign in to access it.' },
+    { error: 'This account is signed in — sign in to access it.' },
     { status: 401 }
   );
 }
 
 async function checkOwnership(requestedEmail: string, ownerUserId: string | null): Promise<AuthResult> {
-  if (!ownerUserId || !(await hasLinkedAccount(ownerUserId))) {
-    // No users row yet, or a guest/typed-email row that's never signed
-    // in with Google — unchanged, pre-existing trust model.
+  if (!ownerUserId || !(await hasVerifiedIdentity(ownerUserId))) {
+    // No users row yet, or a guest/typed-email row that's never verified
+    // via Google or magic-link — unchanged, pre-existing trust model.
     return { email: requestedEmail };
   }
 

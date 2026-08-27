@@ -1,16 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
- * Covers lib/auth-guard.ts's core decision: guest/never-linked identities
- * are untouched (pre-existing trust model), Google-linked identities
- * require a matching session. See /Users/Bunnu/.claude/plans/staged-baking-lake.md
- * for the full design rationale.
+ * Covers lib/auth-guard.ts's core decision: guest/never-verified
+ * identities are untouched (pre-existing trust model), Google- or
+ * magic-link-verified identities require a matching session. See
+ * /Users/Bunnu/.claude/plans/staged-baking-lake.md for the full design
+ * rationale — including why "verified" means checking two different
+ * signals (an `accounts` row for Google, `users.emailVerified` for
+ * magic-link, since Auth.js's email-provider flow never creates an
+ * `accounts` row at all).
  *
  * Mocks '@/lib/db' with a minimal chainable stub — auth-guard.ts's
  * queries all end in a single `.limit(1)` (with or without an
  * `.innerJoin()` in between), so one shared results queue, consumed in
  * call order, is enough to drive every test case without modeling
- * Drizzle's real query builder.
+ * Drizzle's real query builder. Query order for a verified-check path is
+ * always: [user/entity lookup] → [accounts lookup] → [emailVerified
+ * lookup, only reached when accounts came back empty].
  */
 
 // lib/auth-guard.ts (and lib/db) import 'server-only', which throws
@@ -56,9 +62,10 @@ describe('authorizeEmailAccess', () => {
     expect(mockAuth).not.toHaveBeenCalled();
   });
 
-  it('allows a request for an existing user with no linked Google account', async () => {
+  it('allows a request for an existing user with no linked account and no verified email', async () => {
     queueResult([{ id: 'u1' }]); // users lookup: found
     queueResult([]); // accounts lookup: no linked account
+    queueResult([{ emailVerified: null }]); // fallback emailVerified check: unset
     const result = await authorizeEmailAccess('guest-abc@anonymous.local');
     expect(result).toEqual({ email: 'guest-abc@anonymous.local' });
     expect(mockAuth).not.toHaveBeenCalled();
@@ -66,7 +73,7 @@ describe('authorizeEmailAccess', () => {
 
   it('allows a Google-linked user when the session matches', async () => {
     queueResult([{ id: 'u1' }]);
-    queueResult([{ userId: 'u1' }]); // linked account exists
+    queueResult([{ userId: 'u1' }]); // linked account exists — emailVerified fallback never queried
     mockAuth.mockResolvedValue({ user: { email: 'real@gmail.com' } });
 
     const result = await authorizeEmailAccess('real@gmail.com');
@@ -92,6 +99,27 @@ describe('authorizeEmailAccess', () => {
     expect('response' in result).toBe(true);
     if ('response' in result) expect(result.response.status).toBe(401);
   });
+
+  it('allows a magic-link-verified user (no accounts row) when the session matches', async () => {
+    queueResult([{ id: 'u1' }]);
+    queueResult([]); // no accounts row — magic-link never creates one
+    queueResult([{ emailVerified: new Date() }]); // but emailVerified is set
+    mockAuth.mockResolvedValue({ user: { email: 'real@gmail.com' } });
+
+    const result = await authorizeEmailAccess('real@gmail.com');
+    expect(result).toEqual({ email: 'real@gmail.com' });
+  });
+
+  it('rejects a magic-link-verified user (no accounts row) with no session', async () => {
+    queueResult([{ id: 'u1' }]);
+    queueResult([]);
+    queueResult([{ emailVerified: new Date() }]);
+    mockAuth.mockResolvedValue(null);
+
+    const result = await authorizeEmailAccess('victim@gmail.com');
+    expect('response' in result).toBe(true);
+    if ('response' in result) expect(result.response.status).toBe(401);
+  });
 });
 
 describe('authorizeFindingAccess', () => {
@@ -104,6 +132,7 @@ describe('authorizeFindingAccess', () => {
   it("allows access when the finding's owner is a guest", async () => {
     queueResult([{ userId: 'u1', email: 'guest-xyz@anonymous.local' }]);
     queueResult([]); // no linked account
+    queueResult([{ emailVerified: null }]);
     const result = await authorizeFindingAccess('f1');
     expect(result).toEqual({ email: 'guest-xyz@anonymous.local' });
   });
@@ -111,6 +140,17 @@ describe('authorizeFindingAccess', () => {
   it("rejects access when the finding's owner is Google-linked and the caller has no session", async () => {
     queueResult([{ userId: 'u1', email: 'victim@gmail.com' }]);
     queueResult([{ userId: 'u1' }]);
+    mockAuth.mockResolvedValue(null);
+
+    const result = await authorizeFindingAccess('f1');
+    expect('response' in result).toBe(true);
+    if ('response' in result) expect(result.response.status).toBe(401);
+  });
+
+  it("rejects access when the finding's owner is magic-link-verified (no accounts row) and the caller has no session", async () => {
+    queueResult([{ userId: 'u1', email: 'victim@gmail.com' }]);
+    queueResult([]);
+    queueResult([{ emailVerified: new Date() }]);
     mockAuth.mockResolvedValue(null);
 
     const result = await authorizeFindingAccess('f1');
@@ -129,6 +169,7 @@ describe('authorizeCapItemAccess', () => {
   it("allows access when the CAP item's owner is a guest", async () => {
     queueResult([{ userId: 'u1', email: 'guest-xyz@anonymous.local' }]);
     queueResult([]);
+    queueResult([{ emailVerified: null }]);
     const result = await authorizeCapItemAccess('c1');
     expect(result).toEqual({ email: 'guest-xyz@anonymous.local' });
   });

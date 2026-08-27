@@ -35,9 +35,10 @@ import { getUser, isGuestUser, onIdentityChanged } from '@/lib/auth-config';
  *    since the whole point of this header is making sign-in visible
  *    rather than bypassed by default.
  *
- * /auth/signin itself gets a stripped-down version (logo only, no nav,
- * no CTA buttons) — showing "Sign in"/"Get Started" atop the sign-in
- * form itself would be circular.
+ * /auth/signin and /auth/verify-request both get a stripped-down
+ * version (logo only, no nav, no CTA buttons) — showing "Sign in"/"Get
+ * Started" atop the sign-in form, or above a "check your email, you're
+ * mid-sign-in" page, would be circular either way.
  *
  * This is mounted once in app/layout.tsx with no props (a page can't
  * hand props to something in its own layout), so a per-page breadcrumb
@@ -70,7 +71,7 @@ export function Header() {
     return onIdentityChanged(() => setGuestEmail(getUser()));
   }, [pathname]);
 
-  const isSignInPage = pathname === '/auth/signin';
+  const isSignInPage = pathname === '/auth/signin' || pathname === '/auth/verify-request';
 
   return (
     <header className="sticky top-0 z-50 h-16 bg-surface/95 backdrop-blur border-b border-border">

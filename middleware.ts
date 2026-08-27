@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isRateLimited, isPortfolioRateLimited, isWaitlistRateLimited } from '@/lib/rate-limit';
+import {
+  isRateLimited,
+  isPortfolioRateLimited,
+  isWaitlistRateLimited,
+  isMagicLinkRateLimited,
+} from '@/lib/rate-limit';
 
 /**
  * Rate-limits: (1) the public surfaces that each cost calls against the
@@ -7,11 +12,14 @@ import { isRateLimited, isPortfolioRateLimited, isWaitlistRateLimited } from '@/
  * thing a crawler would actually hit at scale — and the public JSON
  * endpoint kept for external consumers) and portfolio submissions, which
  * cost up to ~50x a single lookup per request and get a much tighter
- * budget; and (2) /api/waitlist, which doesn't touch FAC at all but is a
- * public POST endpoint that can still be spammed. Everything else —
- * /dashboard, /auth, /api/cap-items, /api/findings, /api/import, the
- * plain /api/org lookup-by-email route — is untouched; see the matcher
- * below.
+ * budget; (2) /api/waitlist, which doesn't touch FAC at all but is a
+ * public POST endpoint that can still be spammed; and (3)
+ * /api/auth/signin/email (magic-link sign-in requests — see auth.ts),
+ * since each one costs a real email send to whatever address was typed
+ * in, not just this app's own resources. Everything else — /dashboard,
+ * /auth/signin itself (the page, not the email-send action),
+ * /api/cap-items, /api/findings, /api/import, the plain /api/org
+ * lookup-by-email route — is untouched; see the matcher below.
  */
 export function middleware(req: NextRequest) {
   const ip =
@@ -34,6 +42,16 @@ export function middleware(req: NextRequest) {
 
   if (req.nextUrl.pathname === '/api/waitlist') {
     if (isWaitlistRateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Try again in a minute.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
+    return NextResponse.next();
+  }
+
+  if (req.nextUrl.pathname === '/api/auth/signin/email') {
+    if (isMagicLinkRateLimited(ip)) {
       return NextResponse.json(
         { error: 'Too many requests. Try again in a minute.' },
         { status: 429, headers: { 'Retry-After': '60' } }
@@ -68,5 +86,11 @@ export const config = {
   // :path+ requires at least one segment after /api/org/, so the
   // authenticated /api/org (no EIN — lookup by signed-in user's email)
   // route is not matched here.
-  matcher: ['/single-audit/:path*', '/api/org/:path+', '/portfolio', '/api/waitlist'],
+  matcher: [
+    '/single-audit/:path*',
+    '/api/org/:path+',
+    '/portfolio',
+    '/api/waitlist',
+    '/api/auth/signin/email',
+  ],
 };

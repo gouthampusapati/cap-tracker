@@ -60,3 +60,11 @@ export const isPortfolioRateLimited = createLimiter(15 * 60_000, 3);
 // it's just stopping a script from filling the table with junk. 5/min/IP
 // is generous for a real visitor filling out one form once.
 export const isWaitlistRateLimited = createLimiter(60_000, 5);
+
+// /api/auth/signin/email (magic-link sign-in): doesn't touch FAC either,
+// but unlike waitlist a hit here costs a real email send — and, unlike
+// every other limiter above, the cost lands on whatever address gets
+// typed in, not just this app's own resources. Tighter than the rest
+// (3/min/IP) since the realistic abuse case is spamming an arbitrary
+// inbox with sign-in links, not just database junk.
+export const isMagicLinkRateLimited = createLimiter(60_000, 3);
