@@ -46,7 +46,12 @@ const SEGMENT_OPTIONS: { value: Segment; label: string }[] = [
  *
  * `source` must be one of the values app/api/waitlist/route.ts's
  * VALID_SOURCES allowlist accepts — keep the two in sync when adding a
- * new call site.
+ * new call site. 'generate-draft-cta' (app/dashboard/page.tsx's
+ * "Generate Draft" button) is the one exception to the "identified
+ * recipients skip this form" rule above the comment — see that
+ * allowlist's own comment for why capturing feature-specific demand
+ * from someone already in the product isn't the same as gatekeeping
+ * entry to it.
  *
  * `variant` controls text color only (the email input and submit button
  * are already small white/accent surfaces that read fine on either
@@ -62,7 +67,7 @@ export function WaitlistForm({
   className = '',
   variant = 'dark',
 }: {
-  source: 'homepage-cta-band';
+  source: 'homepage-cta-band' | 'generate-draft-cta';
   ein?: string;
   ctaLabel?: string;
   className?: string;
