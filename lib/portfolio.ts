@@ -1,5 +1,5 @@
 import 'server-only';
-import { getPublicOrg } from '@/lib/public-org-cache';
+import { getPublicOrgsBatch } from '@/lib/public-org-cache';
 import { computeManagementDecisionDeadline, soonestDeadline } from '@/lib/management-decision';
 import type { ImportedOrg } from '@/lib/fac-api';
 
@@ -91,44 +91,35 @@ function errorRow(ein: string): PortfolioRow {
 }
 
 /**
- * Fetches a batch of EINs with bounded concurrency — not all 50 at once.
- * Each org fetch already does up to 4 FAC calls itself when it's an
- * actual cache miss (see lib/fac-api.ts); running many uncached orgs
- * fully in parallel would multiply that into a burst well beyond
- * anything reasonable for a shared ~1,000/hour key, on top of just being
- * a lot of simultaneous connections to a third-party API that doesn't
- * belong to this site. Cache hits (lib/public-org-cache.ts) are cheap
- * DB reads and don't need this throttling, but the pool doesn't know
- * which EINs will hit vs. miss ahead of time, so it throttles uniformly.
+ * Fetches every EIN in the portfolio via one batched lookup
+ * (getPublicOrgsBatch) rather than a per-EIN worker pool — a cold cache
+ * used to cost up to 4 FAC calls per row (up to 40 for a 10-EIN
+ * portfolio); now it's 4 total for the whole page regardless of size.
+ * See FAC_API_Improvement_Sprint_Checklist.md, Sprint 2. The old
+ * bounded-concurrency worker pool this replaced existed specifically to
+ * throttle N independent per-EIN live fetches running in parallel —
+ * moot now that a cold portfolio is one shared live fetch, not N.
  */
-const CONCURRENCY = 6;
-
 export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
-  const results: PortfolioRow[] = new Array(eins.length);
-  let next = 0;
+  if (eins.length === 0) return [];
 
-  async function worker() {
-    while (next < eins.length) {
-      const i = next++;
-      const ein = eins[i];
-      try {
-        const { org, syncedAt, stale, unavailable } = await getPublicOrg(ein);
-        // Same distinction as the org page: "never checked, budget
-        // exhausted" is not "not found" — reuse the 'error' row status,
-        // which the table already renders as "couldn't be checked right
-        // now" rather than implying the org has no findings.
-        results[i] = unavailable ? errorRow(ein) : toRow(ein, org, syncedAt, stale);
-      } catch (error) {
-        console.error(`Portfolio fetch failed for ${ein}:`, error);
-        results[i] = errorRow(ein);
-      }
-    }
+  try {
+    const lookups = await getPublicOrgsBatch(eins);
+    return eins.map((ein) => {
+      const result = lookups.get(ein);
+      if (!result) return errorRow(ein);
+      // Same distinction as the org page: "never checked, budget
+      // exhausted" is not "not found" — reuse the 'error' row status,
+      // which the table already renders as "couldn't be checked right
+      // now" rather than implying the org has no findings.
+      return result.unavailable
+        ? errorRow(ein)
+        : toRow(ein, result.org, result.syncedAt, result.stale);
+    });
+  } catch (error) {
+    console.error('Portfolio batch fetch failed:', error);
+    return eins.map((ein) => errorRow(ein));
   }
-
-  const workers = Array.from({ length: Math.min(CONCURRENCY, eins.length) }, () => worker());
-  await Promise.all(workers);
-
-  return results;
 }
 
 /** Sort default from the spec: soonest management-decision deadline

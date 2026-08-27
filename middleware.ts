@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   isRateLimited,
+  isHourlyRateLimited,
   isPortfolioRateLimited,
   isWaitlistRateLimited,
   isMagicLinkRateLimited,
@@ -9,17 +10,25 @@ import {
 /**
  * Rate-limits: (1) the public surfaces that each cost calls against the
  * shared FAC API quota — single-org lookups (the org page itself — the
- * thing a crawler would actually hit at scale — and the public JSON
- * endpoint kept for external consumers) and portfolio submissions, which
- * cost up to ~50x a single lookup per request and get a much tighter
- * budget; (2) /api/waitlist, which doesn't touch FAC at all but is a
- * public POST endpoint that can still be spammed; and (3)
- * /api/auth/signin/email (magic-link sign-in requests — see auth.ts),
- * since each one costs a real email send to whatever address was typed
- * in, not just this app's own resources. Everything else — /dashboard,
- * /auth/signin itself (the page, not the email-send action),
- * /api/cap-items, /api/findings, /api/import, the plain /api/org
- * lookup-by-email route — is untouched; see the matcher below.
+ * thing a crawler would actually hit at scale — the public JSON
+ * endpoint kept for external consumers, and now /api/import, which used
+ * to be the one FAC-costing surface with no IP throttling at all — see
+ * app/api/import/route.ts) and portfolio submissions, which cost up to
+ * ~10x a single lookup per request and get a much tighter budget;
+ * (2) /api/waitlist, which doesn't touch FAC at all but is a public POST
+ * endpoint that can still be spammed; and (3) /api/auth/signin/email
+ * (magic-link sign-in requests — see auth.ts), since each one costs a
+ * real email send to whatever address was typed in, not just this app's
+ * own resources. Everything else — /dashboard, /auth/signin itself (the
+ * page, not the email-send action), /api/cap-items, /api/findings, the
+ * plain /api/org lookup-by-email route — is untouched; see the matcher
+ * below.
+ *
+ * Single-org surfaces get BOTH isRateLimited (per-minute burst) AND
+ * isHourlyRateLimited (per-hour sustained) — the per-minute limiter
+ * alone doesn't protect the shared 180/hour FAC budget
+ * (lib/fac-budget.ts) from one sustained IP; see isHourlyRateLimited's
+ * own comment in lib/rate-limit.ts.
  */
 export function middleware(req: NextRequest) {
   const ip =
@@ -66,16 +75,23 @@ export function middleware(req: NextRequest) {
   const isPortfolioSubmission =
     req.nextUrl.pathname === '/portfolio' && req.nextUrl.searchParams.has('eins');
 
-  const limited = isPortfolioSubmission ? isPortfolioRateLimited(ip) : isRateLimited(ip);
+  if (isPortfolioSubmission) {
+    if (isPortfolioRateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Too many portfolio lookups. Try again in a few minutes.' },
+        { status: 429, headers: { 'Retry-After': '900' } }
+      );
+    }
+    return NextResponse.next();
+  }
 
-  if (limited) {
+  // Single-org surfaces (org page, /api/org/[ein], /api/import): both
+  // limiters must pass — see the file comment above for why one alone
+  // isn't enough.
+  if (isRateLimited(ip) || isHourlyRateLimited(ip)) {
     return NextResponse.json(
-      {
-        error: isPortfolioSubmission
-          ? 'Too many portfolio lookups. Try again in a few minutes.'
-          : 'Too many requests. Try again in a minute.',
-      },
-      { status: 429, headers: { 'Retry-After': isPortfolioSubmission ? '900' : '60' } }
+      { error: 'Too many requests. Try again shortly.' },
+      { status: 429, headers: { 'Retry-After': '60' } }
     );
   }
 
@@ -89,6 +105,7 @@ export const config = {
   matcher: [
     '/single-audit/:path*',
     '/api/org/:path+',
+    '/api/import',
     '/portfolio',
     '/api/waitlist',
     '/api/auth/signin/email',

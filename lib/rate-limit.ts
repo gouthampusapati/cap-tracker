@@ -48,6 +48,17 @@ function createLimiter(windowMs: number, maxRequests: number) {
 // naive full-catalog crawl.
 export const isRateLimited = createLimiter(60_000, 30);
 
+// Same surfaces as isRateLimited, but over an hour rather than a minute
+// — the two run TOGETHER, not as alternatives. 30/min alone doesn't
+// actually protect the shared FAC budget (lib/fac-budget.ts,
+// 180 lookups/hour site-wide): a single IP sustaining even a fraction
+// of that per-minute allowance for a few minutes can burn through the
+// *entire* hourly site-wide budget on its own, starving every other
+// visitor. 20/hour/IP is generous for a real visitor (nobody looks up
+// 20 different EINs by hand in an hour) while capping any one source's
+// worst-case share of the shared pool to ~11% of it.
+export const isHourlyRateLimited = createLimiter(60 * 60_000, 20);
+
 // /portfolio: up to PORTFOLIO_MAX_EINS EINs per submission (10, was 50
 // — see lib/ein-list.ts), ~4 FAC calls each, so a single submission can
 // still cost a meaningful chunk of the single-org limiter's budget.
