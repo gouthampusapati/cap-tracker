@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   mapCategory,
   isYes,
+  isYesNo,
   parsePriorRefs,
+  parseGaapResults,
+  entityTypeLabel,
+  agencyPrefixLabel,
   dedupeFindingRows,
 } from '../lib/fac-api';
 
@@ -17,6 +21,8 @@ function row(over: Partial<Record<string, string>> = {}): any {
     is_material_weakness: 'N',
     is_significant_deficiency: 'N',
     is_modified_opinion: 'N',
+    is_other_matters: 'N',
+    is_other_findings: 'N',
     is_questioned_costs: 'N',
     is_repeat_finding: 'N',
     prior_finding_ref_numbers: 'N/A',
@@ -57,6 +63,26 @@ describe('dedupeFindingRows', () => {
       row({ award_reference: 'A2', is_repeat_finding: 'Y' }),
     ]);
     expect(out[0].is_repeat_finding).toBe('Y');
+  });
+
+  it('OR-merges is_modified_opinion, is_other_matters, and is_other_findings across award rows', () => {
+    const out = dedupeFindingRows([
+      row({
+        award_reference: 'A1',
+        is_modified_opinion: 'N',
+        is_other_matters: 'Y',
+        is_other_findings: 'N',
+      }),
+      row({
+        award_reference: 'A2',
+        is_modified_opinion: 'Y',
+        is_other_matters: 'N',
+        is_other_findings: 'Y',
+      }),
+    ]);
+    expect(out[0].is_modified_opinion).toBe('Y');
+    expect(out[0].is_other_matters).toBe('Y');
+    expect(out[0].is_other_findings).toBe('Y');
   });
 
   it('prefers a real prior reference over the N/A placeholder', () => {
@@ -116,6 +142,99 @@ describe('isYes', () => {
     expect(isYes('')).toBe(false);
     expect(isYes(null)).toBe(false);
     expect(isYes(undefined)).toBe(false);
+  });
+});
+
+describe('isYesNo', () => {
+  // general's boolean fields use "Yes"/"No", a different convention
+  // from findings' "Y"/"N" (isYes above) — confirmed live 2026-08 across
+  // 300+ rows per field. Mixing these up is a real bug that already
+  // shipped once (is_low_risk_auditee compared against 'Y' and was
+  // always false) before this test existed.
+  it('treats only "Yes" (case-insensitive) as true', () => {
+    expect(isYesNo('Yes')).toBe(true);
+    expect(isYesNo('yes')).toBe(true);
+    expect(isYesNo('YES')).toBe(true);
+    expect(isYesNo('No')).toBe(false);
+    expect(isYesNo('')).toBe(false);
+    expect(isYesNo(null)).toBe(false);
+    expect(isYesNo(undefined)).toBe(false);
+  });
+
+  it('does not treat bare "Y" as true — that would silently paper over the isYes/isYesNo mixup', () => {
+    expect(isYesNo('Y')).toBe(false);
+  });
+});
+
+describe('parseGaapResults', () => {
+  it('parses a single clean opinion', () => {
+    const r = parseGaapResults('unmodified_opinion');
+    expect(r.types).toEqual(['unmodified_opinion']);
+    expect(r.worst).toBe('unmodified_opinion');
+    expect(r.worstLabel).toBe('Unmodified Opinion');
+  });
+
+  it('picks the worst opinion when a report has multiple opinion units', () => {
+    // Confirmed live: this exact combination is real production data,
+    // not a hypothetical edge case.
+    const r = parseGaapResults('unmodified_opinion,qualified_opinion');
+    expect(r.types).toEqual(['unmodified_opinion', 'qualified_opinion']);
+    expect(r.worst).toBe('qualified_opinion');
+  });
+
+  it('ranks disclaimer_of_opinion as worse than adverse_opinion', () => {
+    expect(parseGaapResults('adverse_opinion,disclaimer_of_opinion').worst).toBe(
+      'disclaimer_of_opinion'
+    );
+  });
+
+  it('handles the non-GAAP-basis value distinctly from a missing value', () => {
+    expect(parseGaapResults('not_gaap').worst).toBe('not_gaap');
+    expect(parseGaapResults('').worst).toBeNull();
+    expect(parseGaapResults(null).worst).toBeNull();
+  });
+});
+
+describe('entityTypeLabel', () => {
+  it('labels every entity_type value confirmed live', () => {
+    expect(entityTypeLabel('state')).toBe('State Government');
+    expect(entityTypeLabel('local')).toBe('Local Government');
+    expect(entityTypeLabel('higher-ed')).toBe('Higher Education');
+    expect(entityTypeLabel('non-profit')).toBe('Non-Profit');
+    expect(entityTypeLabel('tribal')).toBe('Tribal Government');
+  });
+
+  it('returns null for unknown/missing rather than a not-useful label', () => {
+    expect(entityTypeLabel('unknown')).toBeNull();
+    expect(entityTypeLabel('')).toBeNull();
+    expect(entityTypeLabel(null)).toBeNull();
+  });
+});
+
+describe('agencyPrefixLabel', () => {
+  it('appends the verified agency name in brackets for a mapped code', () => {
+    expect(agencyPrefixLabel('14')).toBe(
+      '14 [Department of Housing and Urban Development]'
+    );
+    expect(agencyPrefixLabel('93')).toBe(
+      '93 [Department of Health and Human Services]'
+    );
+  });
+
+  it('falls back to the raw code for a deliberately unmapped/ambiguous prefix', () => {
+    // 05/95 (HIDTA, indistinguishable), 06 (no data), 70/90/92 (mixed
+    // evidence), 99 (FAC's own "Other Federal Assistance" catch-all) —
+    // see AGENCY_PREFIX_LABELS' comment in lib/fac-api.ts.
+    expect(agencyPrefixLabel('05')).toBe('05');
+    expect(agencyPrefixLabel('95')).toBe('95');
+    expect(agencyPrefixLabel('06')).toBe('06');
+    expect(agencyPrefixLabel('99')).toBe('99');
+  });
+
+  it('returns null for missing input', () => {
+    expect(agencyPrefixLabel(null)).toBeNull();
+    expect(agencyPrefixLabel(undefined)).toBeNull();
+    expect(agencyPrefixLabel('')).toBeNull();
   });
 });
 
