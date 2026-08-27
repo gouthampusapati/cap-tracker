@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { users, auditYears, findings, capItems } from '@/lib/db/schema';
+import { authorizeEmailAccess } from '@/lib/auth-guard';
 
 /**
  * GET /api/org?email=...
@@ -15,6 +16,11 @@ export async function GET(req: NextRequest) {
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
     }
+
+    // No-op for guest/unlinked emails — only rejects when `email` belongs
+    // to a Google-linked account and the caller isn't signed in as it.
+    const authorized = await authorizeEmailAccess(email);
+    if ('response' in authorized) return authorized.response;
 
     const [user] = await db
       .select({ id: users.id, ein: users.ein, orgName: users.orgName })
@@ -56,6 +62,9 @@ export async function DELETE(req: NextRequest) {
     if (!email) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
     }
+
+    const authorized = await authorizeEmailAccess(email);
+    if ('response' in authorized) return authorized.response;
 
     const [user] = await db
       .select({ id: users.id })

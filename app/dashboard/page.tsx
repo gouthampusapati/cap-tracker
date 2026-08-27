@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { signOut, useSession } from 'next-auth/react';
 import { getOrCreateUser, isGuestUser, logoutUser } from '@/lib/auth-config';
 
 interface CapItem {
@@ -65,6 +66,7 @@ function DashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const einFromLink = searchParams.get('ein');
+  const { data: session, status: sessionStatus } = useSession();
   const [email, setEmail] = useState('');
   const [ein, setEin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,10 +90,18 @@ function DashboardInner() {
   // guest identity (see getOrCreateUser) instead of hitting a form. This
   // is the entire reason "For Recipients" on the homepage can link
   // straight to /dashboard now instead of /auth/signin.
+  //
+  // A real Google session (session.user.email) always wins over the
+  // guest identity — this is what makes signing in an "upgrade" rather
+  // than a separate mode: once signed in, every API call below uses the
+  // verified email, which is also the only email lib/auth-guard.ts will
+  // actually authorize once this account has signed in with Google.
+  // Waits on sessionStatus !== 'loading' so a signed-in visitor doesn't
+  // flash a guest identity before the session resolves.
   useEffect(() => {
-    if (!mounted) return;
-    setEmail(getOrCreateUser());
-  }, [mounted]);
+    if (!mounted || sessionStatus === 'loading') return;
+    setEmail(session?.user?.email || getOrCreateUser());
+  }, [mounted, session, sessionStatus]);
 
   // If this user imported in an earlier session, show their data straight
   // away rather than making them re-enter the EIN. An org with zero
@@ -233,6 +243,10 @@ function DashboardInner() {
   };
 
   const handleSignOut = () => {
+    if (session) {
+      signOut({ callbackUrl: '/auth/signin' });
+      return;
+    }
     logoutUser();
     router.push('/auth/signin');
   };
@@ -273,9 +287,20 @@ function DashboardInner() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">
-              {isGuestUser(email) ? 'Anonymous session' : email}
-            </span>
+            {session ? (
+              <span className="text-sm text-gray-600">
+                {session.user?.name || session.user?.email}
+              </span>
+            ) : isGuestUser(email) ? (
+              <Link
+                href={`/auth/signin${einFromLink ? `?ein=${encodeURIComponent(einFromLink)}` : ''}`}
+                className="text-sm text-blue-700 hover:underline"
+              >
+                Sign in with Google to save this workspace
+              </Link>
+            ) : (
+              <span className="text-sm text-gray-600">{email}</span>
+            )}
             <button
               onClick={handleSignOut}
               className="text-sm text-gray-600 hover:text-gray-900"

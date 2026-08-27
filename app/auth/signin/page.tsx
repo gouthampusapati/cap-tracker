@@ -1,9 +1,9 @@
 'use client';
 
-import { FormEvent, Suspense, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { signIn } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { loginUser } from '@/lib/auth-config';
 
 export default function SignIn() {
   return (
@@ -14,22 +14,18 @@ export default function SignIn() {
 }
 
 function SignInForm() {
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   // Carries the EIN through from a public org page's "Are you this
   // organization?" / "Do you fund this organization?" CTA, so signing in
   // lands on that org already imported instead of a blank EIN field.
   const ein = searchParams.get('ein');
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = () => {
     setLoading(true);
-
-    // Simple login - just store email
-    loginUser(email);
-    router.push(ein ? `/dashboard?ein=${encodeURIComponent(ein)}` : '/dashboard');
+    signIn('google', {
+      callbackUrl: ein ? `/dashboard?ein=${encodeURIComponent(ein)}` : '/dashboard',
+    });
   };
 
   return (
@@ -49,33 +45,40 @@ function SignInForm() {
           </p>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@organization.org"
-              // Explicit bg-white/text-gray-900 — see
-              // app/waitlist-form.tsx for why (dark-mode browsers can
-              // otherwise render a UA-default background that clashes
-              // with forced/assumed text color).
-              className="w-full px-3 py-2 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50 disabled:opacity-50"
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="#4285F4"
+              d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
             />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+            <path
+              fill="#34A853"
+              d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A11.998 11.998 0 0 0 12 24Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.27A11.998 11.998 0 0 0 0 12c0 1.94.46 3.77 1.27 5.39l4-3.11Z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 4.75c1.76 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.61l4 3.11C6.22 6.86 8.87 4.75 12 4.75Z"
+            />
+          </svg>
+          {loading ? 'Signing in…' : 'Sign in with Google'}
+        </button>
 
         <p className="text-xs text-gray-500 mt-4 text-center">
-          MVP: No email validation. Enter any email to continue.
+          Don&apos;t want to sign in yet?{' '}
+          <Link href="/dashboard" className="text-blue-600 hover:text-blue-800">
+            Continue as a guest
+          </Link>{' '}
+          — a workspace is created automatically. You can sign in with Google later to make it
+          portable across devices.
         </p>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { capItems } from '@/lib/db/schema';
 import { serializeCapItem } from '@/lib/db/serialize';
+import { authorizeCapItemAccess } from '@/lib/auth-guard';
 
 /**
  * PATCH /api/cap-items/:id
@@ -14,6 +15,13 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+
+    const authorized = await authorizeCapItemAccess(id);
+    if ('notFound' in authorized) {
+      return NextResponse.json({ error: 'CAP item not found' }, { status: 404 });
+    }
+    if ('response' in authorized) return authorized.response;
+
     const { owner, dueDate, status, notes, description } = await req.json();
 
     const updates: Partial<typeof capItems.$inferInsert> = { updatedAt: new Date() };
@@ -56,6 +64,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    const authorized = await authorizeCapItemAccess(id);
+    if ('notFound' in authorized) {
+      return NextResponse.json({ error: 'CAP item not found' }, { status: 404 });
+    }
+    if ('response' in authorized) return authorized.response;
 
     await db.delete(capItems).where(eq(capItems.id, id));
 

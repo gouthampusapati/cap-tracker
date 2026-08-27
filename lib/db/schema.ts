@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -7,7 +7,47 @@ export const users = sqliteTable('users', {
   orgName: text('org_name'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   lastLogin: integer('last_login', { mode: 'timestamp' }),
+  // Below: read by the Auth.js Drizzle adapter (see root auth.ts) for
+  // Google sign-in. Nullable and unused for guest/typed-email rows —
+  // those keep working exactly as before this was added.
+  name: text('name'),
+  image: text('image'),
+  emailVerified: integer('email_verified', { mode: 'timestamp' }),
 });
+
+/**
+ * Auth.js OAuth account link — one row per (provider, providerAccountId)
+ * a user has signed in with, currently just Google. Column *property*
+ * names below (refresh_token, access_token, etc.) look out of place next
+ * to this file's usual camelCase, but they're not a style choice: the
+ * Drizzle adapter's `DefaultSQLiteAccountsTable` type
+ * (@auth/drizzle-adapter/lib/sqlite.d.ts) accesses these properties by
+ * these exact snake_case names internally, so they can't be renamed. No
+ * `sessions` or `verification_tokens` table: sessions use Auth.js's JWT
+ * strategy (cookie-based, no DB row), and there's no email/magic-link
+ * provider configured. lib/auth-guard.ts treats "does this user have a
+ * row here" as the signal that their account is real (Google-linked)
+ * rather than guest/never-signed-in.
+ */
+export const accounts = sqliteTable(
+  'accounts',
+  {
+    userId: text('user_id').notNull(),
+    type: text('type').notNull(),
+    provider: text('provider').notNull(),
+    providerAccountId: text('provider_account_id').notNull(),
+    refresh_token: text('refresh_token'),
+    access_token: text('access_token'),
+    expires_at: integer('expires_at'),
+    token_type: text('token_type'),
+    scope: text('scope'),
+    id_token: text('id_token'),
+    session_state: text('session_state'),
+  },
+  (account) => ({
+    compoundKey: primaryKey({ columns: [account.provider, account.providerAccountId] }),
+  })
+);
 
 export const auditYears = sqliteTable('audit_years', {
   id: text('id').primaryKey(),
