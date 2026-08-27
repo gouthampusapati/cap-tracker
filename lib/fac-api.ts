@@ -183,6 +183,83 @@ export function entityTypeLabel(entityType: string | null | undefined): string |
 }
 
 /**
+ * Human labels for cognizant_agency/oversight_agency two-digit prefix
+ * codes. NOT guessed from memory — every entry here was checked live
+ * against api.fac.gov, either against federal_awards.federal_program_name
+ * for that exact federal_agency_prefix (literal department name in the
+ * program name, or an unambiguous flagship program only that agency
+ * runs), confirmed 2026-08.
+ *
+ * Deliberately incomplete. A live query surfaced ~40 distinct codes
+ * actually in use; several of them return mixed, contradictory, or
+ * empty evidence and are NOT in this table on purpose rather than
+ * guessed — same principle as PR #9's original "show the raw code"
+ * decision, just narrowed now that most codes are verifiable:
+ *   - 05 vs 95: both returned ONLY "HIGH INTENSITY DRUG TRAFFICKING
+ *     AREAS PROGRAM (HIDTA)" as their sole example, with no
+ *     differentiating evidence between the two codes. Rather than
+ *     guess which one is the "real" HIDTA prefix, neither is mapped.
+ *   - 06: zero federal_awards rows found under this prefix in any
+ *     sample — nothing to verify against.
+ *   - 70, 90, 92: each returned several unrelated program names
+ *     spanning what look like multiple different agencies/commissions
+ *     (e.g. 90 mixes Help America Vote Act, the Delta Regional
+ *     Authority, and the Japan-US Friendship Commission) — reads as a
+ *     shared/miscellaneous bucket, not one agency.
+ *   - 99: returned "OTHER FEDERAL ASSISTANCE - ..." and a bare "N/A"
+ *     program name — this is FAC's own catch-all, not a real agency.
+ * All of these fall back to showing the raw code, same as before.
+ */
+const AGENCY_PREFIX_LABELS: Record<string, string> = {
+  '03': 'Institute of Museum and Library Services',
+  '09': 'Legal Services Corporation',
+  '10': 'Department of Agriculture',
+  '11': 'Department of Commerce',
+  '12': 'Department of Defense',
+  '14': 'Department of Housing and Urban Development',
+  '15': 'Department of the Interior',
+  '16': 'Department of Justice',
+  '17': 'Department of Labor',
+  '19': 'Department of State',
+  '20': 'Department of Transportation',
+  '21': 'Department of the Treasury',
+  '22': 'United States Postal Service',
+  '23': 'Appalachian Regional Commission',
+  '27': 'Office of Personnel Management',
+  '32': 'Federal Communications Commission',
+  '39': 'General Services Administration',
+  '43': 'National Aeronautics and Space Administration',
+  '45': 'National Endowment for the Arts / National Endowment for the Humanities',
+  '47': 'National Science Foundation',
+  '59': 'Small Business Administration',
+  '62': 'Tennessee Valley Authority',
+  '64': 'Department of Veterans Affairs',
+  '66': 'Environmental Protection Agency',
+  '77': 'Nuclear Regulatory Commission',
+  '81': 'Department of Energy',
+  '84': 'Department of Education',
+  '85': 'Woodrow Wilson International Center for Scholars',
+  '93': 'Department of Health and Human Services',
+  '94': 'AmeriCorps (Corporation for National and Community Service)',
+  '96': 'Social Security Administration',
+  '97': 'Department of Homeland Security',
+  '98': 'U.S. Agency for International Development',
+};
+
+/**
+ * Returns "<code> [<Agency Name>]" for a verified prefix, or just the
+ * raw code when we deliberately don't have a confident mapping (see
+ * AGENCY_PREFIX_LABELS' comment) — never a guess.
+ */
+export function agencyPrefixLabel(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const trimmed = code.trim();
+  if (!trimmed) return null;
+  const name = AGENCY_PREFIX_LABELS[trimmed];
+  return name ? `${trimmed} [${name}]` : trimmed;
+}
+
+/**
  * gaap_results is NOT a single enum value — confirmed live, a report
  * with multiple opinion units (e.g. one on the financial statements,
  * another on a major program) comes back comma-separated, e.g.

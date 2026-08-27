@@ -6,6 +6,7 @@ import {
   parsePriorRefs,
   parseGaapResults,
   entityTypeLabel,
+  agencyPrefixLabel,
   dedupeFindingRows,
 } from '../lib/fac-api';
 
@@ -207,6 +208,33 @@ describe('entityTypeLabel', () => {
     expect(entityTypeLabel('unknown')).toBeNull();
     expect(entityTypeLabel('')).toBeNull();
     expect(entityTypeLabel(null)).toBeNull();
+  });
+});
+
+describe('agencyPrefixLabel', () => {
+  it('appends the verified agency name in brackets for a mapped code', () => {
+    expect(agencyPrefixLabel('14')).toBe(
+      '14 [Department of Housing and Urban Development]'
+    );
+    expect(agencyPrefixLabel('93')).toBe(
+      '93 [Department of Health and Human Services]'
+    );
+  });
+
+  it('falls back to the raw code for a deliberately unmapped/ambiguous prefix', () => {
+    // 05/95 (HIDTA, indistinguishable), 06 (no data), 70/90/92 (mixed
+    // evidence), 99 (FAC's own "Other Federal Assistance" catch-all) —
+    // see AGENCY_PREFIX_LABELS' comment in lib/fac-api.ts.
+    expect(agencyPrefixLabel('05')).toBe('05');
+    expect(agencyPrefixLabel('95')).toBe('95');
+    expect(agencyPrefixLabel('06')).toBe('06');
+    expect(agencyPrefixLabel('99')).toBe('99');
+  });
+
+  it('returns null for missing input', () => {
+    expect(agencyPrefixLabel(null)).toBeNull();
+    expect(agencyPrefixLabel(undefined)).toBeNull();
+    expect(agencyPrefixLabel('')).toBeNull();
   });
 });
 

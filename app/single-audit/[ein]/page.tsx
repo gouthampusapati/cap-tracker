@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
-import { entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
+import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
 import { TrackedLink } from '@/app/tracked-link';
@@ -370,13 +370,13 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             {org.auditHistory[0]?.cognizantAgency && (
               <p className="text-sm">
                 <span className="font-semibold">Cognizant agency:</span>{' '}
-                {org.auditHistory[0].cognizantAgency}
+                {agencyPrefixLabel(org.auditHistory[0].cognizantAgency)}
               </p>
             )}
             {!org.auditHistory[0]?.cognizantAgency && org.auditHistory[0]?.oversightAgency && (
               <p className="text-sm">
                 <span className="font-semibold">Oversight agency:</span>{' '}
-                {org.auditHistory[0].oversightAgency}
+                {agencyPrefixLabel(org.auditHistory[0].oversightAgency)}
               </p>
             )}
             {org.stale ? (
