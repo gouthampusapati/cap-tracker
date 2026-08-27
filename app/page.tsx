@@ -179,7 +179,7 @@ export default function Home() {
             </svg>
             <h2 className="text-lg font-bold text-gray-900 mb-3">For Pass-Throughs</h2>
             <p className="text-gray-600 mb-4">
-              Monitor your subrecipients' audit findings. Check compliance status. Verify audit
+              Monitor your subrecipients' audit findings and filing records. Verify audit
               history.
             </p>
             <Link
