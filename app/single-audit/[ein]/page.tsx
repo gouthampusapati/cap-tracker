@@ -378,13 +378,31 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
           </div>
         </div>
 
-        {/* No findings case */}
+        {/* No findings case — describes the FAC record, not the
+            organization. Previously asserted "had no findings" (a claim
+            about the world the FAC record can't support — the org may
+            not have been required to file, a filing could be late/
+            missing/incomplete, or findings could exist under a
+            different EIN after a rename/merger) and editorialized with
+            "this is a positive indicator" — a compliance opinion about
+            a named, real organization. Ground rule: describe the
+            records, not the world. */}
         {org.findingsCount === 0 ? (
           <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
-            <h2 className="text-lg font-semibold text-green-900 mb-2">No audit findings</h2>
+            <h2 className="text-lg font-semibold text-green-900 mb-2">No findings recorded</h2>
             <p className="text-green-800">
-              This organization had no findings in its most recent Single Audits. This is a
-              positive indicator.
+              The Federal Audit Clearinghouse has no findings recorded across the{' '}
+              {org.totalReports} audit{org.totalReports === 1 ? '' : 's'} on file for this EIN.
+              Absence of a recorded finding is not confirmation that an audit was performed, or
+              that one was required.{' '}
+              <a
+                href={`https://app.fac.gov/dissemination/search/?query={"_search_term":"${org.ein}"}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold hover:text-green-900"
+              >
+                Verify at fac.gov →
+              </a>
             </p>
           </div>
         ) : null}
@@ -498,7 +516,7 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
               Do you fund this organization?
             </h3>
             <p className="text-sm text-green-800 mb-4">
-              Monitor subrecipient audit findings and compliance status.
+              Monitor subrecipient audit findings and filing records.
             </p>
             {/* /portfolio, not sign-in — monitoring a subrecipient you
                 fund isn't "your org" (the dashboard is one org per
