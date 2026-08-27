@@ -17,7 +17,17 @@
  * lib/portfolio.ts (now guarded with `import 'server-only'`), not here.
  */
 
-export const PORTFOLIO_MAX_EINS = 50;
+// Was 50. Dropped to 10 after checking the FAC's full national
+// pass-through dataset (~225k entities): 97.2% of every pass-through
+// entity that exists has 10 or fewer subrecipients, so 10 already
+// covers the typical visitor in full. Capacity was never going to be
+// the reason someone upgrades to the paid Watchlist regardless of
+// where this cap sat — the entities who'd actually pay for that
+// (state agencies, large universities, tribal governments) already
+// have 25+ subrecipients and blow past even the old 50 cap — so this
+// change doesn't cannibalize that market; it just stops handing out
+// free capacity nobody but the target market needed anyway.
+export const PORTFOLIO_MAX_EINS = 10;
 
 /**
  * Parses a pasted block of EINs — newline or comma separated, tolerating
