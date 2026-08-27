@@ -34,6 +34,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Without this, Auth.js refuses to link a Google sign-in to an
+      // existing `users` row with the same email (OAuthAccountNotLinked)
+      // — its default anti-account-takeover guard for when you can't
+      // trust the provider's email claim. Safe to override here
+      // specifically because Google verifies email ownership itself
+      // before handing it to us. This matters a lot for this app: most
+      // real accounts already have a users row from guest/typed-email
+      // use before ever touching Google sign-in (see lib/auth-config.ts),
+      // so refusing to link is the common case, not an edge case —
+      // confirmed live: a sign-in against a pre-existing email silently
+      // failed to create an accounts row until this was added.
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: { strategy: 'jwt' },
