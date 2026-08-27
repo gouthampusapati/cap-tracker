@@ -1,16 +1,41 @@
 // Simple session-based auth for MVP
 // Stores email in localStorage
 
+// The 'storage' event only fires in OTHER tabs/windows, never the one
+// that made the change — so app/header.tsx (which reads this identity
+// independently of whichever page created it) has no way to notice a
+// same-tab change without this. Concretely: DashboardInner's own effect
+// calls getOrCreateUser() to silently create a guest identity on first
+// visit, but Header's effect can run and read localStorage before that
+// write happens, then never re-check since its pathname dependency
+// hasn't changed — it would show the generic signed-out state forever
+// instead of the guest-specific "save your workspace" prompt. Dispatched
+// from both loginUser and logoutUser so sign-in and sign-out both notify.
+const IDENTITY_CHANGED_EVENT = 'sai:identity-changed';
+
 export const loginUser = (email: string) => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('user_email', email);
+    window.dispatchEvent(new Event(IDENTITY_CHANGED_EVENT));
   }
 };
 
 export const logoutUser = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('user_email');
+    window.dispatchEvent(new Event(IDENTITY_CHANGED_EVENT));
   }
+};
+
+/**
+ * Subscribe to same-tab identity changes (see the event's own comment
+ * above for why this exists instead of the native 'storage' event).
+ * Returns an unsubscribe function for effect cleanup.
+ */
+export const onIdentityChanged = (callback: () => void): (() => void) => {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(IDENTITY_CHANGED_EVENT, callback);
+  return () => window.removeEventListener(IDENTITY_CHANGED_EVENT, callback);
 };
 
 export const getUser = () => {

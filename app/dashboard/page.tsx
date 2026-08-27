@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
-import { getOrCreateUser, isGuestUser, logoutUser } from '@/lib/auth-config';
+import { useSession } from 'next-auth/react';
+import { getOrCreateUser } from '@/lib/auth-config';
 
 interface CapItem {
   id: string;
@@ -63,7 +63,6 @@ export default function Dashboard() {
 }
 
 function DashboardInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const einFromLink = searchParams.get('ein');
   const { data: session, status: sessionStatus } = useSession();
@@ -242,15 +241,6 @@ function DashboardInner() {
     }
   };
 
-  const handleSignOut = () => {
-    if (session) {
-      signOut({ callbackUrl: '/auth/signin' });
-      return;
-    }
-    logoutUser();
-    router.push('/auth/signin');
-  };
-
   if (!mounted || !email) {
     return (
       <div className="flex items-center justify-center min-h-screen text-gray-500">
@@ -274,43 +264,9 @@ function DashboardInner() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
-              ← Back to home
-            </Link>
-            <span className="text-gray-300">|</span>
-            <h1 className="flex items-center gap-2 text-xl font-bold">
-              <img src="/brand/logo-mark.png" alt="" className="h-6 w-6" />
-              Single Audit Intelligence
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            {session ? (
-              <span className="text-sm text-gray-600">
-                {session.user?.name || session.user?.email}
-              </span>
-            ) : isGuestUser(email) ? (
-              <Link
-                href={`/auth/signin${einFromLink ? `?ein=${encodeURIComponent(einFromLink)}` : ''}`}
-                className="text-sm text-blue-700 hover:underline"
-              >
-                Sign in with Google to save this workspace
-              </Link>
-            ) : (
-              <span className="text-sm text-gray-600">{email}</span>
-            )}
-            <button
-              onClick={handleSignOut}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </nav>
-
+      {/* The site-wide sticky header (app/header.tsx) now owns brand,
+          sign-in state, and Sign Out — this page no longer renders its
+          own nav. */}
       <main className="max-w-5xl mx-auto px-4 py-8">
         {!imported ? (
           <div className="bg-white rounded-lg border p-6">
