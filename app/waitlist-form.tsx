@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { track } from '@vercel/analytics';
 import { EVENT_EARLY_ACCESS_SUBMIT } from '@/lib/analytics-events';
 
@@ -66,15 +66,34 @@ export function WaitlistForm({
   ctaLabel = 'Request early access',
   className = '',
   variant = 'dark',
+  defaultEmail = '',
 }: {
   source: 'homepage-cta-band' | 'generate-draft-cta';
   ein?: string;
   ctaLabel?: string;
   className?: string;
   variant?: 'dark' | 'light';
+  // Prefills (but doesn't lock) the email field for a caller that
+  // already knows a real address — app/dashboard/page.tsx passes the
+  // signed-in Google session's email here. Deliberately NOT the guest
+  // identity (a guest-xxx@anonymous.local string) even though the
+  // dashboard always has *some* identity — nobody can be followed up
+  // with at that address, so leaving the field blank for a guest is
+  // more correct than prefilling something useless.
+  defaultEmail?: string;
 }) {
   const isLight = variant === 'light';
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(defaultEmail);
+
+  // useState(defaultEmail) alone only takes effect on the very first
+  // render — the dashboard's useSession() can still be resolving (async)
+  // at the moment this form mounts, so defaultEmail may arrive as ''
+  // and then become a real email a tick later. Re-syncs when that
+  // happens; harmless no-op once the visitor has actually typed
+  // something, since defaultEmail itself doesn't change after that.
+  useEffect(() => {
+    if (defaultEmail) setEmail(defaultEmail);
+  }, [defaultEmail]);
   const [segment, setSegment] = useState<Segment | ''>('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [error, setError] = useState('');

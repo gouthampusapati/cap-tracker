@@ -614,6 +614,13 @@ function DashboardInner() {
                                       ein={summary?.ein || ein || undefined}
                                       ctaLabel="Notify me"
                                       variant="light"
+                                      // Only a real Google session, never
+                                      // the guest identity (see
+                                      // WaitlistForm's own comment on
+                                      // this prop) — session?.user?.email
+                                      // is undefined for both guests and
+                                      // signed-out visitors.
+                                      defaultEmail={session?.user?.email || undefined}
                                     />
                                   </div>
                                 ) : (
