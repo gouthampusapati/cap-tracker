@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
+import { entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
 import { TrackedLink } from '@/app/tracked-link';
@@ -33,6 +34,9 @@ export interface Finding {
   priorRefs: string[];
   isMaterialWeakness: boolean;
   isSignificantDeficiency: boolean;
+  isModifiedOpinion: boolean;
+  isOtherMatters: boolean;
+  isOtherFindings: boolean;
   hasQuestionedCosts: boolean;
   awardReferences: string[];
 }
@@ -44,6 +48,13 @@ interface AuditYear {
   totalAmountExpended: number;
   entityType: string;
   isLowRiskAuditee: boolean;
+  isGoingConcern: boolean;
+  isMaterialNoncomplianceDisclosed: boolean;
+  gaapResultsRaw: string;
+  auditorFirmName: string;
+  auditorEin: string;
+  cognizantAgency: string;
+  oversightAgency: string;
   facAcceptedDate: string | null;
 }
 
@@ -114,7 +125,19 @@ async function fetchOrgData(ein: string): Promise<OrgFetchResult> {
         fiscalYearStart: r.fy_start_date,
         totalAmountExpended: r.total_amount_expended,
         entityType: r.entity_type,
-        isLowRiskAuditee: r.is_low_risk_auditee === 'Y',
+        // Bug caught live while adding the new Yes/No fields below: this
+        // compared against 'Y', but general's boolean fields actually
+        // use "Yes"/"No" (a different convention from findings' "Y"/
+        // "N") — isLowRiskAuditee was always false regardless of the
+        // real value. See isYesNo's doc comment in lib/fac-api.ts.
+        isLowRiskAuditee: isYesNo(r.is_low_risk_auditee),
+        isGoingConcern: isYesNo(r.is_going_concern_included),
+        isMaterialNoncomplianceDisclosed: isYesNo(r.is_material_noncompliance_disclosed),
+        gaapResultsRaw: r.gaap_results,
+        auditorFirmName: r.auditor_firm_name || '',
+        auditorEin: r.auditor_ein || '',
+        cognizantAgency: r.cognizant_agency || '',
+        oversightAgency: r.oversight_agency || '',
         facAcceptedDate: r.fac_accepted_date,
       })),
       findings: org.findings,
@@ -250,6 +273,11 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
     org.auditHistory.map((ay) => [ay.reportId, ay.facAcceptedDate])
   );
 
+  // Same per-report lookup, full AuditYear this time — backs the
+  // per-year risk strip below (opinion, going concern, low-risk
+  // auditee, material noncompliance, total expended).
+  const auditYearByReport = new Map(org.auditHistory.map((ay) => [ay.reportId, ay]));
+
   // Structured data for the thousands of near-identical org pages —
   // BreadcrumbList gives Google a sense of where each page sits, and
   // Organization makes the entity (name + EIN) explicit rather than
@@ -307,7 +335,19 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
               </TrackedLink>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{org.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {org.name}
+            {/* Entity type — org.auditHistory is newest-first (see
+                getReportsByEin's order param), so [0] is the most
+                recent audit's classification. 'unknown' renders no
+                badge (entityTypeLabel returns null) rather than
+                showing a not-useful "Unknown" pill. */}
+            {org.auditHistory[0] && entityTypeLabel(org.auditHistory[0].entityType) && (
+              <span className="ml-3 align-middle text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-1">
+                {entityTypeLabel(org.auditHistory[0].entityType)}
+              </span>
+            )}
+          </h1>
           <div className="text-gray-600 space-y-1">
             <p>
               <span className="font-semibold">EIN:</span> {org.ein}
@@ -315,6 +355,30 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <p className="break-all">
               <span className="font-semibold">UEI:</span> {org.uei}
             </p>
+            {/* Auditor + cognizance — from the most recent audit year
+                only (a page-header summary, not a per-year fact; see
+                the per-year risk strip below findings for anything that
+                can genuinely differ year to year). An entity has either
+                a cognizant OR an oversight agency, never both —
+                confirmed live, one of the two is consistently empty. */}
+            {org.auditHistory[0]?.auditorFirmName && (
+              <p className="text-sm">
+                <span className="font-semibold">Audited by:</span>{' '}
+                {org.auditHistory[0].auditorFirmName}
+              </p>
+            )}
+            {org.auditHistory[0]?.cognizantAgency && (
+              <p className="text-sm">
+                <span className="font-semibold">Cognizant agency:</span>{' '}
+                {org.auditHistory[0].cognizantAgency}
+              </p>
+            )}
+            {!org.auditHistory[0]?.cognizantAgency && org.auditHistory[0]?.oversightAgency && (
+              <p className="text-sm">
+                <span className="font-semibold">Oversight agency:</span>{' '}
+                {org.auditHistory[0].oversightAgency}
+              </p>
+            )}
             {org.stale ? (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-block">
                 Showing data from{' '}
@@ -436,9 +500,60 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             const findings = findingsByYear.get(year) || [];
             const reportId = findings[0]?.reportId;
             const facAcceptedDate = reportId ? acceptedDateByReport.get(reportId) ?? null : null;
+            const auditYear = reportId ? auditYearByReport.get(reportId) : undefined;
+            const gaap = auditYear ? parseGaapResults(auditYear.gaapResultsRaw) : null;
             return (
               <div key={year} id={`fy-${year}`} className="scroll-mt-20">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">FY {year}</h2>
+
+                {/* Risk strip — one line of badges per audit year,
+                    sourced from the `general` table row already fetched
+                    for this report (no new FAC calls). Suppressed per-
+                    badge when the underlying field is missing/empty
+                    rather than rendering a broken pill — legacy
+                    GSA_MIGRATION-era records can lack these. */}
+                {auditYear && (
+                  <div className="no-print flex flex-wrap items-center gap-2 mb-4">
+                    {gaap?.worst && gaap.worst !== 'unmodified_opinion' && (
+                      <span
+                        className={`inline-block text-xs font-bold px-2 py-1 rounded border ${
+                          gaap.worst === 'qualified_opinion'
+                            ? 'bg-severity-warning/10 text-severity-warning border-severity-warning/30'
+                            : gaap.worst === 'not_gaap'
+                              ? 'bg-severity-neutral/10 text-severity-neutral border-severity-neutral/30'
+                              : 'bg-severity-critical/10 text-severity-critical border-severity-critical/30'
+                        }`}
+                      >
+                        {gaap.labels.join(', ').toUpperCase()}
+                      </span>
+                    )}
+                    {auditYear.isGoingConcern && (
+                      <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
+                        GOING CONCERN
+                      </span>
+                    )}
+                    {auditYear.isMaterialNoncomplianceDisclosed && (
+                      <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
+                        MATERIAL NONCOMPLIANCE DISCLOSED
+                      </span>
+                    )}
+                    {auditYear.isLowRiskAuditee && (
+                      <span className="inline-block bg-green-50 text-green-700 border border-green-200 text-xs font-bold px-2 py-1 rounded">
+                        LOW-RISK AUDITEE
+                      </span>
+                    )}
+                    {auditYear.totalAmountExpended > 0 && (
+                      <span className="text-xs text-muted font-semibold">
+                        $
+                        {auditYear.totalAmountExpended.toLocaleString('en-US', {
+                          maximumFractionDigits: 0,
+                        })}{' '}
+                        federal awards expended
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Only the most recent fiscal year (sortedYears is
                     descending) gets the full alert-style card — an org
                     with many years otherwise gets the same "past due"

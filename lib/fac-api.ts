@@ -46,7 +46,26 @@ export interface FacGeneral {
   fy_start_date: string;
   total_amount_expended: number;
   entity_type: string;
+  // NOTE: every boolean field on `general` uses "Yes"/"No" — confirmed
+  // live against the API 2026-08, sampled across 300+ rows for each
+  // field below. This is a DIFFERENT convention from `findings`' "Y"/"N"
+  // fields (see isYes below) — use isYesNo for these, not isYes; mixing
+  // them up silently always evaluates false; caught live while adding
+  // this batch (is_low_risk_auditee was already wired up with the wrong
+  // comparison — see the fix in app/single-audit/[ein]/page.tsx).
   is_low_risk_auditee: string;
+  is_going_concern_included: string;
+  is_material_noncompliance_disclosed: string;
+  // Comma-separated when a report has multiple opinion units — e.g.
+  // "unmodified_opinion,qualified_opinion" is a real, non-rare value
+  // (confirmed live), not a single enum. See parseGaapResults.
+  gaap_results: string;
+  auditor_firm_name: string;
+  auditor_ein: string;
+  // An entity has either a cognizant OR an oversight agency, not both —
+  // confirmed live: one of these two is consistently empty-string.
+  cognizant_agency: string;
+  oversight_agency: string;
   // Date the FAC accepted this submission — the event that starts the
   // § 200.521(d) six-month management-decision clock. ISO date string
   // ("YYYY-MM-DD"), confirmed against the live API 2026-08. Can be null
@@ -63,6 +82,8 @@ export interface FacFinding {
   is_material_weakness: string;
   is_significant_deficiency: string;
   is_modified_opinion: string;
+  is_other_matters: string;
+  is_other_findings: string;
   is_questioned_costs: string;
   is_repeat_finding: string;
   prior_finding_ref_numbers: string;
@@ -124,10 +145,93 @@ export function mapCategory(typeRequirement: string | null | undefined): string 
 }
 
 /**
- * FAC stores booleans as "Y"/"N" strings. Anything else is treated false.
+ * FAC stores booleans as "Y"/"N" strings on the `findings` table.
+ * Anything else is treated false.
  */
 export function isYes(v: string | null | undefined): boolean {
   return typeof v === 'string' && v.trim().toUpperCase() === 'Y';
+}
+
+/**
+ * The `general` table's boolean fields use "Yes"/"No" instead — a
+ * genuinely different convention, confirmed live against 300+ rows per
+ * field. Do not use isYes for these; it silently evaluates false for
+ * every row regardless of the real value (caught live: this exact
+ * mistake was already shipped for is_low_risk_auditee before this
+ * batch).
+ */
+export function isYesNo(v: string | null | undefined): boolean {
+  return typeof v === 'string' && v.trim().toLowerCase() === 'yes';
+}
+
+/**
+ * Human labels for entity_type — confirmed live, exactly six values
+ * exist on the API today. 'unknown' deliberately has no label; the page
+ * just doesn't render a badge for it rather than showing "Unknown".
+ */
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  state: 'State Government',
+  local: 'Local Government',
+  'higher-ed': 'Higher Education',
+  'non-profit': 'Non-Profit',
+  tribal: 'Tribal Government',
+};
+
+export function entityTypeLabel(entityType: string | null | undefined): string | null {
+  if (!entityType) return null;
+  return ENTITY_TYPE_LABELS[entityType] ?? null;
+}
+
+/**
+ * gaap_results is NOT a single enum value — confirmed live, a report
+ * with multiple opinion units (e.g. one on the financial statements,
+ * another on a major program) comes back comma-separated, e.g.
+ * "unmodified_opinion,qualified_opinion". Returns every distinct
+ * opinion type present plus the single worst one, for callers that want
+ * one color/label to headline (worst-first: a report that's anything
+ * less than clean across every opinion unit should read as such, not
+ * default to whichever happened to sort first).
+ */
+const GAAP_OPINION_LABELS: Record<string, string> = {
+  unmodified_opinion: 'Unmodified Opinion',
+  qualified_opinion: 'Qualified Opinion',
+  adverse_opinion: 'Adverse Opinion',
+  disclaimer_of_opinion: 'Disclaimer of Opinion',
+  not_gaap: 'Non-GAAP Basis',
+};
+
+// Worst-to-best — disclaimer means the auditor couldn't form an opinion
+// at all, which is worse than an opinion that's merely adverse.
+const GAAP_SEVERITY_ORDER = [
+  'disclaimer_of_opinion',
+  'adverse_opinion',
+  'qualified_opinion',
+  'not_gaap',
+  'unmodified_opinion',
+];
+
+export interface GaapResult {
+  types: string[];
+  labels: string[];
+  worst: string | null;
+  worstLabel: string | null;
+}
+
+export function parseGaapResults(raw: string | null | undefined): GaapResult {
+  const types = (raw || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const worst =
+    GAAP_SEVERITY_ORDER.find((severity) => types.includes(severity)) ?? types[0] ?? null;
+
+  return {
+    types,
+    labels: types.map((t) => GAAP_OPINION_LABELS[t] ?? t),
+    worst,
+    worstLabel: worst ? (GAAP_OPINION_LABELS[worst] ?? worst) : null,
+  };
 }
 
 /**
@@ -159,6 +263,9 @@ export interface NormalizedFinding {
   priorRefs: string[];
   isMaterialWeakness: boolean;
   isSignificantDeficiency: boolean;
+  isModifiedOpinion: boolean;
+  isOtherMatters: boolean;
+  isOtherFindings: boolean;
   hasQuestionedCosts: boolean;
   awardReferences: string[];
 }
@@ -252,6 +359,9 @@ export function dedupeFindingRows(rows: FacFinding[]): FacFinding[] {
       seen.is_questioned_costs,
       row.is_questioned_costs
     );
+    seen.is_modified_opinion = orFlag(seen.is_modified_opinion, row.is_modified_opinion);
+    seen.is_other_matters = orFlag(seen.is_other_matters, row.is_other_matters);
+    seen.is_other_findings = orFlag(seen.is_other_findings, row.is_other_findings);
 
     // Keep whichever prior-reference value is not a placeholder.
     if (
@@ -323,6 +433,9 @@ export async function getFindingsForReports(
       priorRefs: parsePriorRefs(f.prior_finding_ref_numbers),
       isMaterialWeakness: isYes(f.is_material_weakness),
       isSignificantDeficiency: isYes(f.is_significant_deficiency),
+      isModifiedOpinion: isYes(f.is_modified_opinion),
+      isOtherMatters: isYes(f.is_other_matters),
+      isOtherFindings: isYes(f.is_other_findings),
       hasQuestionedCosts: isYes(f.is_questioned_costs),
       awardReferences: f.award_reference ? f.award_reference.split(', ') : [],
     };

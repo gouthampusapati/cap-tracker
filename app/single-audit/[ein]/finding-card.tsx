@@ -38,6 +38,13 @@ export function FindingCard({ finding }: { finding: Finding }) {
     finding.isMaterialWeakness && 'material',
     finding.isRepeatFinding && 'repeat',
     finding.hasQuestionedCosts && 'questioned',
+    // New tokens, no filter button targets these yet (see
+    // severity-filter.tsx) — space-separated data-severity is a
+    // whitespace token match (~= in globals.css), so adding more here
+    // doesn't affect the existing material/repeat/questioned filters.
+    finding.isSignificantDeficiency && 'significant',
+    finding.isModifiedOpinion && 'modified',
+    (finding.isOtherMatters || finding.isOtherFindings) && 'other',
   ]
     .filter(Boolean)
     .join(' ');
@@ -60,6 +67,21 @@ export function FindingCard({ finding }: { finding: Finding }) {
                 MATERIAL WEAKNESS
               </span>
             )}
+            {/* Modified opinion sits with material weakness at
+                severity-critical — a qualified/adverse/disclaimer
+                opinion on this specific finding's award is at least as
+                consequential as a material weakness, not a lesser
+                cousin of it. */}
+            {finding.isModifiedOpinion && (
+              <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
+                MODIFIED OPINION
+              </span>
+            )}
+            {finding.isSignificantDeficiency && (
+              <span className="inline-block bg-severity-warning/10 text-severity-warning border border-severity-warning/30 text-xs font-bold px-2 py-1 rounded">
+                SIGNIFICANT DEFICIENCY
+              </span>
+            )}
             {finding.isRepeatFinding && (
               <span className="inline-block bg-severity-warning/10 text-severity-warning border border-severity-warning/30 text-xs font-bold px-2 py-1 rounded">
                 REPEAT
@@ -68,6 +90,15 @@ export function FindingCard({ finding }: { finding: Finding }) {
             {finding.hasQuestionedCosts && (
               <span className="inline-block bg-severity-warning/10 text-severity-warning border border-severity-warning/30 text-xs font-bold px-2 py-1 rounded">
                 QUESTIONED COSTS
+              </span>
+            )}
+            {/* severity-neutral — "informational" per its own token
+                comment in globals.css, first real use of this tier.
+                Collapsed to one badge even if both flags are set,
+                rather than two near-identical pills. */}
+            {(finding.isOtherMatters || finding.isOtherFindings) && (
+              <span className="inline-block bg-severity-neutral/10 text-severity-neutral border border-severity-neutral/30 text-xs font-bold px-2 py-1 rounded">
+                OTHER MATTERS
               </span>
             )}
           </div>
