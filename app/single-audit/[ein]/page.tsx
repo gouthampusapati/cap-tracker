@@ -5,8 +5,6 @@ import { getPublicOrg } from '@/lib/public-org-cache';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
-import { TrackedLink } from '@/app/tracked-link';
-import { EVENT_ORG_PAGE_CLICKTHROUGH } from '@/lib/analytics-events';
 import { Footer } from '@/app/footer';
 import { FindingCard } from './finding-card';
 import { HashExpand } from './hash-expand';
@@ -309,32 +307,13 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
-      {/* Header */}
+      {/* Header — no local "back home"/Guide/Portfolio nav here anymore;
+          the site-wide sticky header (app/header.tsx, mounted in
+          app/layout.tsx) already covers all three via the logo link and
+          its own Guide/Portfolio nav. This block used to duplicate them
+          from before that header existed. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-4 flex justify-between items-center">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
-              ← Back to home
-            </Link>
-            <div className="space-x-4">
-              <TrackedLink
-                href="/guide"
-                event={EVENT_ORG_PAGE_CLICKTHROUGH}
-                eventData={{ destination: 'guide', source: 'header' }}
-                className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
-              >
-                Compliance guide
-              </TrackedLink>
-              <TrackedLink
-                href="/portfolio"
-                event={EVENT_ORG_PAGE_CLICKTHROUGH}
-                eventData={{ destination: 'portfolio', source: 'header' }}
-                className="text-blue-600 hover:text-blue-800 text-sm font-semibold"
-              >
-                Portfolio
-              </TrackedLink>
-            </div>
-          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {org.name}
             {/* Entity type — org.auditHistory is newest-first (see
