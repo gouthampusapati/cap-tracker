@@ -23,7 +23,14 @@ import { sendOwnerNotification } from '@/lib/send-owner-notification';
 // early user into the actual product for feedback matters more than
 // filtering for "qualified" intent. See app/single-audit/[ein]/page.tsx
 // and app/page.tsx.
-const VALID_SOURCES = ['homepage-cta-band'] as const;
+//
+// 'generate-draft-cta' is a different situation, not an exception to
+// that rule: it's not gatekeeping entry into the product (the visitor
+// is already a signed-in/guest recipient inside their own dashboard),
+// it's capturing demand for one specific feature that doesn't exist yet
+// (AI-drafted CAP narratives — see app/dashboard/page.tsx's "Generate
+// Draft" button) from someone who already has full product access.
+const VALID_SOURCES = ['homepage-cta-band', 'generate-draft-cta'] as const;
 
 // recipient vs. pass-through vs. adviser/auditor is the question the
 // whole product strategy hangs on, and the early-access form is the one

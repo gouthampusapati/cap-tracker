@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { getOrCreateUser } from '@/lib/auth-config';
+import { WaitlistForm } from '@/app/waitlist-form';
 
 interface CapItem {
   id: string;
@@ -77,6 +78,15 @@ function DashboardInner() {
   const [mounted, setMounted] = useState(false);
   const [capItems, setCapItems] = useState<Record<string, CapItem[]>>({});
   const [editingFinding, setEditingFinding] = useState<string | null>(null);
+  // "Generate Draft" isn't built yet — clicking it reveals a compact
+  // WaitlistForm inline (source: 'generate-draft-cta') instead of
+  // linking away to the homepage's early-access section, so a visitor
+  // capturing this feature-specific interest doesn't lose their place
+  // in the dashboard. See app/api/waitlist/route.ts's VALID_SOURCES
+  // comment for why this is a deliberate exception, not a gatekeeping
+  // waitlist — everyone reaching this button already has full product
+  // access.
+  const [draftInterestFinding, setDraftInterestFinding] = useState<string | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [savingFinding, setSavingFinding] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -574,13 +584,54 @@ function DashboardInner() {
                                 >
                                   + Add CAP Item
                                 </button>
-                                <button
-                                  disabled
-                                  title="Coming next"
-                                  className="w-full bg-gray-100 text-gray-400 py-1 rounded text-sm cursor-not-allowed"
-                                >
-                                  Generate Draft
-                                </button>
+                                {draftInterestFinding === finding.id ? (
+                                  <div className="p-3 bg-gray-50 rounded border">
+                                    {/* Sets expectations before the role
+                                        question below — without this, a
+                                        "Generate Draft" click jumping
+                                        straight to "Which best describes
+                                        your role?" reads as sudden/
+                                        unexplained (feedback from
+                                        testing this live). */}
+                                    <p className="text-sm text-gray-700 mb-3">
+                                      AI-drafted CAP narratives are part of the upcoming Enterprise
+                                      plan. Tell us you&apos;re interested and someone from our
+                                      team will follow up.
+                                    </p>
+                                    <WaitlistForm
+                                      source="generate-draft-cta"
+                                      // summary.ein is only populated via
+                                      // the /api/org response (a
+                                      // returning user's existing org) —
+                                      // /api/import's response doesn't
+                                      // include it, so a fresh import
+                                      // (this session's own `ein` state,
+                                      // set right before runImport is
+                                      // called) is the other source.
+                                      // Confirmed live: summary?.ein
+                                      // alone came back null right after
+                                      // a fresh import.
+                                      ein={summary?.ein || ein || undefined}
+                                      ctaLabel="Notify me"
+                                      variant="light"
+                                      // Only a real Google session, never
+                                      // the guest identity (see
+                                      // WaitlistForm's own comment on
+                                      // this prop) — session?.user?.email
+                                      // is undefined for both guests and
+                                      // signed-out visitors.
+                                      defaultEmail={session?.user?.email || undefined}
+                                    />
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setDraftInterestFinding(finding.id)}
+                                    title="Not built yet — captures your interest instead"
+                                    className="w-full bg-gray-100 text-gray-700 py-1 rounded text-sm hover:bg-gray-200"
+                                  >
+                                    Generate Draft (get notified)
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>

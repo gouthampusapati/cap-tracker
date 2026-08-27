@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { track } from '@vercel/analytics';
 import { EVENT_EARLY_ACCESS_SUBMIT } from '@/lib/analytics-events';
 
@@ -46,7 +46,12 @@ const SEGMENT_OPTIONS: { value: Segment; label: string }[] = [
  *
  * `source` must be one of the values app/api/waitlist/route.ts's
  * VALID_SOURCES allowlist accepts — keep the two in sync when adding a
- * new call site.
+ * new call site. 'generate-draft-cta' (app/dashboard/page.tsx's
+ * "Generate Draft" button) is the one exception to the "identified
+ * recipients skip this form" rule above the comment — see that
+ * allowlist's own comment for why capturing feature-specific demand
+ * from someone already in the product isn't the same as gatekeeping
+ * entry to it.
  *
  * `variant` controls text color only (the email input and submit button
  * are already small white/accent surfaces that read fine on either
@@ -61,15 +66,34 @@ export function WaitlistForm({
   ctaLabel = 'Request early access',
   className = '',
   variant = 'dark',
+  defaultEmail = '',
 }: {
-  source: 'homepage-cta-band';
+  source: 'homepage-cta-band' | 'generate-draft-cta';
   ein?: string;
   ctaLabel?: string;
   className?: string;
   variant?: 'dark' | 'light';
+  // Prefills (but doesn't lock) the email field for a caller that
+  // already knows a real address — app/dashboard/page.tsx passes the
+  // signed-in Google session's email here. Deliberately NOT the guest
+  // identity (a guest-xxx@anonymous.local string) even though the
+  // dashboard always has *some* identity — nobody can be followed up
+  // with at that address, so leaving the field blank for a guest is
+  // more correct than prefilling something useless.
+  defaultEmail?: string;
 }) {
   const isLight = variant === 'light';
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(defaultEmail);
+
+  // useState(defaultEmail) alone only takes effect on the very first
+  // render — the dashboard's useSession() can still be resolving (async)
+  // at the moment this form mounts, so defaultEmail may arrive as ''
+  // and then become a real email a tick later. Re-syncs when that
+  // happens; harmless no-op once the visitor has actually typed
+  // something, since defaultEmail itself doesn't change after that.
+  useEffect(() => {
+    if (defaultEmail) setEmail(defaultEmail);
+  }, [defaultEmail]);
   const [segment, setSegment] = useState<Segment | ''>('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [error, setError] = useState('');
