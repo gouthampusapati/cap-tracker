@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
@@ -5,7 +6,18 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   ein: text('ein'),
   orgName: text('org_name'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  // .default(...) added after a live bug: the Auth.js Drizzle adapter's
+  // createUser only populates its own standard AdapterUser fields (id,
+  // name, email, emailVerified, image) — it has no idea this app added
+  // a required createdAt column, so it inserted NULL, which this NOT
+  // NULL column then rejected with SQLITE_CONSTRAINT. Every account
+  // tested before this always already had a users row from /api/import
+  // (guest or typed-email), so it only ever hit the *update* path — a
+  // genuinely brand-new sign-up (Google or magic-link) with no prior
+  // row is what first hit the *insert* path and crashed. A DB-level
+  // default fixes it for any caller that omits the column, not just
+  // this one adapter method.
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
   lastLogin: integer('last_login', { mode: 'timestamp' }),
   // Below: read by the Auth.js Drizzle adapter (see root auth.ts) for
   // Google sign-in. Nullable and unused for guest/typed-email rows —
