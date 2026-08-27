@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Providers } from './providers';
+import { Header } from './header';
 import { SITE_URL } from '@/lib/site-url';
 import './globals.css';
 
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable}>
       <body>
         <Providers>
+          <Header />
           {children}
         </Providers>
         {/* Pageview tracking only for now — no cookies, no PII. Custom

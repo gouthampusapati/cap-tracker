@@ -343,9 +343,11 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
       {/* Sticky summary bar — org name + the same three counts below,
           condensed to one line, visible while scrolling through a long
           findings list. Pure CSS sticky, no JS needed. Hidden in print —
-          it's a scroll aid, meaningless on paper. */}
+          it's a scroll aid, meaningless on paper. top-16 (not top-0)
+          sits it just below the site-wide sticky header (app/header.tsx,
+          h-16) instead of underneath it. */}
       {org.findingsCount > 0 && (
-        <div className="no-print sticky top-0 z-10 bg-surface border-b border-border">
+        <div className="no-print sticky top-16 z-10 bg-surface border-b border-border">
           <div className="max-w-4xl mx-auto px-4 py-2 sm:px-6 lg:px-8 flex items-center gap-4 text-sm overflow-x-auto">
             <span className="font-semibold text-text whitespace-nowrap">{org.name}</span>
             <span className="text-muted whitespace-nowrap">{org.totalReports} audit years</span>
@@ -473,17 +475,18 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             <p className="text-sm text-blue-800 mb-4">
               Track your findings and corrective action plans across audit cycles.
             </p>
-            {/* Straight into the dashboard, not sign-in and not the
-                waitlist — someone confirming they ARE this organization
-                is exactly the qualified early user worth getting into
-                the real (if early) product now, for actual usage
-                feedback rather than a name on a list or a typed email.
-                /dashboard auto-creates an anonymous workspace on arrival
-                (see getOrCreateUser in lib/auth-config.ts) and its own
-                ?ein= handling auto-imports this org, so the handoff here
-                still works exactly as before. */}
+            {/* Routes through /auth/signin (which carries ?ein= through
+                to /dashboard either way it's resolved — see that page)
+                rather than straight into a guest workspace. Previously
+                this skipped sign-in entirely on the reasoning that
+                someone confirming they ARE this organization is a
+                qualified early user worth zero friction; reversed on
+                direct request so sign-in is the visible, offered choice
+                here rather than bypassed by default. Guest mode is still
+                one click away from /auth/signin, not removed — just no
+                longer the silent default from this specific CTA. */}
             <a
-              href={`/dashboard?ein=${org.ein}`}
+              href={`/auth/signin?ein=${org.ein}`}
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →

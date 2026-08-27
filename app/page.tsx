@@ -31,34 +31,9 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header. "Sign in" deliberately isn't primary nav here — a
-          general homepage visitor is a different, lower-intent audience
-          than someone who self-identifies as an actual audited org (see
-          "For Recipients" below, which now links straight into
-          /dashboard with zero typing — see getOrCreateUser in
-          lib/auth-config.ts). Explicit sign-in is still reachable from
-          the footer's Product column for anyone who wants a real,
-          portable email identity instead of an anonymous session. */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex justify-between items-center">
-          {/* Not an <h1> — the page's one H1 is the hero headline below,
-              which carries the actual descriptive/keyword content. This
-              brand mark used to be the H1, which spent the page's
-              strongest on-page SEO signal on a term nobody searches. */}
-          <p className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-            <img src="/brand/logo-mark.png" alt="" className="h-7 w-7" />
-            Single Audit Intelligence
-          </p>
-          <div className="space-x-4">
-            <Link href="/guide" className="text-accent hover:text-blue-800 font-semibold transition-colors">
-              Guide
-            </Link>
-            <Link href="/portfolio" className="text-accent hover:text-blue-800 font-semibold transition-colors">
-              Portfolio
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* The site-wide sticky header (app/header.tsx, mounted in
+          app/layout.tsx) now covers brand + Guide/Portfolio nav + Sign
+          in/Get Started — this page no longer renders its own. */}
 
       {/* Hero. relative + overflow-hidden contains the decorative blurred
           shapes below without letting them affect page layout/scroll
@@ -148,12 +123,11 @@ export default function Home() {
         {/* Info sections. Both audience framings kept as explanation, but
             now point at working features — straight into the real
             product (dashboard / portfolio), not the waitlist. "For
-            Recipients" links to /dashboard directly, no sign-in step —
-            an anonymous workspace is created on arrival (see
-            getOrCreateUser in lib/auth-config.ts). Getting real first
-            users into the actual product for feedback matters more here
-            than filtering for "qualified" intent — see the org-page
-            "Are you this organization?" CTA for the same reasoning. */}
+            Recipients" now routes through /auth/signin rather than
+            straight into a guest workspace — same reversal, and same
+            reasoning, as the org-page "Are you this organization?" CTA
+            (see app/single-audit/[ein]/page.tsx). "For Pass-Throughs"
+            still goes straight to /portfolio, which needs no account. */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-24">
           <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
@@ -181,7 +155,7 @@ export default function Home() {
               on top of corrective action plans.
             </p>
             <Link
-              href="/dashboard"
+              href="/auth/signin"
               className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →

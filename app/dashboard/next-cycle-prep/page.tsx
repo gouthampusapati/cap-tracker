@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
-import { getUser, logoutUser } from '@/lib/auth-config';
+import { useSession } from 'next-auth/react';
+import { getUser } from '@/lib/auth-config';
 import Link from 'next/link';
 
 interface CapItem {
@@ -100,15 +100,6 @@ export default function NextCyclePrepReport() {
     }
   };
 
-  const handleSignOut = () => {
-    if (session) {
-      signOut({ callbackUrl: '/auth/signin' });
-      return;
-    }
-    logoutUser();
-    router.push('/auth/signin');
-  };
-
   if (!mounted || !email) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -132,29 +123,9 @@ export default function NextCyclePrepReport() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-sm text-blue-600 hover:text-blue-800">
-              ← Back to home
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/dashboard" className="flex items-center gap-2 text-2xl font-bold hover:text-blue-600">
-              <img src="/brand/logo-mark.png" alt="" className="h-6 w-6" />
-              Single Audit Intelligence
-            </Link>
-            <span className="text-gray-400">›</span>
-            <span className="text-lg font-semibold text-gray-700">Next-Cycle Prep</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{email}</span>
-            <button onClick={handleSignOut} className="text-sm text-gray-600 hover:text-gray-900">
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </nav>
-
+      {/* The site-wide sticky header (app/header.tsx) now owns brand,
+          the "Next-Cycle Prep" breadcrumb, sign-in state, and Sign Out —
+          this page no longer renders its own nav. */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-2xl font-bold mb-2">Next-Cycle Prep Report</h2>
