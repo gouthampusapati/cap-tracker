@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
-import { importOrgByEin } from '@/lib/fac-api';
+import { getPublicOrg } from '@/lib/public-org-cache';
 import { db } from '@/lib/db';
 import { users, auditYears, findings } from '@/lib/db/schema';
 import { authorizeEmailAccess } from '@/lib/auth-guard';
@@ -14,6 +14,14 @@ import { authorizeEmailAccess } from '@/lib/auth-guard';
  * Audit Clearinghouse and stores every finding. Re-running is safe:
  * findings use a stable id derived from report_id + reference_number, so
  * a re-import updates rows in place and CAP items stay attached.
+ *
+ * Goes through getPublicOrg() (the same shared cache/budget path
+ * /single-audit/[ein] and /portfolio use) rather than calling
+ * importOrgByEin() directly, which this route used to do — that bypassed
+ * both the 24h org cache AND the site-wide FAC budget guard entirely, a
+ * real gap: every import, including a user re-submitting the same EIN
+ * moments apart, spent 4 live FAC calls with zero throttling. See
+ * FAC_API_Improvement_Sprint_Checklist.md, Sprint 1.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -41,7 +49,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const org = await importOrgByEin(ein);
+    const { org, unavailable } = await getPublicOrg(ein);
+
+    if (unavailable) {
+      // Never checked before, and the shared FAC budget is fully spent
+      // for the hour — not evidence the org has no audit history, just
+      // that nobody (including this request) could check right now. See
+      // OrgLookupResult's own comment in lib/public-org-cache.ts.
+      return NextResponse.json(
+        {
+          error:
+            'The FAC lookup service is at its shared hourly limit right now — please try importing again in a little while.',
+        },
+        { status: 503 }
+      );
+    }
 
     if (!org) {
       return NextResponse.json(

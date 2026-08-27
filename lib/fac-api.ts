@@ -24,6 +24,20 @@ async function facGet<T>(path: string, params: Record<string, string>): Promise<
     headers: { 'X-Api-Key': apiKey() },
   });
 
+  // api.data.gov's own rate-limit headers on every response — logged so
+  // real production numbers exist to (a) confirm the 1,000/hour ceiling
+  // is genuinely per-key rather than per-IP in practice, since Vercel's
+  // serverless functions share rotating egress IPs, and (b) back up an
+  // eventual request to api.data.gov for a higher limit with actual
+  // usage data instead of an estimate. Logged for every call, not just
+  // failures — the interesting signal is the trend as remaining
+  // approaches 0, not just the moment it's already exhausted.
+  const remaining = res.headers.get('x-ratelimit-remaining');
+  const limit = res.headers.get('x-ratelimit-limit');
+  if (remaining !== null || limit !== null) {
+    console.log(`[fac-api] ${path} rate limit: ${remaining ?? '?'}/${limit ?? '?'} remaining`);
+  }
+
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`FAC ${path} returned ${res.status}: ${body.slice(0, 300)}`);
@@ -378,6 +392,24 @@ export async function getReportsByUei(uei: string): Promise<FacGeneral[]> {
   });
 }
 
+/**
+ * All audit submissions for MANY EINs, in one call — PostgREST's
+ * `in.(...)` filter, same technique getFindingsForReports already uses
+ * for report_id. `limit` is sized per-EIN (same ceiling getReportsByEin
+ * uses for one) times the batch size, since PostgREST's limit applies
+ * to the total row count across every EIN in the filter, not per EIN.
+ * Caller batch sizes come from PORTFOLIO_MAX_EINS (10) today, so this
+ * stays small in practice even at limit=500.
+ */
+export async function getReportsByEins(eins: string[]): Promise<FacGeneral[]> {
+  if (eins.length === 0) return [];
+  return facGet<FacGeneral>('general', {
+    auditee_ein: `in.(${eins.join(',')})`,
+    order: 'fy_end_date.desc',
+    limit: String(eins.length * 50),
+  });
+}
+
 /** Fuzzy name search, for when the user doesn't know their EIN. */
 export async function searchByName(name: string): Promise<FacGeneral[]> {
   return facGet<FacGeneral>('general', {
@@ -520,19 +552,24 @@ export async function getFindingsForReports(
 }
 
 /**
- * One call for the whole import: look up the org, then fetch and stitch
- * every finding across all its audit years.
+ * Stitches one org's already-fetched reports + already-fetched findings
+ * pool into an ImportedOrg — pure assembly, no FAC calls of its own.
+ * Shared by importOrgByEin (one org, its own findings fetch) and
+ * importOrgsByEins (many orgs, one shared findings fetch across all of
+ * them) so the fiscal-year-fill-in + sort logic only lives once.
+ * `reports` must already be this org's reports only, newest-first.
  */
-export async function importOrgByEin(ein: string): Promise<ImportedOrg | null> {
-  const reports = await getReportsByEin(ein);
-  if (reports.length === 0) return null;
-
+function assembleImportedOrg(
+  ein: string,
+  reports: FacGeneral[],
+  findingsPool: NormalizedFinding[]
+): ImportedOrg {
+  const reportIds = new Set(reports.map((r) => r.report_id));
   const fyByReport = new Map(reports.map((r) => [r.report_id, r.fy_end_date]));
-  const findings = await getFindingsForReports(reports.map((r) => r.report_id));
 
-  for (const f of findings) {
-    f.fiscalYearEnd = fyByReport.get(f.reportId) || '';
-  }
+  const findings = findingsPool
+    .filter((f) => reportIds.has(f.reportId))
+    .map((f) => ({ ...f, fiscalYearEnd: fyByReport.get(f.reportId) || '' }));
 
   // Newest fiscal year first, then by finding reference.
   findings.sort((a, b) => {
@@ -551,4 +588,62 @@ export async function importOrgByEin(ein: string): Promise<ImportedOrg | null> {
     reports,
     findings,
   };
+}
+
+/**
+ * One call for the whole import: look up the org, then fetch and stitch
+ * every finding across all its audit years. 4 FAC calls total (1
+ * general + 3 from getFindingsForReports) — see importOrgsByEins for
+ * the same cost spread across many orgs at once.
+ */
+export async function importOrgByEin(ein: string): Promise<ImportedOrg | null> {
+  const reports = await getReportsByEin(ein);
+  if (reports.length === 0) return null;
+
+  const findings = await getFindingsForReports(reports.map((r) => r.report_id));
+  return assembleImportedOrg(ein, reports, findings);
+}
+
+/**
+ * The batched sibling of importOrgByEin — imports MANY orgs for the
+ * SAME 4 FAC calls importOrgByEin spends on just one, by batching the
+ * `general` lookup (getReportsByEins) and the findings/text/CAP lookup
+ * (getFindingsForReports, already report_id-batched) across every EIN
+ * in one shot rather than looping importOrgByEin per EIN. Built for
+ * lib/portfolio.ts's cold-cache case — a 10-EIN portfolio used to cost
+ * up to 40 FAC calls (4 × 10, one importOrgByEin per row); this costs 4
+ * regardless of how many EINs are in the batch. See
+ * FAC_API_Improvement_Sprint_Checklist.md, Sprint 2.
+ *
+ * Returns a Map so callers can look up each EIN's result (or null, if
+ * that EIN has no submissions) without relying on array order.
+ */
+export async function importOrgsByEins(eins: string[]): Promise<Map<string, ImportedOrg | null>> {
+  const result = new Map<string, ImportedOrg | null>();
+  if (eins.length === 0) return result;
+
+  const allReports = await getReportsByEins(eins);
+
+  const reportsByEin = new Map<string, FacGeneral[]>();
+  for (const r of allReports) {
+    const list = reportsByEin.get(r.auditee_ein);
+    if (list) list.push(r);
+    else reportsByEin.set(r.auditee_ein, [r]);
+  }
+
+  const allReportIds = allReports.map((r) => r.report_id);
+  const findingsPool = await getFindingsForReports(allReportIds);
+
+  for (const ein of eins) {
+    // getReportsByEins' order clause applies across the whole result
+    // set, not guaranteed stable within each EIN's subset after
+    // grouping — re-sort per EIN explicitly rather than rely on that.
+    const reports = (reportsByEin.get(ein) ?? [])
+      .slice()
+      .sort((a, b) => b.fy_end_date.localeCompare(a.fy_end_date));
+
+    result.set(ein, reports.length === 0 ? null : assembleImportedOrg(ein, reports, findingsPool));
+  }
+
+  return result;
 }
