@@ -6,8 +6,11 @@ import { Footer } from '@/app/footer';
 import PortfolioForm from './portfolio-form';
 import PortfolioTable from './portfolio-table';
 
-// A full batch (50 EINs, ~6 at a time) is well past the single-org page's
-// already-bumped 30s — this needs the Hobby-plan ceiling.
+// A full batch (PORTFOLIO_MAX_EINS EINs, ~6 at a time) is well past the
+// single-org page's already-bumped 30s — this needs the Hobby-plan
+// ceiling. Left at 60 even after the cap dropped from 50 to 10 (see
+// PORTFOLIO_MAX_EINS in lib/ein-list.ts) — a smaller worst-case batch
+// just means more headroom, not a reason to tighten this further.
 export const maxDuration = 60;
 
 const title = 'Portfolio View — Track Multiple Organizations';

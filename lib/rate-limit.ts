@@ -48,11 +48,12 @@ function createLimiter(windowMs: number, maxRequests: number) {
 // naive full-catalog crawl.
 export const isRateLimited = createLimiter(60_000, 30);
 
-// /portfolio: up to 50 EINs per submission, ~4 FAC calls each — a single
-// submission can cost as much as the single-org limiter's entire budget
-// for 6+ minutes. Budgeted far tighter: a real grants manager checking a
-// portfolio a few times an hour is nowhere near this; a script wouldn't
-// get past the first handful of submissions.
+// /portfolio: up to PORTFOLIO_MAX_EINS EINs per submission (10, was 50
+// — see lib/ein-list.ts), ~4 FAC calls each, so a single submission can
+// still cost a meaningful chunk of the single-org limiter's budget.
+// Budgeted far tighter regardless of the cap size: a real grants
+// manager checking a portfolio a few times an hour is nowhere near
+// this; a script wouldn't get past the first handful of submissions.
 export const isPortfolioRateLimited = createLimiter(15 * 60_000, 3);
 
 // /api/waitlist: doesn't touch FAC at all (just a DB insert), so this

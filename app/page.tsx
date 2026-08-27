@@ -291,14 +291,16 @@ export default function Home() {
       {/* CTA Footer — the one CTA that's genuinely just general-interest
           capture (a visitor who hasn't self-identified as anything in
           particular — unlike "For Recipients"/"For Pass-Throughs"
-          above, which link straight into the real product). Present
-          tense for what already exists (search, portfolio, guides);
-          "early access"/"upcoming" only for what doesn't — the bulleted
-          list names two concrete alerts plus a general "priority access
-          to upcoming enterprise features" line, per explicit copy
-          direction. Deliberately does NOT mention repeat-finding
-          alerts: that consequence thesis was tested against real data
-          and falsified, so it's not a claim this site makes. The role
+          above, which link straight into the real product). Named as
+          its own product ("Single Audit Watchlist"), not generic
+          "early access to enterprise features" framing — the three
+          alerts plus the monthly exception report are concrete
+          features, not a vague pitch. Still deliberately does NOT
+          mention repeat-finding alerts: that consequence thesis was
+          tested against real data and falsified, so it's not a claim
+          this site makes — reconfirmed (not just inherited) when this
+          copy was rewritten, since the new draft initially included it
+          and that was caught and removed before shipping. The role
           radio question (in WaitlistForm) is the actual point of this
           block: recipient vs. pass-through vs. adviser/auditor is the
           split the whole strategy hangs on, and this is the one moment
@@ -331,36 +333,38 @@ export default function Home() {
             <img src="/brand/logo-mark.png" alt="" className="h-8 w-8" />
             <span className="text-lg font-semibold text-gray-900">Single Audit Intelligence</span>
           </div>
-          <h2 className="text-2xl font-bold mb-3">
-            Early access to Enterprise-Grade Single Audit Monitoring and Intelligence
-          </h2>
+          <h2 className="text-2xl font-bold mb-1">Single Audit Watchlist</h2>
+          <p className="text-base font-semibold text-accent mb-3">
+            Continuous monitoring for pass-through entities
+          </p>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
               copy harder to skim; this audience is skimming. max-w-md
               mx-auto so this block lines up with the form directly
               below it — only the heading above uses the full max-w-2xl
               width, to give it breathing room without also stretching
-              the paragraph/bullets wider than the form they lead into. */}
-          <div className="text-left mb-6 space-y-3 max-w-md mx-auto">
-            <p className="text-gray-600">
-              <strong className="text-gray-900">Free today</strong> — search any organization,
-              check a portfolio of EINs, and read the compliance guides.
-            </p>
+              the paragraph/bullets wider than the form they lead into.
+              "Up to 100" — not an arbitrary round number. Checked
+              against the FAC's full national pass-through dataset
+              (225k entities): a 100-subrecipient cap covers 99.8% of
+              every pass-through entity that exists, so a real
+              state-agency-scale customer practically never hits it. */}
+          <div className="text-left mb-4 space-y-3 max-w-md mx-auto">
             <div>
               <p className="text-gray-600 mb-2">
-                Early access members get advanced monitoring capabilities, including:
+                Monitor up to 100 named subrecipients and get alerted when:
               </p>
               <ul className="list-disc list-outside pl-5 text-gray-600 space-y-1">
-                <li>Instant notification when an organization you track files a new audit</li>
-                <li>Automated reminders before the six-month management-decision deadline</li>
-                <li>Priority access to upcoming enterprise features</li>
+                <li>A new FAC audit is accepted</li>
+                <li>A new finding appears</li>
+                <li>A management decision deadline is approaching</li>
               </ul>
             </div>
-            <p className="text-gray-600">
-              We&apos;re expanding the platform for teams that need continuous visibility across
-              recipients and subrecipients. Early access is limited.
-            </p>
+            <p className="text-gray-600">Plus: a monthly portfolio exception report.</p>
           </div>
+          <p className="font-semibold text-gray-900 mb-4">
+            Coming soon — join the early-access list
+          </p>
           <WaitlistForm source="homepage-cta-band" variant="light" className="max-w-md mx-auto" />
         </div>
       </div>
