@@ -15,17 +15,31 @@ export default function SignIn() {
 
 function SignInForm() {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
   const searchParams = useSearchParams();
   // Carries the EIN through from a public org page's "Are you this
   // organization?" / "Do you fund this organization?" CTA, so signing in
   // lands on that org already imported instead of a blank EIN field.
   const ein = searchParams.get('ein');
+  const callbackUrl = ein ? `/dashboard?ein=${encodeURIComponent(ein)}` : '/dashboard';
 
   const handleGoogleSignIn = () => {
     setLoading(true);
-    signIn('google', {
-      callbackUrl: ein ? `/dashboard?ein=${encodeURIComponent(ein)}` : '/dashboard',
-    });
+    signIn('google', { callbackUrl });
+  };
+
+  const handleEmailSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailLoading(true);
+    // Default redirect:true — on success, Auth.js sends the link and
+    // navigates to /auth/verify-request (pages.verifyRequest in
+    // auth.ts); on failure (e.g. rate-limited, or RESEND_API_KEY unset
+    // in a dev environment), it navigates to Auth.js's own error page.
+    // No inline error handling here, matching how the Google button
+    // above also doesn't handle errors itself — both hand off to
+    // Auth.js's own redirect flow.
+    signIn('email', { email, callbackUrl });
   };
 
   return (
@@ -71,6 +85,38 @@ function SignInForm() {
           </svg>
           {loading ? 'Signing in…' : 'Sign in with Google'}
         </button>
+
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-xs text-gray-400">or</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+
+        <form onSubmit={handleEmailSignIn}>
+          <label htmlFor="magic-link-email" className="sr-only">
+            Email
+          </label>
+          <input
+            id="magic-link-email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@organization.org"
+            // Explicit bg-white/text-gray-900 — see
+            // app/waitlist-form.tsx for why (dark-mode browsers can
+            // otherwise render a UA-default background that clashes
+            // with forced/assumed text color).
+            className="w-full px-3 py-2 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+          />
+          <button
+            type="submit"
+            disabled={emailLoading}
+            className="w-full bg-gray-100 text-gray-800 font-semibold py-2 rounded-md hover:bg-gray-200 disabled:opacity-50"
+          >
+            {emailLoading ? 'Sending…' : 'Send magic link'}
+          </button>
+        </form>
 
         <p className="text-xs text-gray-500 mt-4 text-center">
           Don&apos;t want to sign in yet?{' '}

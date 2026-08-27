@@ -23,11 +23,12 @@ export const users = sqliteTable('users', {
  * Drizzle adapter's `DefaultSQLiteAccountsTable` type
  * (@auth/drizzle-adapter/lib/sqlite.d.ts) accesses these properties by
  * these exact snake_case names internally, so they can't be renamed. No
- * `sessions` or `verification_tokens` table: sessions use Auth.js's JWT
- * strategy (cookie-based, no DB row), and there's no email/magic-link
- * provider configured. lib/auth-guard.ts treats "does this user have a
- * row here" as the signal that their account is real (Google-linked)
- * rather than guest/never-signed-in.
+ * `sessions` table: sessions use Auth.js's JWT strategy (cookie-based, no
+ * DB row). lib/auth-guard.ts treats "does this user have a row here" as
+ * the signal that their account is real (Google- or email-linked) rather
+ * than guest/never-signed-in — provider-agnostic, so magic-link sign-in
+ * (provider: 'email', see verificationTokens below) needed zero changes
+ * there.
  */
 export const accounts = sqliteTable(
   'accounts',
@@ -95,13 +96,29 @@ export const capItems = sqliteTable('cap_items', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
-export const magicLinkTokens = sqliteTable('magic_link_tokens', {
-  id: text('id').primaryKey(),
-  email: text('email').notNull(),
-  token: text('token').notNull().unique(),
-  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  usedAt: integer('used_at', { mode: 'timestamp' }),
-});
+/**
+ * Auth.js verification-token store for the Email (magic-link) provider —
+ * see root auth.ts. Token generation, hashing, expiry-checking, and
+ * one-time-use invalidation are all handled by @auth/core + the adapter
+ * once this table is wired into DrizzleAdapter's verificationTokensTable
+ * option; nothing here is queried directly by app code. Column names
+ * (identifier/token/expires, not email/token/expiresAt) match Auth.js's
+ * own expected shape, same reasoning as accounts' snake_case columns
+ * above. Supersedes the old hand-rolled magic_link_tokens table (removed
+ * — it was dead code, wrong shape for the adapter, and superseded by
+ * this actual working implementation).
+ */
+export const verificationTokens = sqliteTable(
+  'verification_tokens',
+  {
+    identifier: text('identifier').notNull(),
+    token: text('token').notNull(),
+    expires: integer('expires', { mode: 'timestamp' }).notNull(),
+  },
+  (vt) => ({
+    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  })
+);
 
 export const reminders = sqliteTable('reminders', {
   id: text('id').primaryKey(),
