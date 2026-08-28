@@ -95,6 +95,9 @@ export function Header() {
               <Link href="/portfolio" className="text-sm text-accent hover:text-blue-800 font-semibold">
                 Portfolio
               </Link>
+              <Link href="/auditors" className="text-sm text-accent hover:text-blue-800 font-semibold">
+                Auditors
+              </Link>
             </nav>
           )}
         </div>

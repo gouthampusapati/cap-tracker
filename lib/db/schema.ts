@@ -242,12 +242,24 @@ export const facMirrorGeneral = sqliteTable(
     gaapResults: text('gaap_results'),
     auditorFirmName: text('auditor_firm_name'),
     auditorEin: text('auditor_ein'),
+    // Auditor firm listing fields — added Sprint C for the /auditors
+    // directory. All public record (FAC dissemination); contactName /
+    // email are individuals, surfaced more cautiously in the UI.
+    auditorCity: text('auditor_city'),
+    auditorState: text('auditor_state'),
+    auditorZip: text('auditor_zip'),
+    auditorAddressLine1: text('auditor_address_line_1'),
+    auditorPhone: text('auditor_phone'),
+    auditorContactName: text('auditor_contact_name'),
+    auditorEmail: text('auditor_email'),
     cognizantAgency: text('cognizant_agency'),
     oversightAgency: text('oversight_agency'),
     facAcceptedDate: text('fac_accepted_date'),
   },
   (t) => ({
     einIdx: index('fac_mirror_general_ein_idx').on(t.auditeeEin),
+    auditorEinIdx: index('fac_mirror_general_auditor_ein_idx').on(t.auditorEin),
+    auditorStateIdx: index('fac_mirror_general_auditor_state_idx').on(t.auditorState),
   })
 );
 
