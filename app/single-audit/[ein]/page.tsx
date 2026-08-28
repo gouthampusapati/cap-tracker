@@ -464,7 +464,18 @@ export default async function SingleAuditPage(props: {
             {org.auditHistory[0]?.auditorFirmName && (
               <p className="text-sm">
                 <span className="font-semibold">Audited by:</span>{' '}
-                {org.auditHistory[0].auditorFirmName}
+                {org.auditHistory[0].auditorEin &&
+                /^\d{9}$/.test(org.auditHistory[0].auditorEin) &&
+                org.auditHistory[0].auditorEin !== '999999999' ? (
+                  <Link
+                    href={`/auditors/${org.auditHistory[0].auditorEin}`}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {org.auditHistory[0].auditorFirmName}
+                  </Link>
+                ) : (
+                  org.auditHistory[0].auditorFirmName
+                )}
               </p>
             )}
             {org.auditHistory[0]?.cognizantAgency && (

@@ -11,6 +11,11 @@
  * Sprint 5 adds additional_eins + additional_ueis (~6.5MB combined) for
  * entity resolution — see lib/entity-resolution.ts.
  *
+ * Sprint C widens the `general` mirror with auditor location/contact
+ * columns (auditor_city/state/zip/address/phone/contact_name/email) for
+ * the /auditors directory — same row count, so no change to the sync's
+ * write volume.
+ *
  * Run standalone via Node (a GitHub Actions scheduled workflow, not
  * part of the Next.js app) — NOT via drizzle-kit push. Needs
  * DATABASE_URL + TURSO_AUTH_TOKEN in the environment.
@@ -99,6 +104,13 @@ const TABLES = [
       gaap_results: 'gaap_results',
       auditor_firm_name: 'auditor_firm_name',
       auditor_ein: 'auditor_ein',
+      auditor_city: 'auditor_city',
+      auditor_state: 'auditor_state',
+      auditor_zip: 'auditor_zip',
+      auditor_address_line_1: 'auditor_address_line_1',
+      auditor_phone: 'auditor_phone',
+      auditor_contact_name: 'auditor_contact_name',
+      auditor_email: 'auditor_email',
       cognizant_agency: 'cognizant_agency',
       oversight_agency: 'oversight_agency',
       fac_accepted_date: 'fac_accepted_date',
@@ -119,11 +131,22 @@ const TABLES = [
       gaap_results TEXT,
       auditor_firm_name TEXT,
       auditor_ein TEXT,
+      auditor_city TEXT,
+      auditor_state TEXT,
+      auditor_zip TEXT,
+      auditor_address_line_1 TEXT,
+      auditor_phone TEXT,
+      auditor_contact_name TEXT,
+      auditor_email TEXT,
       cognizant_agency TEXT,
       oversight_agency TEXT,
       fac_accepted_date TEXT
     )`,
-    indexes: (name, idxSuffix) => [`CREATE INDEX ein_idx_${idxSuffix} ON ${name} (auditee_ein)`],
+    indexes: (name, idxSuffix) => [
+      `CREATE INDEX ein_idx_${idxSuffix} ON ${name} (auditee_ein)`,
+      `CREATE INDEX auditor_ein_idx_${idxSuffix} ON ${name} (auditor_ein)`,
+      `CREATE INDEX auditor_state_idx_${idxSuffix} ON ${name} (auditor_state)`,
+    ],
   },
   {
     key: 'findings',
