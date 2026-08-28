@@ -380,6 +380,14 @@ export default async function SingleAuditPage(props: {
                 {agencyPrefixLabel(org.auditHistory[0].oversightAgency)}
               </p>
             )}
+            <p className="pt-1">
+              <Link
+                href={`/single-audit/${org.ein}/risk-assessment`}
+                className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold"
+              >
+                View federal awards &amp; risk assessment →
+              </Link>
+            </p>
             {org.stale ? (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-block">
                 Showing data from{' '}

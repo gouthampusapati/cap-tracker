@@ -7,6 +7,11 @@ import {
   parseGaapResults,
   entityTypeLabel,
   agencyPrefixLabel,
+  agencyName,
+  awardOpinionLabel,
+  resolveClusterName,
+  formatAln,
+  normalizeAwards,
   dedupeFindingRows,
 } from '../lib/fac-api';
 
@@ -235,6 +240,152 @@ describe('agencyPrefixLabel', () => {
     expect(agencyPrefixLabel(null)).toBeNull();
     expect(agencyPrefixLabel(undefined)).toBeNull();
     expect(agencyPrefixLabel('')).toBeNull();
+  });
+});
+
+describe('agencyName', () => {
+  it('returns the bare name for a mapped prefix, no bracket wrapper', () => {
+    expect(agencyName('21')).toBe('Department of the Treasury');
+    expect(agencyName('84')).toBe('Department of Education');
+  });
+  it('returns null for an unmapped prefix or missing input', () => {
+    expect(agencyName('05')).toBeNull();
+    expect(agencyName('')).toBeNull();
+    expect(agencyName(null)).toBeNull();
+  });
+});
+
+describe('awardOpinionLabel', () => {
+  // federal_awards.audit_report_type domain confirmed live: exactly
+  // U/Q/A/D exist (S, GC, UM return zero rows).
+  it('spells out every real opinion letter', () => {
+    expect(awardOpinionLabel('U')).toBe('Unmodified Opinion');
+    expect(awardOpinionLabel('Q')).toBe('Qualified Opinion');
+    expect(awardOpinionLabel('A')).toBe('Adverse Opinion');
+    expect(awardOpinionLabel('D')).toBe('Disclaimer of Opinion');
+    expect(awardOpinionLabel('u')).toBe('Unmodified Opinion');
+  });
+  it('returns null for blank (every non-major award) or unknown', () => {
+    expect(awardOpinionLabel('')).toBeNull();
+    expect(awardOpinionLabel(null)).toBeNull();
+    expect(awardOpinionLabel('X')).toBeNull();
+  });
+});
+
+describe('resolveClusterName', () => {
+  const r = (o: Partial<Record<string, string>>) => ({
+    cluster_name: '',
+    other_cluster_name: '',
+    state_cluster_name: '',
+    ...o,
+  });
+  it('treats N/A, GSA_MIGRATION and empty as unclustered', () => {
+    expect(resolveClusterName(r({ cluster_name: 'N/A' }))).toBeNull();
+    expect(resolveClusterName(r({ cluster_name: 'GSA_MIGRATION' }))).toBeNull();
+    expect(resolveClusterName(r({ cluster_name: '' }))).toBeNull();
+  });
+  it('passes through a normal cluster name', () => {
+    expect(resolveClusterName(r({ cluster_name: 'RESEARCH AND DEVELOPMENT' }))).toBe(
+      'RESEARCH AND DEVELOPMENT'
+    );
+  });
+  it('resolves the two catch-all cluster values from their sibling column', () => {
+    expect(
+      resolveClusterName(
+        r({ cluster_name: 'OTHER CLUSTER NOT LISTED ABOVE', other_cluster_name: 'NON-R&D' })
+      )
+    ).toBe('NON-R&D');
+    expect(
+      resolveClusterName(
+        r({ cluster_name: 'STATE CLUSTER', state_cluster_name: 'FOSTER CARE AND ADOPTION CLUSTER' })
+      )
+    ).toBe('FOSTER CARE AND ADOPTION CLUSTER');
+  });
+  it('keeps the catch-all label if the sibling column is empty', () => {
+    expect(resolveClusterName(r({ cluster_name: 'STATE CLUSTER' }))).toBe('STATE CLUSTER');
+  });
+});
+
+describe('formatAln', () => {
+  it('joins prefix and extension', () => {
+    expect(formatAln('21', '027')).toBe('21.027');
+    expect(formatAln('10', 'U01')).toBe('10.U01');
+  });
+  it('handles a missing extension or prefix', () => {
+    expect(formatAln('93', '')).toBe('93');
+    expect(formatAln('', '027')).toBe('027');
+  });
+});
+
+describe('normalizeAwards', () => {
+  const raw = (o: Partial<Record<string, unknown>> = {}): any => ({
+    report_id: '2024-12-GSAFAC-0000376537',
+    audit_year: '2024',
+    award_reference: 'AWARD-00007',
+    federal_agency_prefix: '15',
+    federal_award_extension: '504',
+    additional_award_identification: '',
+    federal_program_name: 'Water Recycling and Desalination Construction Programs',
+    amount_expended: 3763605,
+    cluster_name: 'N/A',
+    other_cluster_name: '',
+    state_cluster_name: '',
+    cluster_total: 0,
+    federal_program_total: 3763605,
+    is_major: 'Y',
+    audit_report_type: 'A',
+    is_loan: 'N',
+    loan_balance: '',
+    is_direct: 'Y',
+    is_passthrough_award: 'N',
+    passthrough_amount: null,
+    findings_count: 1,
+    ...o,
+  });
+
+  it('maps a real Cheney 2024 major-program row', () => {
+    const [a] = normalizeAwards([raw()]);
+    expect(a.aln).toBe('15.504');
+    expect(a.agencyPrefix).toBe('15');
+    expect(a.isMajor).toBe(true);
+    expect(a.majorProgramOpinion).toBe('Adverse Opinion');
+    expect(a.clusterName).toBeNull();
+    expect(a.isDirect).toBe(true);
+    expect(a.isPassthrough).toBe(false);
+    expect(a.findingsCount).toBe(1);
+  });
+
+  it('never sets a major-program opinion for a non-major award, even if the letter is present', () => {
+    // audit_report_type is blank for non-major awards in live data, but
+    // guard against a stray value rather than trust it.
+    const [a] = normalizeAwards([raw({ is_major: 'N', audit_report_type: 'U' })]);
+    expect(a.isMajor).toBe(false);
+    expect(a.majorProgramOpinion).toBeNull();
+  });
+
+  it('parses loan_balance as a number, and empty string as null (not 0)', () => {
+    expect(normalizeAwards([raw({ is_loan: 'Y', loan_balance: '4136834' })])[0].loanBalance).toBe(
+      4136834
+    );
+    expect(normalizeAwards([raw()])[0].loanBalance).toBeNull();
+  });
+
+  it('carries a numeric passthrough_amount and tolerates null', () => {
+    expect(
+      normalizeAwards([raw({ is_passthrough_award: 'Y', passthrough_amount: 633506 })])[0]
+        .passthroughAmount
+    ).toBe(633506);
+    expect(normalizeAwards([raw()])[0].passthroughAmount).toBeNull();
+  });
+
+  it('treats is_direct and is_passthrough as independent, not a binary', () => {
+    const [a] = normalizeAwards([raw({ is_direct: 'Y', is_passthrough_award: 'Y' })]);
+    expect(a.isDirect).toBe(true);
+    expect(a.isPassthrough).toBe(true);
+  });
+
+  it('handles an empty list', () => {
+    expect(normalizeAwards([])).toEqual([]);
   });
 });
 

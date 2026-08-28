@@ -6,16 +6,23 @@ name: Sync FAC Bulk Mirror
 # doesn't touch FAC's ~1,000/hour rate-limited API quota at all.
 #
 # Schedule: FAC's own refresh cadence isn't documented and was
-# confirmed live during this sprint's build to be NOT daily (contrary
-# to the original checklist's guess) — the observed refresh was ~5 days
-# before the check. Twice a week (Mon/Thu) is a safety margin against
-# that being wrong in either direction, not a guess at the exact real
-# cadence — cheap to run (the real full sync measured ~17.5 minutes
-# end-to-end) so there's little cost to checking more often than
-# strictly necessary. Revisit once more cadence data points exist.
+# confirmed live during Sprint 4's build to be NOT daily (contrary to
+# the original checklist's guess) — the observed refresh was ~5 days
+# before the check.
+#
+# Weekly (was Mon/Thu). Each sync writes ~1.38M rows (413K general +
+# 674K findings + 150K findings_text + 144K corrective_action_plans);
+# twice a week is ~11.8M rows/month, over Turso's free-tier 10M
+# writes/month cap (plan confirmed free tier 2026-08). Weekly is
+# ~5.9M/month — comfortably under — and still comfortably inside the
+# observed ~5-day FAC refresh cadence. Orgs within ±60 days of their
+# filing deadline already bypass the mirror for a live check
+# (lib/org-cache-ttl.ts), so a few extra days of mirror staleness for
+# everyone else costs nothing that matters. Revisit if the plan changes
+# or more cadence data points land.
 on:
   schedule:
-    - cron: '17 9 * * 1,4' # 09:17 UTC Monday and Thursday
+    - cron: '17 9 * * 1' # 09:17 UTC Monday
   workflow_dispatch: {} # manual trigger, e.g. for a first-run or a retry
 
 permissions:
