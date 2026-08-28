@@ -297,22 +297,15 @@ export default async function SingleAuditPage(props: {
     findingsByYear.get(year)!.push(finding);
   }
 
-  const sortedYears = Array.from(findingsByYear.keys()).sort().reverse();
-
-  // The management-decision clock is per audit REPORT, not per finding —
-  // every finding in one FY group came from the same report_id in the
-  // overwhelming common case (only a resubmission could split one FY
-  // across two reports, an edge case not worth restructuring the
-  // existing year-based grouping for). Look up each group's accepted
-  // date from its first finding's reportId.
-  const acceptedDateByReport = new Map(
-    org.auditHistory.map((ay) => [ay.reportId, ay.facAcceptedDate])
+  // Every audit year on file, newest first — drives the per-year
+  // sections below. NOT keyed off findings: an org can have a GOING
+  // CONCERN, a qualified opinion, or LOW-RISK AUDITEE status in a year
+  // with zero findings, and that risk strip still needs to render (bug
+  // caught live on an org with a 2026 going-concern flag and no
+  // findings — the whole section used to be gated on findingsByYear).
+  const sortedAuditYears = [...org.auditHistory].sort((a, b) =>
+    b.fiscalYearEnd.localeCompare(a.fiscalYearEnd)
   );
-
-  // Same per-report lookup, full AuditYear this time — backs the
-  // per-year risk strip below (opinion, going concern, low-risk
-  // auditee, material noncompliance, total expended).
-  const auditYearByReport = new Map(org.auditHistory.map((ay) => [ay.reportId, ay]));
 
   // Structured data for the thousands of near-identical org pages —
   // BreadcrumbList gives Google a sense of where each page sits, and
@@ -591,17 +584,17 @@ export default async function SingleAuditPage(props: {
         ) : null}
 
         {/* Year jump-links — seven fiscal years shouldn't require
-            scrolling past six to reach the seventh. Only worth showing
-            with more than one year. */}
-        {sortedYears.length > 1 && org.findingsCount > 0 && (
+            scrolling. Shown for any org with more than one audit year,
+            findings or not. */}
+        {sortedAuditYears.length > 1 && (
           <div className="no-print flex flex-wrap gap-2 mb-4">
-            {sortedYears.map((year) => (
+            {sortedAuditYears.map((ay) => (
               <a
-                key={year}
-                href={`#fy-${year}`}
+                key={ay.fiscalYearEnd}
+                href={`#fy-${ay.fiscalYearEnd}`}
                 className="text-xs font-semibold text-accent border border-border rounded-full px-3 py-1.5 hover:border-accent"
               >
-                FY {year}
+                FY {ay.fiscalYearEnd}
               </a>
             ))}
           </div>
@@ -610,77 +603,74 @@ export default async function SingleAuditPage(props: {
         {/* Severity filter — only worth the chrome past ~5 findings. */}
         {org.findingsCount > 5 && <SeverityFilter />}
 
-        {/* Findings by year. Deep-link support: arriving with a hash
-            matching a finding's id (set in finding-card.tsx) opens that
-            finding and scrolls to it — see hash-expand.tsx. */}
+        {/* Deep-link support: arriving with a hash matching a finding's
+            id (set in finding-card.tsx) opens that finding and scrolls
+            to it — see hash-expand.tsx. */}
         {org.findingsCount > 0 && <HashExpand />}
         <div id="findings-list" className="space-y-8">
-          {sortedYears.map((year, index) => {
-            const findings = findingsByYear.get(year) || [];
-            const reportId = findings[0]?.reportId;
-            const facAcceptedDate = reportId ? acceptedDateByReport.get(reportId) ?? null : null;
-            const auditYear = reportId ? auditYearByReport.get(reportId) : undefined;
-            const gaap = auditYear ? parseGaapResults(auditYear.gaapResultsRaw) : null;
+          {sortedAuditYears.map((auditYear, index) => {
+            const findings = findingsByYear.get(auditYear.fiscalYearEnd) || [];
+            const gaap = parseGaapResults(auditYear.gaapResultsRaw);
             return (
-              <div key={year} id={`fy-${year}`} className="scroll-mt-20">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">FY {year}</h2>
+              <div key={auditYear.reportId} id={`fy-${auditYear.fiscalYearEnd}`} className="scroll-mt-20">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">FY {auditYear.fiscalYearEnd}</h2>
 
                 {/* Risk strip — one line of badges per audit year,
-                    sourced from the `general` table row already fetched
-                    for this report (no new FAC calls). Suppressed per-
-                    badge when the underlying field is missing/empty
-                    rather than rendering a broken pill — legacy
-                    GSA_MIGRATION-era records can lack these. */}
-                {auditYear && (
-                  <div className="no-print flex flex-wrap items-center gap-2 mb-4">
-                    {gaap?.worst && gaap.worst !== 'unmodified_opinion' && (
-                      <span
-                        className={`inline-block text-xs font-bold px-2 py-1 rounded border ${
-                          gaap.worst === 'qualified_opinion'
-                            ? 'bg-severity-warning/10 text-severity-warning border-severity-warning/30'
-                            : gaap.worst === 'not_gaap'
-                              ? 'bg-severity-neutral/10 text-severity-neutral border-severity-neutral/30'
-                              : 'bg-severity-critical/10 text-severity-critical border-severity-critical/30'
-                        }`}
-                      >
-                        {gaap.labels.join(', ').toUpperCase()}
-                      </span>
-                    )}
-                    {auditYear.isGoingConcern && (
-                      <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
-                        GOING CONCERN
-                      </span>
-                    )}
-                    {auditYear.isMaterialNoncomplianceDisclosed && (
-                      <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
-                        MATERIAL NONCOMPLIANCE DISCLOSED
-                      </span>
-                    )}
-                    {auditYear.isLowRiskAuditee && (
-                      <span className="inline-block bg-green-50 text-green-700 border border-green-200 text-xs font-bold px-2 py-1 rounded">
-                        LOW-RISK AUDITEE
-                      </span>
-                    )}
-                    {auditYear.totalAmountExpended > 0 && (
-                      <span className="text-xs text-muted font-semibold">
-                        $
-                        {auditYear.totalAmountExpended.toLocaleString('en-US', {
-                          maximumFractionDigits: 0,
-                        })}{' '}
-                        federal awards expended
-                      </span>
-                    )}
-                  </div>
-                )}
+                    sourced from the `general` table row (no new FAC
+                    calls). Renders for every audit year, not just years
+                    with findings. Suppressed per-badge when the field is
+                    missing/empty rather than rendering a broken pill —
+                    legacy GSA_MIGRATION-era records can lack these. */}
+                <div className="no-print flex flex-wrap items-center gap-2 mb-4">
+                  {gaap?.worst && gaap.worst !== 'unmodified_opinion' && (
+                    <span
+                      className={`inline-block text-xs font-bold px-2 py-1 rounded border ${
+                        gaap.worst === 'qualified_opinion'
+                          ? 'bg-severity-warning/10 text-severity-warning border-severity-warning/30'
+                          : gaap.worst === 'not_gaap'
+                            ? 'bg-severity-neutral/10 text-severity-neutral border-severity-neutral/30'
+                            : 'bg-severity-critical/10 text-severity-critical border-severity-critical/30'
+                      }`}
+                    >
+                      {gaap.labels.join(', ').toUpperCase()}
+                    </span>
+                  )}
+                  {auditYear.isGoingConcern && (
+                    <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
+                      GOING CONCERN
+                    </span>
+                  )}
+                  {auditYear.isMaterialNoncomplianceDisclosed && (
+                    <span className="inline-block bg-severity-critical/10 text-severity-critical border border-severity-critical/30 text-xs font-bold px-2 py-1 rounded">
+                      MATERIAL NONCOMPLIANCE DISCLOSED
+                    </span>
+                  )}
+                  {auditYear.isLowRiskAuditee && (
+                    <span className="inline-block bg-green-50 text-green-700 border border-green-200 text-xs font-bold px-2 py-1 rounded">
+                      LOW-RISK AUDITEE
+                    </span>
+                  )}
+                  {auditYear.totalAmountExpended > 0 && (
+                    <span className="text-xs text-muted font-semibold">
+                      $
+                      {auditYear.totalAmountExpended.toLocaleString('en-US', {
+                        maximumFractionDigits: 0,
+                      })}{' '}
+                      federal awards expended
+                    </span>
+                  )}
+                  {findings.length === 0 && (
+                    <span className="text-xs text-muted">No findings recorded this year</span>
+                  )}
+                </div>
 
-                {/* Only the most recent fiscal year (sortedYears is
-                    descending) gets the full alert-style card — an org
-                    with many years otherwise gets the same "past due"
-                    block repeated once per year, which reads as a
-                    pile-on. See the variant doc-comment in
+                {/* Only the most recent fiscal year gets the full
+                    alert-style card — an org with many years otherwise
+                    gets the same "past due" block once per year, which
+                    reads as a pile-on. See the variant doc-comment in
                     management-decision-block.tsx. */}
                 <ManagementDecisionBlock
-                  facAcceptedDate={facAcceptedDate}
+                  facAcceptedDate={auditYear.facAcceptedDate}
                   variant={index === 0 ? 'full' : 'plain'}
                 />
                 <div className="space-y-4">
