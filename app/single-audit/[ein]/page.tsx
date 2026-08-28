@@ -396,24 +396,46 @@ export default async function SingleAuditPage(props: {
                 ))}
               </p>
             )}
-            {siblingEins.length > 0 && (
-              <p className="text-sm">
-                <span className="font-semibold">
-                  {parentEins.length > 0 ? 'That audit also covers' : 'Audit also covers'}{' '}
-                  {siblingEins.length === 1 ? 'EIN' : `${siblingEins.length} related EINs`}:
-                </span>{' '}
-                {siblingEins.slice(0, SIBLING_DISPLAY_CAP).map((e, i) => (
+            {siblingEins.length > 0 &&
+              (() => {
+                const lead = parentEins.length > 0 ? 'That audit also covers' : 'Audit also covers';
+                const einLink = (e: string, i: number) => (
                   <span key={e}>
                     {i > 0 && ', '}
-                    <Link href={`/single-audit/${e}`} className="text-blue-600 hover:text-blue-800 underline">
+                    <Link
+                      href={`/single-audit/${e}`}
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
                       {e}
                     </Link>
                   </span>
-                ))}
-                {siblingEins.length > SIBLING_DISPLAY_CAP &&
-                  ` + ${siblingEins.length - SIBLING_DISPLAY_CAP} more`}
-              </p>
-            )}
+                );
+                // At/under the cap: one plain line. Over it: a native
+                // <details> so every EIN stays reachable (and in the
+                // server HTML for SEO) without dumping ~190 links inline
+                // for a big health system.
+                if (siblingEins.length <= SIBLING_DISPLAY_CAP) {
+                  return (
+                    <p className="text-sm">
+                      <span className="font-semibold">
+                        {lead} {siblingEins.length === 1 ? 'EIN' : `${siblingEins.length} related EINs`}:
+                      </span>{' '}
+                      {siblingEins.map(einLink)}
+                    </p>
+                  );
+                }
+                return (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer marker:text-gray-400">
+                      <span className="font-semibold">
+                        {lead} {siblingEins.length} related EINs
+                      </span>{' '}
+                      <span className="text-blue-600">— show all</span>
+                    </summary>
+                    <p className="mt-1 break-all leading-relaxed">{siblingEins.map(einLink)}</p>
+                  </details>
+                );
+              })()}
             {/* Auditor + cognizance — from the most recent audit year
                 only (a page-header summary, not a per-year fact; see
                 the per-year risk strip below findings for anything that
