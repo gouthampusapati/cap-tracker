@@ -230,6 +230,13 @@ export default async function SingleAuditPage(props: {
     searchParams.from === 'portfolio' && searchParams.eins
       ? `/portfolio?eins=${encodeURIComponent(searchParams.eins)}`
       : null;
+  // Carry the portfolio context onward to the risk-assessment page so
+  // ITS "back" link can return here with the same params, not to a
+  // bare /single-audit/[ein] that's lost the portfolio trail.
+  const riskAssessmentHref =
+    searchParams.from === 'portfolio' && searchParams.eins
+      ? `/single-audit/${params.ein}/risk-assessment?from=portfolio&eins=${encodeURIComponent(searchParams.eins)}`
+      : `/single-audit/${params.ein}/risk-assessment`;
   const result = await fetchOrgData(params.ein);
 
   if (result.kind === 'not-found') {
@@ -382,7 +389,7 @@ export default async function SingleAuditPage(props: {
             )}
             <p className="pt-1">
               <Link
-                href={`/single-audit/${org.ein}/risk-assessment`}
+                href={riskAssessmentHref}
                 className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold"
               >
                 View federal awards &amp; risk assessment →
