@@ -282,6 +282,9 @@ export default async function SingleAuditPage(props: {
   const siblingEins = related.eins.filter(
     (e) => e !== org.ein && !parentEins.includes(e)
   );
+  // Only EINs that have their own FAC filing get a link — most component
+  // EINs on a big system's audit don't and would 404.
+  const einsWithPage = new Set(related.einsWithOwnRecord);
   const SIBLING_DISPLAY_CAP = 6;
 
   // Group findings by fiscal year
@@ -399,21 +402,33 @@ export default async function SingleAuditPage(props: {
             {siblingEins.length > 0 &&
               (() => {
                 const lead = parentEins.length > 0 ? 'That audit also covers' : 'Audit also covers';
+                // Link an EIN only if it has its own FAC filing —
+                // component EINs that only appear inside this audit have
+                // no /single-audit page and would 404.
                 const einLink = (e: string, i: number) => (
                   <span key={e}>
                     {i > 0 && ', '}
-                    <Link
-                      href={`/single-audit/${e}`}
-                      className="text-blue-600 hover:text-blue-800 underline"
-                    >
-                      {e}
-                    </Link>
+                    {einsWithPage.has(e) ? (
+                      <Link
+                        href={`/single-audit/${e}`}
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {e}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">{e}</span>
+                    )}
                   </span>
                 );
                 // At/under the cap: one plain line. Over it: a native
                 // <details> so every EIN stays reachable (and in the
                 // server HTML for SEO) without dumping ~190 links inline
                 // for a big health system.
+                const anyUnlinked = siblingEins.some((e) => !einsWithPage.has(e));
+                const note = anyUnlinked ? (
+                  <span className="text-xs text-gray-400"> · unlinked EINs have no separate FAC filing</span>
+                ) : null;
+
                 if (siblingEins.length <= SIBLING_DISPLAY_CAP) {
                   return (
                     <p className="text-sm">
@@ -421,6 +436,7 @@ export default async function SingleAuditPage(props: {
                         {lead} {siblingEins.length === 1 ? 'EIN' : `${siblingEins.length} related EINs`}:
                       </span>{' '}
                       {siblingEins.map(einLink)}
+                      {note}
                     </p>
                   );
                 }
@@ -432,7 +448,10 @@ export default async function SingleAuditPage(props: {
                       </span>{' '}
                       <span className="text-blue-600">— show all</span>
                     </summary>
-                    <p className="mt-1 break-all leading-relaxed">{siblingEins.map(einLink)}</p>
+                    <p className="mt-1 break-all leading-relaxed">
+                      {siblingEins.map(einLink)}
+                      {note}
+                    </p>
                   </details>
                 );
               })()}

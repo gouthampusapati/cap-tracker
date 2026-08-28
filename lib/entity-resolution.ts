@@ -36,12 +36,24 @@ export interface RelatedIdentifiers {
   primaryEins: string[];
   /** report_ids that tie these identifiers together (empty if none). */
   linkingReportIds: string[];
+  /** Subset of `eins` that are themselves the primary auditee on some
+   * FAC report — i.e. have their own /single-audit/<ein> page. The rest
+   * are component entities that only ever appear inside another org's
+   * audit and should NOT be linked (they'd 404). */
+  einsWithOwnRecord: string[];
   /** True when more than just the queried EIN was found. */
   hasRelated: boolean;
 }
 
 function only(ein: string): RelatedIdentifiers {
-  return { eins: [ein], ueis: [], primaryEins: [], linkingReportIds: [], hasRelated: false };
+  return {
+    eins: [ein],
+    ueis: [],
+    primaryEins: [],
+    linkingReportIds: [],
+    einsWithOwnRecord: [ein],
+    hasRelated: false,
+  };
 }
 
 export async function getRelatedIdentifiers(ein: string): Promise<RelatedIdentifiers> {
@@ -98,11 +110,27 @@ export async function getRelatedIdentifiers(ein: string): Promise<RelatedIdentif
     for (const e of addlEins) if (e.ein) eins.add(e.ein);
     for (const u of addlUeis) if (u.uei && u.uei !== PLACEHOLDER_UEI) ueis.add(u.uei);
 
+    // Which of these EINs actually have their own FAC filing (and thus a
+    // real /single-audit page). A component EIN can appear on a linking
+    // report as an additional_ein yet also file its own audit under a
+    // different report — so this is a fresh lookup, not just primaryEins.
+    const allEins = [...eins];
+    const ownRows =
+      allEins.length > 0
+        ? await db
+            .selectDistinct({ ein: facMirrorGeneral.auditeeEin })
+            .from(facMirrorGeneral)
+            .where(inArray(facMirrorGeneral.auditeeEin, allEins))
+        : [];
+    const withOwn = new Set(ownRows.map((r) => r.ein));
+    withOwn.add(ein); // the queried EIN always has a page (we're on it)
+
     return {
-      eins: [...eins].sort(),
+      eins: allEins.sort(),
       ueis: [...ueis].sort(),
       primaryEins: [...primaryEins].filter((e) => e !== ein).sort(),
       linkingReportIds: reportIds.sort(),
+      einsWithOwnRecord: [...withOwn].sort(),
       hasRelated: eins.size > 1,
     };
   } catch (err) {
