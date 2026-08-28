@@ -48,8 +48,8 @@ export default async function sitemap({
     }));
 
   // Static pages ride along in the first chunk only, so they're not
-  // duplicated across every child sitemap. /about doesn't exist yet — same
-  // reasoning as before, a 404'd sitemap URL is worse than an absent one.
+  // duplicated across every child sitemap. Only list routes that
+  // actually resolve — a 404'd sitemap URL is worse than an absent one.
   //
   // Number(id) rather than a bare === 0: Next's generateSitemaps() route
   // segment can hand this function id as the string "0", not the number
@@ -100,6 +100,36 @@ export default async function sitemap({
         lastModified: new Date(),
         changeFrequency: 'monthly',
         priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/auditors`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/faq`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.7,
+      },
+      {
+        url: `${baseUrl}/pricing`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.6,
+      },
+      {
+        url: `${baseUrl}/about`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.5,
+      },
+      {
+        url: `${baseUrl}/contact`,
+        lastModified: new Date(),
+        changeFrequency: 'yearly',
+        priority: 0.3,
       },
       ...orgEntries,
     ];
