@@ -307,6 +307,12 @@ export default async function SingleAuditPage(props: {
     b.fiscalYearEnd.localeCompare(a.fiscalYearEnd)
   );
 
+  // Headline federal-expenditure figure for the stat row — the most
+  // recent audit year that actually reports one (older / GSA_MIGRATION
+  // records can carry 0). null if none do.
+  const latestExpenditure =
+    sortedAuditYears.find((ay) => ay.totalAmountExpended > 0) ?? null;
+
   // Structured data for the thousands of near-identical org pages —
   // BreadcrumbList gives Google a sense of where each page sits, and
   // Organization makes the entity (name + EIN) explicit rather than
@@ -539,7 +545,7 @@ export default async function SingleAuditPage(props: {
 
       {/* Summary stats */}
       <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="text-2xl font-bold text-gray-900">{org.totalReports}</div>
             <div className="text-sm text-gray-600">Audit Years</div>
@@ -551,6 +557,20 @@ export default async function SingleAuditPage(props: {
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="text-2xl font-bold text-red-600">{org.repeatFindingsCount}</div>
             <div className="text-sm text-gray-600">Repeat Findings</div>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="text-2xl font-bold text-gray-900">
+              {latestExpenditure
+                ? `$${latestExpenditure.totalAmountExpended.toLocaleString('en-US', {
+                    notation: 'compact',
+                    maximumFractionDigits: 1,
+                  })}`
+                : '—'}
+            </div>
+            <div className="text-sm text-gray-600">
+              Federal Awards Expended
+              {latestExpenditure ? ` (FY ${latestExpenditure.fiscalYearEnd.slice(0, 4)})` : ''}
+            </div>
           </div>
         </div>
 
