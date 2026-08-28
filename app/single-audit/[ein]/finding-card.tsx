@@ -84,7 +84,9 @@ export function FindingCard({ finding }: { finding: Finding }) {
             )}
             {finding.isRepeatFinding && (
               <span className="inline-block bg-severity-warning/10 text-severity-warning border border-severity-warning/30 text-xs font-bold px-2 py-1 rounded">
-                REPEAT
+                {finding.priorRefs.length > 0
+                  ? `REPEAT OF ${finding.priorRefs.join(', ')}`
+                  : 'REPEAT'}
               </span>
             )}
             {finding.hasQuestionedCosts && (
