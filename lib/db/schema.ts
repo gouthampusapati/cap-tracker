@@ -175,6 +175,35 @@ export const facFetchLog = sqliteTable('fac_fetch_log', {
 });
 
 /**
+ * One row per individual FAC API call (the finer grain facFetchLog
+ * doesn't capture — a "fetch" is ~4 of these). Written from
+ * lib/fac-api.ts's facGet, powers the /admin/fac-usage day×hour report
+ * and makes the api.data.gov rate-limit headers queryable instead of
+ * console-only. Pruned opportunistically to ~14 days (lib/fac-usage.ts);
+ * meant to stay small.
+ *
+ *  - `path`      FAC table hit ("general", "findings", "federal_awards"…)
+ *  - `status`    HTTP status of the response (0 if the fetch threw)
+ *  - `keyLabel`  which key served it — "primary" | "fallback"
+ *  - `rateRemaining` / `rateLimit`  parsed x-ratelimit-* headers, or null
+ */
+export const facApiCallLog = sqliteTable(
+  'fac_api_call_log',
+  {
+    id: text('id').primaryKey(),
+    calledAt: integer('called_at', { mode: 'timestamp' }).notNull(),
+    path: text('path').notNull(),
+    status: integer('status').notNull(),
+    keyLabel: text('key_label').notNull(),
+    rateRemaining: integer('rate_remaining'),
+    rateLimit: integer('rate_limit'),
+  },
+  (t) => ({
+    calledAtIdx: index('fac_api_call_log_called_at_idx').on(t.calledAt),
+  })
+);
+
+/**
  * Local mirror of FAC's bulk CSV export — Sprint 4,
  * FAC_API_Improvement_Sprint_Checklist.md. Populated ONLY by
  * scripts/sync-fac-mirror.mjs, via a blue-green table-rename swap, NOT

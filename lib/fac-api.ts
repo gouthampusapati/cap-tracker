@@ -10,40 +10,98 @@
  * Key:  https://api.data.gov/signup
  */
 
+import { logFacCall } from '@/lib/fac-usage';
+
 const FAC_BASE = 'https://api.fac.gov';
 
-function apiKey(): string {
-  const key = process.env.FAC_API_KEY;
-  if (!key) throw new Error('FAC_API_KEY is not set in the environment');
-  return key;
+type KeyLabel = 'primary' | 'fallback';
+
+/**
+ * The FAC key(s) to try, in order. `FAC_API_KEY` is required;
+ * `FAC_API_KEY_FALLBACK` is optional — when set (and distinct), facGet
+ * automatically retries a rate-limited call on it. api.data.gov's
+ * ~1,000/hour ceiling is per-key, so a second key genuinely doubles
+ * headroom during a crawl spike; the shared budget in lib/fac-budget.ts
+ * still throttles overall volume regardless.
+ */
+function facKeys(): { label: KeyLabel; key: string }[] {
+  const primary = process.env.FAC_API_KEY;
+  if (!primary) throw new Error('FAC_API_KEY is not set in the environment');
+  const keys: { label: KeyLabel; key: string }[] = [{ label: 'primary', key: primary }];
+  const fallback = process.env.FAC_API_KEY_FALLBACK;
+  if (fallback && fallback !== primary) keys.push({ label: 'fallback', key: fallback });
+  return keys;
+}
+
+function parseRateHeaders(res: Response): { remaining: number | null; limit: number | null } {
+  const num = (v: string | null) =>
+    v == null || v === '' || Number.isNaN(Number(v)) ? null : Number(v);
+  return {
+    remaining: num(res.headers.get('x-ratelimit-remaining')),
+    limit: num(res.headers.get('x-ratelimit-limit')),
+  };
 }
 
 async function facGet<T>(path: string, params: Record<string, string>): Promise<T[]> {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${FAC_BASE}/${path}?${qs}`, {
-    headers: { 'X-Api-Key': apiKey() },
-  });
+  const url = `${FAC_BASE}/${path}?${qs}`;
+  const keys = facKeys();
 
-  // api.data.gov's own rate-limit headers on every response — logged so
-  // real production numbers exist to (a) confirm the 1,000/hour ceiling
-  // is genuinely per-key rather than per-IP in practice, since Vercel's
-  // serverless functions share rotating egress IPs, and (b) back up an
-  // eventual request to api.data.gov for a higher limit with actual
-  // usage data instead of an estimate. Logged for every call, not just
-  // failures — the interesting signal is the trend as remaining
-  // approaches 0, not just the moment it's already exhausted.
-  const remaining = res.headers.get('x-ratelimit-remaining');
-  const limit = res.headers.get('x-ratelimit-limit');
-  if (remaining !== null || limit !== null) {
-    console.log(`[fac-api] ${path} rate limit: ${remaining ?? '?'}/${limit ?? '?'} remaining`);
+  let lastError: unknown;
+
+  for (let i = 0; i < keys.length; i++) {
+    const { label, key } = keys[i];
+    const isLastKey = i === keys.length - 1;
+
+    let res: Response;
+    try {
+      res = await fetch(url, { headers: { 'X-Api-Key': key } });
+    } catch (err) {
+      // Network-level failure — record it (status 0) and try the next
+      // key if there is one, otherwise rethrow.
+      lastError = err;
+      await logFacCall({ path, status: 0, keyLabel: label, rateRemaining: null, rateLimit: null });
+      if (isLastKey) throw err;
+      continue;
+    }
+
+    // api.data.gov's rate-limit headers come back on every response.
+    // Logged (console + fac_api_call_log via logFacCall) for every call,
+    // not just failures — the useful signal is the trend as remaining
+    // approaches 0, and it's what backs both /admin/fac-usage and an
+    // eventual "please raise our limit" request to api.data.gov.
+    const { remaining, limit } = parseRateHeaders(res);
+    if (remaining !== null || limit !== null) {
+      console.log(
+        `[fac-api] ${path} rate limit (${label} key): ${remaining ?? '?'}/${limit ?? '?'} remaining`
+      );
+    }
+    await logFacCall({
+      path,
+      status: res.status,
+      keyLabel: label,
+      rateRemaining: remaining,
+      rateLimit: limit,
+    });
+
+    // api.data.gov signals over-rate as 429, or occasionally 403 with
+    // remaining pinned at 0. Either way, fall through to the next key.
+    const rateLimited = res.status === 429 || (res.status === 403 && remaining === 0);
+    if (rateLimited && !isLastKey) {
+      console.warn(`[fac-api] ${path} rate-limited on ${label} key (${res.status}); trying next key`);
+      lastError = new Error(`FAC ${path} rate-limited on ${label} key: ${res.status}`);
+      continue;
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`FAC ${path} returned ${res.status}: ${body.slice(0, 300)}`);
+    }
+
+    return (await res.json()) as T[];
   }
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`FAC ${path} returned ${res.status}: ${body.slice(0, 300)}`);
-  }
-
-  return (await res.json()) as T[];
+  throw lastError ?? new Error(`FAC ${path}: all API keys exhausted`);
 }
 
 /* ------------------------------------------------------------------ */
