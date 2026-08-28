@@ -103,6 +103,55 @@ export interface FacFinding {
   prior_finding_ref_numbers: string;
 }
 
+/**
+ * `federal_awards` row — the SEFA (Schedule of Expenditures of Federal
+ * Awards) detail for one award line. Field names/encodings confirmed
+ * live against api.fac.gov 2026-08, sampled across the 2023 audit year
+ * and City of Cheney's real 2024 report:
+ *   - is_major / is_loan / is_direct / is_passthrough_award use "Y"/"N"
+ *     (the `findings` convention — use isYes, NOT isYesNo).
+ *   - audit_report_type is the major-program opinion letter, domain is
+ *     exactly U/Q/A/D and it is ONLY populated when is_major = "Y"
+ *     (blank string for every non-major award — verified: a 2000-row
+ *     sample had non-empty audit_report_type on exactly the is_major=Y
+ *     rows and no others).
+ *   - is_direct and is_passthrough_award are INDEPENDENT, not a binary —
+ *     a single award row can carry both (received directly from the
+ *     federal agency AND itself passed through to subrecipients).
+ *   - cluster_name is the literal string "N/A" when unclustered, and
+ *     "GSA_MIGRATION" on legacy records; the real name for the two
+ *     catch-all cluster values lives in a sibling column:
+ *     "OTHER CLUSTER NOT LISTED ABOVE" -> other_cluster_name,
+ *     "STATE CLUSTER" -> state_cluster_name.
+ *   - loan_balance is a numeric STRING (may be empty); passthrough_amount
+ *     is a number or null.
+ *   - cluster_total / federal_program_total are FAC-computed rollups
+ *     across every award row sharing that cluster / ALN in the report.
+ */
+export interface FacFederalAward {
+  report_id: string;
+  audit_year: string;
+  award_reference: string;
+  federal_agency_prefix: string;
+  federal_award_extension: string;
+  additional_award_identification: string;
+  federal_program_name: string;
+  amount_expended: number;
+  cluster_name: string;
+  other_cluster_name: string;
+  state_cluster_name: string;
+  cluster_total: number;
+  federal_program_total: number;
+  is_major: string;
+  audit_report_type: string;
+  is_loan: string;
+  loan_balance: string;
+  is_direct: string;
+  is_passthrough_award: string;
+  passthrough_amount: number | null;
+  findings_count: number;
+}
+
 export interface FacFindingText {
   report_id: string;
   finding_ref_number: string;
@@ -274,6 +323,18 @@ export function agencyPrefixLabel(code: string | null | undefined): string | nul
 }
 
 /**
+ * Just the department/agency name for a two-digit prefix, or null when
+ * it isn't one of the verified mappings (see AGENCY_PREFIX_LABELS' note
+ * on why several real codes are deliberately unmapped). Unlike
+ * agencyPrefixLabel this omits the "NN [ ... ]" wrapper — used where the
+ * ALN already shows the number and only the name adds anything.
+ */
+export function agencyName(code: string | null | undefined): string | null {
+  if (!code) return null;
+  return AGENCY_PREFIX_LABELS[code.trim()] ?? null;
+}
+
+/**
  * gaap_results is NOT a single enum value — confirmed live, a report
  * with multiple opinion units (e.g. one on the financial statements,
  * another on a major program) comes back comma-separated, e.g.
@@ -337,6 +398,57 @@ export function parsePriorRefs(raw: string | null | undefined): string[] {
     .filter((s) => s && !/^n\/?a$/i.test(s) && !/^none$/i.test(s));
 }
 
+/**
+ * `federal_awards.audit_report_type` — the auditor's opinion on that
+ * major program, as a single letter. Domain confirmed live: exactly
+ * U/Q/A/D exist (S, GC, UM etc. return zero rows). Only set when
+ * is_major = "Y".
+ */
+const AWARD_OPINION_LABELS: Record<string, string> = {
+  U: 'Unmodified Opinion',
+  Q: 'Qualified Opinion',
+  A: 'Adverse Opinion',
+  D: 'Disclaimer of Opinion',
+};
+
+export function awardOpinionLabel(letter: string | null | undefined): string | null {
+  if (!letter) return null;
+  const key = letter.trim().toUpperCase();
+  return AWARD_OPINION_LABELS[key] ?? null;
+}
+
+/**
+ * The effective cluster name for an award, or null when it isn't
+ * clustered. "N/A" (unclustered) and "GSA_MIGRATION" (legacy record,
+ * value not trustworthy) both mean "no cluster". The two catch-all
+ * cluster values carry the real name in a sibling column — verified
+ * live: "OTHER CLUSTER NOT LISTED ABOVE" -> other_cluster_name,
+ * "STATE CLUSTER" -> state_cluster_name.
+ */
+export function resolveClusterName(row: {
+  cluster_name: string;
+  other_cluster_name: string;
+  state_cluster_name: string;
+}): string | null {
+  const raw = (row.cluster_name || '').trim();
+  if (!raw || raw === 'N/A' || raw === 'GSA_MIGRATION') return null;
+  if (raw === 'OTHER CLUSTER NOT LISTED ABOVE') return (row.other_cluster_name || '').trim() || raw;
+  if (raw === 'STATE CLUSTER') return (row.state_cluster_name || '').trim() || raw;
+  return raw;
+}
+
+/**
+ * ALN (Assistance Listing Number, formerly CFDA) from its two parts —
+ * "<prefix>.<extension>", e.g. "21.027". Extension can be alphanumeric
+ * ("U01", "RD"). Prefix alone if the extension is missing.
+ */
+export function formatAln(prefix: string | null | undefined, ext: string | null | undefined): string {
+  const p = (prefix || '').trim();
+  const e = (ext || '').trim();
+  if (!p) return e;
+  return e ? `${p}.${e}` : p;
+}
+
 /* ------------------------------------------------------------------ */
 /* Normalized shape the app consumes                                   */
 /* ------------------------------------------------------------------ */
@@ -359,6 +471,29 @@ export interface NormalizedFinding {
   isOtherFindings: boolean;
   hasQuestionedCosts: boolean;
   awardReferences: string[];
+}
+
+export interface NormalizedAward {
+  reportId: string;
+  auditYear: string;
+  awardReference: string;
+  aln: string;
+  agencyPrefix: string;
+  additionalIdentification: string;
+  programName: string;
+  amountExpended: number;
+  clusterName: string | null;
+  clusterTotal: number;
+  federalProgramTotal: number;
+  isMajor: boolean;
+  /** Spelled-out major-program opinion — only non-null when isMajor. */
+  majorProgramOpinion: string | null;
+  isLoan: boolean;
+  loanBalance: number | null;
+  isDirect: boolean;
+  isPassthrough: boolean;
+  passthroughAmount: number | null;
+  findingsCount: number;
 }
 
 export interface ImportedOrg {
@@ -567,6 +702,74 @@ export async function getFindingsForReports(
   ]);
 
   return normalizeFindings(rawFindings, texts, caps);
+}
+
+/**
+ * Parse raw `federal_awards` rows into the shape the risk-assessment
+ * page consumes. Pure — no FAC calls — so it can be unit-tested and
+ * (later, if the mirror ever grows a federal_awards table) shared with
+ * a mirror-read path the same way normalizeFindings is.
+ *
+ * One row in == one row out; FAC already emits one row per award line,
+ * and cluster_total / federal_program_total are FAC-computed rollups, so
+ * there's nothing to dedupe or merge here (unlike findings, which fan
+ * out per-award).
+ */
+export function normalizeAwards(rows: FacFederalAward[]): NormalizedAward[] {
+  return rows.map((r) => {
+    const isMajor = isYes(r.is_major);
+    // Numeric string, may be "" — Number("") is 0, so guard explicitly.
+    const loanBalanceRaw = (r.loan_balance || '').trim();
+    return {
+      reportId: r.report_id,
+      auditYear: r.audit_year,
+      awardReference: r.award_reference || '',
+      aln: formatAln(r.federal_agency_prefix, r.federal_award_extension),
+      agencyPrefix: (r.federal_agency_prefix || '').trim(),
+      additionalIdentification: (r.additional_award_identification || '').trim(),
+      programName: (r.federal_program_name || '').trim(),
+      amountExpended: r.amount_expended ?? 0,
+      clusterName: resolveClusterName(r),
+      clusterTotal: r.cluster_total ?? 0,
+      federalProgramTotal: r.federal_program_total ?? 0,
+      isMajor,
+      majorProgramOpinion: isMajor ? awardOpinionLabel(r.audit_report_type) : null,
+      isLoan: isYes(r.is_loan),
+      loanBalance: loanBalanceRaw ? Number(loanBalanceRaw) : null,
+      isDirect: isYes(r.is_direct),
+      isPassthrough: isYes(r.is_passthrough_award),
+      passthroughAmount: r.passthrough_amount ?? null,
+      findingsCount: r.findings_count ?? 0,
+    };
+  });
+}
+
+/**
+ * Every SEFA award line for a set of reports, one live REST call —
+ * `report_id=in.(...)`, same batching PostgREST technique as
+ * getFindingsForReports. Deliberately NOT part of the bulk mirror
+ * (federal_awards is a 1.33GB CSV; mirroring it would blow the storage
+ * and write-quota budget) — this is fetched on demand only when someone
+ * navigates to the risk-assessment page, so its cost tracks actual
+ * demand for award-level detail rather than the whole mirrored corpus.
+ * Budget-gate the CALLER (see lib/federal-awards.ts), not this function,
+ * so the pure fetch stays reusable.
+ *
+ * limit 5000: an org page covers one EIN across a handful of audit
+ * years; even a large state agency's multi-year SEFA stays well under
+ * this. (The whole 2023 federal_awards table is ~927K rows — this is a
+ * per-report slice of it.)
+ */
+export async function getFederalAwardsForReports(
+  reportIds: string[]
+): Promise<NormalizedAward[]> {
+  if (reportIds.length === 0) return [];
+  const rows = await facGet<FacFederalAward>('federal_awards', {
+    report_id: `in.(${reportIds.join(',')})`,
+    order: 'amount_expended.desc',
+    limit: '5000',
+  });
+  return normalizeAwards(rows);
 }
 
 /**
