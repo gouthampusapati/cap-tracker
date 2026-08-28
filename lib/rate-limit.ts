@@ -72,12 +72,17 @@ export const isRateLimited = createLimiter(60_000, 120);
 export const isHourlyRateLimited = createLimiter(60 * 60_000, 90);
 
 // /portfolio: up to PORTFOLIO_MAX_EINS EINs per submission (10, was 50
-// — see lib/ein-list.ts), ~4 FAC calls each, so a single submission can
-// still cost a meaningful chunk of the single-org limiter's budget.
-// Budgeted far tighter regardless of the cap size: a real grants
-// manager checking a portfolio a few times an hour is nowhere near
-// this; a script wouldn't get past the first handful of submissions.
-export const isPortfolioRateLimited = createLimiter(15 * 60_000, 3);
+// — see lib/ein-list.ts). Originally budgeted assuming ~4 FAC calls PER
+// EIN (up to 40/submission) before Sprint 2 batched the whole
+// submission into one shared live fetch (~4 calls total, same cost as
+// a single-org lookup, regardless of portfolio size) and Sprint 4's
+// mirror made most of those EINs free outright. 3/15min (caught live —
+// this exact limiter blocked normal repeat testing of one portfolio
+// during this session) was sized for a cost model that no longer
+// applies; 30/15min keeps a real cap (a script still can't hammer this)
+// while being generous enough for actual use, including a person
+// re-checking/testing the same portfolio a few times in a row.
+export const isPortfolioRateLimited = createLimiter(15 * 60_000, 30);
 
 // /api/waitlist: doesn't touch FAC at all (just a DB insert), so this
 // isn't protecting a shared external quota like the two limiters above —
