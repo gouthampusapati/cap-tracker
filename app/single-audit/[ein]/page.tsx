@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
+import { getRelatedIdentifiers } from '@/lib/entity-resolution';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
@@ -270,6 +271,22 @@ export default async function SingleAuditPage(props: {
 
   const org = result.org;
 
+  // Sprint 5 — entity resolution off the mirror (0 FAC calls; degrades
+  // to nothing if the additional_eins table isn't synced yet).
+  //   parentEins  — this EIN is a component rolled into another entity's
+  //                 audit; those are the filings that actually cover it.
+  //   siblingEins — other EINs this same audit covers (can be hundreds
+  //                 for a big health system — capped in the UI).
+  const related = await getRelatedIdentifiers(org.ein);
+  const parentEins = related.primaryEins;
+  const siblingEins = related.eins.filter(
+    (e) => e !== org.ein && !parentEins.includes(e)
+  );
+  // Only EINs that have their own FAC filing get a link — most component
+  // EINs on a big system's audit don't and would 404.
+  const einsWithPage = new Set(related.einsWithOwnRecord);
+  const SIBLING_DISPLAY_CAP = 6;
+
   // Group findings by fiscal year
   const findingsByYear = new Map<string, Finding[]>();
   for (const finding of org.findings) {
@@ -363,6 +380,81 @@ export default async function SingleAuditPage(props: {
             <p className="break-all">
               <span className="font-semibold">UEI:</span> {org.uei}
             </p>
+            {/* Entity resolution — FAC's additional_eins table (Sprint
+                5). A funder monitoring this subrecipient needs the full
+                identifier set, since findings/awards can land under any
+                of them. */}
+            {parentEins.length > 0 && (
+              <p className="text-sm">
+                <span className="font-semibold">
+                  Single Audit filed under EIN{parentEins.length === 1 ? '' : 's'}:
+                </span>{' '}
+                {parentEins.map((e, i) => (
+                  <span key={e}>
+                    {i > 0 && ', '}
+                    <Link href={`/single-audit/${e}`} className="text-blue-600 hover:text-blue-800 underline">
+                      {e}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+            )}
+            {siblingEins.length > 0 &&
+              (() => {
+                const lead = parentEins.length > 0 ? 'That audit also covers' : 'Audit also covers';
+                // Link an EIN only if it has its own FAC filing —
+                // component EINs that only appear inside this audit have
+                // no /single-audit page and would 404.
+                const einLink = (e: string, i: number) => (
+                  <span key={e}>
+                    {i > 0 && ', '}
+                    {einsWithPage.has(e) ? (
+                      <Link
+                        href={`/single-audit/${e}`}
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {e}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">{e}</span>
+                    )}
+                  </span>
+                );
+                // At/under the cap: one plain line. Over it: a native
+                // <details> so every EIN stays reachable (and in the
+                // server HTML for SEO) without dumping ~190 links inline
+                // for a big health system.
+                const anyUnlinked = siblingEins.some((e) => !einsWithPage.has(e));
+                const note = anyUnlinked ? (
+                  <span className="text-xs text-gray-400"> · unlinked EINs have no separate FAC filing</span>
+                ) : null;
+
+                if (siblingEins.length <= SIBLING_DISPLAY_CAP) {
+                  return (
+                    <p className="text-sm">
+                      <span className="font-semibold">
+                        {lead} {siblingEins.length === 1 ? 'EIN' : `${siblingEins.length} related EINs`}:
+                      </span>{' '}
+                      {siblingEins.map(einLink)}
+                      {note}
+                    </p>
+                  );
+                }
+                return (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer marker:text-gray-400">
+                      <span className="font-semibold">
+                        {lead} {siblingEins.length} related EINs
+                      </span>{' '}
+                      <span className="text-blue-600">— show all</span>
+                    </summary>
+                    <p className="mt-1 break-all leading-relaxed">
+                      {siblingEins.map(einLink)}
+                      {note}
+                    </p>
+                  </details>
+                );
+              })()}
             {/* Auditor + cognizance — from the most recent audit year
                 only (a page-header summary, not a per-year fact; see
                 the per-year risk strip below findings for anything that

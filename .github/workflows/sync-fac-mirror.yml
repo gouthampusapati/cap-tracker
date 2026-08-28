@@ -10,11 +10,12 @@ name: Sync FAC Bulk Mirror
 # the original checklist's guess) — the observed refresh was ~5 days
 # before the check.
 #
-# Weekly (was Mon/Thu). Each sync writes ~1.38M rows (413K general +
-# 674K findings + 150K findings_text + 144K corrective_action_plans);
-# twice a week is ~11.8M rows/month, over Turso's free-tier 10M
-# writes/month cap (plan confirmed free tier 2026-08). Weekly is
-# ~5.9M/month — comfortably under — and still comfortably inside the
+# Weekly (was Mon/Thu). Each sync writes ~1.48M rows (413K general +
+# 674K findings + 150K findings_text + 144K corrective_action_plans +
+# ~72K additional_eins + ~27K additional_ueis — the last two added in
+# Sprint 5); twice a week is ~12.7M rows/month, over Turso's free-tier
+# 10M writes/month cap (plan confirmed free tier 2026-08). Weekly is
+# ~6.4M/month — comfortably under — and still comfortably inside the
 # observed ~5-day FAC refresh cadence. Orgs within ±60 days of their
 # filing deadline already bypass the mirror for a live check
 # (lib/org-cache-ttl.ts), so a few extra days of mirror staleness for

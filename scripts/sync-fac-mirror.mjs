@@ -8,6 +8,9 @@
  * so a live per-EIN FAC API call is only needed for an EIN genuinely
  * new since the last sync.
  *
+ * Sprint 5 adds additional_eins + additional_ueis (~6.5MB combined) for
+ * entity resolution — see lib/entity-resolution.ts.
+ *
  * Run standalone via Node (a GitHub Actions scheduled workflow, not
  * part of the Next.js app) — NOT via drizzle-kit push. Needs
  * DATABASE_URL + TURSO_AUTH_TOKEN in the environment.
@@ -197,6 +200,54 @@ const TABLES = [
     )`,
     indexes: (name, idxSuffix) => [`CREATE INDEX cap_ref_idx_${idxSuffix} ON ${name} (report_id, finding_ref_number)`],
   },
+  // Sprint 5 — entity resolution. Both tables are tiny (~72K / ~27K
+  // rows, ~6.5MB combined) and let lib/entity-resolution.ts group an
+  // org's EINs/UEIs off the mirror with zero FAC calls: an audit filed
+  // under several EINs/UEIs lists the extras here, keyed on report_id.
+  {
+    key: 'additional_eins',
+    csvFile: 'additional_eins.csv',
+    liveTable: 'fac_mirror_additional_eins',
+    columns: {
+      report_id: 'report_id',
+      auditee_uei: 'auditee_uei',
+      audit_year: 'audit_year',
+      additional_ein: 'additional_ein',
+    },
+    ddl: (name) => `CREATE TABLE ${name} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id TEXT NOT NULL,
+      auditee_uei TEXT,
+      audit_year TEXT,
+      additional_ein TEXT NOT NULL
+    )`,
+    indexes: (name, idxSuffix) => [
+      `CREATE INDEX add_eins_report_idx_${idxSuffix} ON ${name} (report_id)`,
+      `CREATE INDEX add_eins_ein_idx_${idxSuffix} ON ${name} (additional_ein)`,
+    ],
+  },
+  {
+    key: 'additional_ueis',
+    csvFile: 'additional_ueis.csv',
+    liveTable: 'fac_mirror_additional_ueis',
+    columns: {
+      report_id: 'report_id',
+      auditee_uei: 'auditee_uei',
+      audit_year: 'audit_year',
+      additional_uei: 'additional_uei',
+    },
+    ddl: (name) => `CREATE TABLE ${name} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id TEXT NOT NULL,
+      auditee_uei TEXT,
+      audit_year TEXT,
+      additional_uei TEXT NOT NULL
+    )`,
+    indexes: (name, idxSuffix) => [
+      `CREATE INDEX add_ueis_report_idx_${idxSuffix} ON ${name} (report_id)`,
+      `CREATE INDEX add_ueis_uei_idx_${idxSuffix} ON ${name} (additional_uei)`,
+    ],
+  },
 ];
 
 function log(msg) {
@@ -335,8 +386,8 @@ async function main() {
       }
     }
 
-    // Atomic swap, all 4 tables in one transaction — either every table
-    // flips to the new data or none do.
+    // Atomic swap, every table in one transaction — either all of them
+    // flip to the new data or none do.
     log('swapping all tables into place');
     const swapStatements = [];
     for (const spec of TABLES) {

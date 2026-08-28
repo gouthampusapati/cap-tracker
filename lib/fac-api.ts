@@ -831,6 +831,56 @@ export async function getFederalAwardsForReports(
 }
 
 /**
+ * `notes_to_sefa.is_minimis_rate_used` — whether the auditee used the
+ * 10% de minimis indirect cost rate (2 CFR 200.414(f)) instead of a
+ * negotiated rate. Confirmed live 2026-08: values are "Y" / "N" /
+ * "Both" (some awards each way), plus "GSA_MIGRATION" on legacy
+ * records. One logical value per report, though notes_to_sefa has
+ * several rows per report (one per note) — take the first meaningful
+ * one. Not mirrored (the notes CSV is ~700K rows / 718MB); fetched
+ * live only on the risk-assessment page.
+ */
+export type DeMinimisRate = 'used' | 'not-used' | 'partial';
+
+interface FacSefaNote {
+  report_id: string;
+  is_minimis_rate_used: string;
+}
+
+export function parseDeMinimis(raw: string | null | undefined): DeMinimisRate | null {
+  switch ((raw || '').trim().toLowerCase()) {
+    case 'y':
+      return 'used';
+    case 'n':
+      return 'not-used';
+    case 'both':
+      return 'partial';
+    default:
+      return null; // "", "GSA_MIGRATION", anything unexpected
+  }
+}
+
+export async function getDeMinimisRateForReports(
+  reportIds: string[]
+): Promise<Map<string, DeMinimisRate>> {
+  const out = new Map<string, DeMinimisRate>();
+  if (reportIds.length === 0) return out;
+
+  const rows = await facGet<FacSefaNote>('notes_to_sefa', {
+    report_id: `in.(${reportIds.join(',')})`,
+    select: 'report_id,is_minimis_rate_used',
+    limit: '2000',
+  });
+
+  for (const row of rows) {
+    if (out.has(row.report_id)) continue;
+    const parsed = parseDeMinimis(row.is_minimis_rate_used);
+    if (parsed) out.set(row.report_id, parsed);
+  }
+  return out;
+}
+
+/**
  * Stitches one org's already-fetched reports + already-fetched findings
  * pool into an ImportedOrg — pure assembly, no FAC calls of its own.
  * Shared by importOrgByEin (one org, its own findings fetch),

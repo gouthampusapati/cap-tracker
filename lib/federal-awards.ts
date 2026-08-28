@@ -3,6 +3,8 @@ import { getPublicOrg } from '@/lib/public-org-cache';
 import { hasFacBudget, recordFacFetch } from '@/lib/fac-budget';
 import {
   getFederalAwardsForReports,
+  getDeMinimisRateForReports,
+  type DeMinimisRate,
   type FacGeneral,
   type NormalizedAward,
   type NormalizedFinding,
@@ -34,6 +36,9 @@ export interface AwardYear {
   fiscalYearEnd: string;
   totalAmountExpended: number;
   awards: NormalizedAward[];
+  /** notes_to_sefa.is_minimis_rate_used for this report, or null when
+   * the record doesn't say (legacy GSA_MIGRATION rows, or no note). */
+  deMinimisRate: DeMinimisRate | null;
 }
 
 export interface OrgAwardsData {
@@ -72,7 +77,11 @@ function buildFindingAnchors(findings: NormalizedFinding[]): Record<string, stri
   return map;
 }
 
-function toAwardYears(reports: FacGeneral[], awards: NormalizedAward[]): AwardYear[] {
+function toAwardYears(
+  reports: FacGeneral[],
+  awards: NormalizedAward[],
+  deMinimisByReport: Map<string, DeMinimisRate>
+): AwardYear[] {
   const byReport = new Map<string, NormalizedAward[]>();
   for (const a of awards) {
     const list = byReport.get(a.reportId);
@@ -86,6 +95,7 @@ function toAwardYears(reports: FacGeneral[], awards: NormalizedAward[]): AwardYe
       fiscalYearEnd: r.fy_end_date,
       totalAmountExpended: r.total_amount_expended ?? 0,
       awards: byReport.get(r.report_id) ?? [],
+      deMinimisRate: deMinimisByReport.get(r.report_id) ?? null,
     }))
     .filter((y) => y.awards.length > 0)
     .sort((a, b) => b.fiscalYearEnd.localeCompare(a.fiscalYearEnd));
@@ -112,9 +122,15 @@ async function _getFederalAwardsForOrg(ein: string): Promise<OrgAwardsResult> {
   }
 
   let awards: NormalizedAward[];
+  let deMinimisByReport: Map<string, DeMinimisRate>;
   try {
     await recordFacFetch();
-    awards = await getFederalAwardsForReports(reportIds);
+    // Both live calls counted as one fetch against the budget — same
+    // report_id batch, issued together.
+    [awards, deMinimisByReport] = await Promise.all([
+      getFederalAwardsForReports(reportIds),
+      getDeMinimisRateForReports(reportIds).catch(() => new Map<string, DeMinimisRate>()),
+    ]);
   } catch {
     // The org itself loaded fine; only the award fetch failed. Treat it
     // like a spent budget — a transient FAC problem, not "no awards".
@@ -127,7 +143,7 @@ async function _getFederalAwardsForOrg(ein: string): Promise<OrgAwardsResult> {
       ein: org.ein,
       name: org.name,
       uei: org.uei,
-      years: toAwardYears(org.reports, awards),
+      years: toAwardYears(org.reports, awards, deMinimisByReport),
       findingAnchorsByAward: buildFindingAnchors(org.findings),
       syncedAt,
       stale,
