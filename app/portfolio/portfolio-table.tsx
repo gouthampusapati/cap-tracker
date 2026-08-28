@@ -37,6 +37,14 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<1 | -1>(1);
 
+  // Carried on each "View →" link so the org detail page can render a
+  // "← Back to portfolio" link that restores this exact same view,
+  // rather than dropping the visitor back at a blank /portfolio form.
+  // Built from the full portfolio, not just the row being clicked, so
+  // returning shows every org that was in view, not a single-EIN
+  // portfolio of whichever row was clicked.
+  const portfolioEins = initialRows.map((r) => r.ein).join(',');
+
   const rows = sortKey
     ? [...initialRows].sort((a, b) => {
         const av = sortValue(a, sortKey);
@@ -120,7 +128,7 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`/single-audit/${row.ein}`}
+                      href={`/single-audit/${row.ein}?from=portfolio&eins=${encodeURIComponent(portfolioEins)}`}
                       className="text-blue-600 hover:text-blue-800 font-semibold whitespace-nowrap"
                     >
                       View →

@@ -214,8 +214,22 @@ export async function generateMetadata(props: {
   };
 }
 
-export default async function SingleAuditPage(props: { params: Promise<{ ein: string }> }) {
+export default async function SingleAuditPage(props: {
+  params: Promise<{ ein: string }>;
+  searchParams: Promise<{ from?: string; eins?: string }>;
+}) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
+  // Set only when arriving via a "View →" link from /portfolio (see
+  // app/portfolio/portfolio-table.tsx) — restores that exact portfolio
+  // view rather than a blank /portfolio form. Absent on every other
+  // entry path (direct link, search, sitemap/crawler), so the "back to
+  // home" logic below stays the sole nav in the common case, same
+  // reasoning as removing the old duplicate site-wide nav here.
+  const backToPortfolioHref =
+    searchParams.from === 'portfolio' && searchParams.eins
+      ? `/portfolio?eins=${encodeURIComponent(searchParams.eins)}`
+      : null;
   const result = await fetchOrgData(params.ein);
 
   if (result.kind === 'not-found') {
@@ -237,10 +251,10 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
             mean the organization has no audit history &mdash; check back in a little while.
           </p>
           <Link
-            href="/"
+            href={backToPortfolioHref ?? '/'}
             className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg"
           >
-            Back to home
+            {backToPortfolioHref ? 'Back to portfolio' : 'Back to home'}
           </Link>
         </div>
       </div>
@@ -314,6 +328,14 @@ export default async function SingleAuditPage(props: { params: Promise<{ ein: st
           from before that header existed. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          {backToPortfolioHref && (
+            <Link
+              href={backToPortfolioHref}
+              className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold mb-3"
+            >
+              ← Back to portfolio
+            </Link>
+          )}
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             {org.name}
             {/* Entity type — org.auditHistory is newest-first (see

@@ -4,20 +4,35 @@ import { publicOrgCache } from '@/lib/db/schema';
 import { importOrgByEin, importOrgsByEins, type ImportedOrg } from '@/lib/fac-api';
 import { hasFacBudget, recordFacFetch } from '@/lib/fac-budget';
 import { effectiveMaxAgeMs } from '@/lib/org-cache-ttl';
+import { readOrgFromMirror, readOrgsFromMirror, getMirrorSyncedAt } from '@/lib/fac-mirror-read';
 
 /**
- * The single shared cache for public org data — backs both
+ * The single shared read path for public org data — backs both
  * /single-audit/[ein] and /portfolio, so an EIN looked up through either
- * feature warms the cache for both. A cache hit within the effective
- * max-age (see lib/org-cache-ttl.ts) never touches FAC at all: fast, and
- * immune to FAC being rate-limited or briefly down, which is the whole
- * point (see the false-404 bug this session already hit once from a
- * live fetch failure with nowhere to fall back to).
+ * feature warms the cache for both.
  *
- * TTL is filing-aware, not a flat window — see lib/org-cache-ttl.ts for
- * why and the actual TTL logic (pulled into its own module so it's
- * directly unit testable without pulling in `server-only`/db). See
- * FAC_API_Improvement_Sprint_Checklist.md, Sprint 3.
+ * Read order, cheapest first:
+ * 1. Local bulk-CSV mirror (lib/fac-mirror-read.ts, Sprint 4) — a hit
+ *    here is 0 FAC calls AND 0 DB writes, not just a cache hit. Only
+ *    trusted when fresh enough for that specific org (see
+ *    isMirrorFreshFor below); an org near its next filing deadline
+ *    still falls through even if it's in the mirror, since the mirror
+ *    can be up to ~1 sync-cycle stale.
+ * 2. public_org_cache — a hit within the effective max-age (see
+ *    lib/org-cache-ttl.ts) never touches FAC at all either, just a
+ *    cheap DB read instead of the mirror's (slightly heavier) read.
+ * 3. Live FAC API call, budget-gated (lib/fac-budget.ts) — only reached
+ *    for an EIN genuinely new since the mirror's last sync, or
+ *    genuinely stale in public_org_cache.
+ *
+ * Falling back to stale cached data (rather than nothing) on a live
+ * fetch failure, and reporting "unavailable" rather than a false
+ * "not found" when the shared budget is exhausted with no cache to
+ * fall back to, are both unchanged from before Sprint 4 — see the
+ * false-404 bug this session hit once from a live fetch failure with
+ * nowhere to fall back to. TTL is filing-aware, not a flat window — see
+ * lib/org-cache-ttl.ts. FAC_API_Improvement_Sprint_Checklist.md,
+ * Sprints 3-4.
  */
 
 export interface OrgLookupResult {
@@ -62,6 +77,21 @@ function isCacheRowFresh(cached: CacheRow | undefined): boolean {
   return Date.now() - cached.syncedAt.getTime() < maxAge;
 }
 
+/**
+ * Whether the local bulk-CSV mirror (Sprint 4) is fresh enough to trust
+ * for this specific org, reusing the exact same filing-aware rule
+ * Sprint 3 built for the per-EIN cache — just measured against the
+ * mirror's own last-successful-sync time instead of a per-EIN
+ * `syncedAt`. An org whose next filing is plausibly due soon still
+ * falls through to a live check even if it's in the mirror, since the
+ * mirror can be up to ~1 sync-cycle stale.
+ */
+function isMirrorFreshFor(org: ImportedOrg, mirrorSyncedAt: Date | null): boolean {
+  if (!mirrorSyncedAt) return false;
+  const maxAge = effectiveMaxAgeMs(true, org.reports[0]?.fy_end_date, Date.now());
+  return Date.now() - mirrorSyncedAt.getTime() < maxAge;
+}
+
 /** Shared upsert shape — one row, found/snapshot/syncedAt. */
 async function upsertCacheRow(ein: string, org: ImportedOrg | null, now: Date): Promise<void> {
   await db
@@ -74,6 +104,20 @@ async function upsertCacheRow(ein: string, org: ImportedOrg | null, now: Date): 
 }
 
 export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
+  // Mirror check FIRST — a hit here is 0 FAC calls AND 0 public_org_cache
+  // writes, not just a cache hit. A miss (EIN genuinely not in the
+  // mirror, OR in the mirror but near its next filing deadline) falls
+  // straight through to the existing cache/budget/live-fetch logic
+  // below, completely unchanged. See FAC_API_Improvement_Sprint_Checklist
+  // .md, Sprint 4.
+  const mirrorOrg = await readOrgFromMirror(ein);
+  if (mirrorOrg) {
+    const mirrorSyncedAt = await getMirrorSyncedAt();
+    if (isMirrorFreshFor(mirrorOrg, mirrorSyncedAt)) {
+      return { org: mirrorOrg, syncedAt: mirrorSyncedAt!, fromCache: true, stale: false, unavailable: false };
+    }
+  }
+
   const [cached] = await db
     .select()
     .from(publicOrgCache)
@@ -142,11 +186,28 @@ export async function getPublicOrgsBatch(eins: string[]): Promise<Map<string, Or
   const results = new Map<string, OrgLookupResult>();
   if (eins.length === 0) return results;
 
-  const cachedRows = await db.select().from(publicOrgCache).where(inArray(publicOrgCache.ein, eins));
+  // Mirror check first, same reasoning as getPublicOrg — one shared
+  // query for the whole batch (readOrgsFromMirror), one shared
+  // getMirrorSyncedAt() call, so a portfolio's worth of EINs already in
+  // the mirror costs 0 FAC calls and 0 public_org_cache writes.
+  const mirrorOrgs = await readOrgsFromMirror(eins);
+  const mirrorSyncedAt = mirrorOrgs.size > 0 ? await getMirrorSyncedAt() : null;
+  const stillNeeded: string[] = [];
+  for (const ein of eins) {
+    const mirrorOrg = mirrorOrgs.get(ein);
+    if (mirrorOrg && isMirrorFreshFor(mirrorOrg, mirrorSyncedAt)) {
+      results.set(ein, { org: mirrorOrg, syncedAt: mirrorSyncedAt!, fromCache: true, stale: false, unavailable: false });
+    } else {
+      stillNeeded.push(ein);
+    }
+  }
+  if (stillNeeded.length === 0) return results;
+
+  const cachedRows = await db.select().from(publicOrgCache).where(inArray(publicOrgCache.ein, stillNeeded));
   const cacheByEin = new Map(cachedRows.map((r) => [r.ein, r]));
 
   const missEins: string[] = [];
-  for (const ein of eins) {
+  for (const ein of stillNeeded) {
     const cached = cacheByEin.get(ein);
     if (isCacheRowFresh(cached)) {
       results.set(ein, { ...fromCacheRow(cached!), fromCache: true, stale: false, unavailable: false });

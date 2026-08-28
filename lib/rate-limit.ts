@@ -43,29 +43,46 @@ function createLimiter(windowMs: number, maxRequests: number) {
   };
 }
 
-// Single-org lookups (/single-audit/[ein], /api/org/[ein]): ~4 FAC calls
-// each. 30/min is generous for a real visitor, tight enough to stop a
-// naive full-catalog crawl.
-export const isRateLimited = createLimiter(60_000, 30);
+// Single-org lookups (/single-audit/[ein], /api/org/[ein]). Originally
+// sized purely against FAC-quota risk (each miss costs ~4 FAC calls) —
+// loosened after Sprint 4 (local bulk-CSV mirror, ~413K orgs cached
+// locally): the large majority of lookups now cost 0 FAC calls
+// regardless of request rate, since they resolve straight from the
+// mirror. 120/min is still well above any real visitor's rate, while
+// staying far below what would meaningfully strain the server on
+// mirror-hit traffic (a DB read + render, not free, just much cheaper
+// than a live FAC round-trip).
+export const isRateLimited = createLimiter(60_000, 120);
 
 // Same surfaces as isRateLimited, but over an hour rather than a minute
-// — the two run TOGETHER, not as alternatives. 30/min alone doesn't
-// actually protect the shared FAC budget (lib/fac-budget.ts,
-// 180 lookups/hour site-wide): a single IP sustaining even a fraction
-// of that per-minute allowance for a few minutes can burn through the
-// *entire* hourly site-wide budget on its own, starving every other
-// visitor. 20/hour/IP is generous for a real visitor (nobody looks up
-// 20 different EINs by hand in an hour) while capping any one source's
-// worst-case share of the shared pool to ~11% of it.
-export const isHourlyRateLimited = createLimiter(60 * 60_000, 20);
+// — the two run TOGETHER, not as alternatives. This is the one that
+// actually protects the shared FAC budget (lib/fac-budget.ts,
+// 180 lookups/hour site-wide): a single IP sustaining a high per-minute
+// rate for a while can still burn through the *entire* hourly site-wide
+// budget on its own IF every one of its requests happens to be a mirror
+// miss (a genuinely new EIN, or one near its filing deadline — see
+// lib/org-cache-ttl.ts). That worst case is far less likely post-Sprint
+// 4 (most crawl targets, e.g. from the sitemap, are already mirrored)
+// but not impossible, so this stays a real cap, not removed — just
+// loosened from capping one source's worst-case share of the shared
+// pool at ~11% to ~50%, which is generous for legitimate high-volume
+// crawling of mostly-mirrored content (Google, or any other crawler)
+// while still leaving room for the rest of the pool if the worst case
+// ever does happen.
+export const isHourlyRateLimited = createLimiter(60 * 60_000, 90);
 
 // /portfolio: up to PORTFOLIO_MAX_EINS EINs per submission (10, was 50
-// — see lib/ein-list.ts), ~4 FAC calls each, so a single submission can
-// still cost a meaningful chunk of the single-org limiter's budget.
-// Budgeted far tighter regardless of the cap size: a real grants
-// manager checking a portfolio a few times an hour is nowhere near
-// this; a script wouldn't get past the first handful of submissions.
-export const isPortfolioRateLimited = createLimiter(15 * 60_000, 3);
+// — see lib/ein-list.ts). Originally budgeted assuming ~4 FAC calls PER
+// EIN (up to 40/submission) before Sprint 2 batched the whole
+// submission into one shared live fetch (~4 calls total, same cost as
+// a single-org lookup, regardless of portfolio size) and Sprint 4's
+// mirror made most of those EINs free outright. 3/15min (caught live —
+// this exact limiter blocked normal repeat testing of one portfolio
+// during this session) was sized for a cost model that no longer
+// applies; 30/15min keeps a real cap (a script still can't hammer this)
+// while being generous enough for actual use, including a person
+// re-checking/testing the same portfolio a few times in a row.
+export const isPortfolioRateLimited = createLimiter(15 * 60_000, 30);
 
 // /api/waitlist: doesn't touch FAC at all (just a DB insert), so this
 // isn't protecting a shared external quota like the two limiters above —
