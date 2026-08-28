@@ -1,0 +1,440 @@
+#!/usr/bin/env node
+/**
+ * Sprint 4 (FAC_API_Improvement_Sprint_Checklist.md) — pulls FAC's full
+ * bulk CSV export (general, findings, findings_text,
+ * corrective_action_plans; ~660MB combined, full history 2016-present,
+ * confirmed live 2026-08-27 — no API key needed, doesn't touch FAC's
+ * rate-limited quota at all) and loads it into a local Turso mirror,
+ * so a live per-EIN FAC API call is only needed for an EIN genuinely
+ * new since the last sync.
+ *
+ * Run standalone via Node (a GitHub Actions scheduled workflow, not
+ * part of the Next.js app) — NOT via drizzle-kit push. Needs
+ * DATABASE_URL + TURSO_AUTH_TOKEN in the environment.
+ *
+ * Strategy: blue-green table swap, not incremental upsert. The source
+ * is a COMPLETE point-in-time export every time, not a diff feed — a
+ * full reload into `<table>_new`, then an atomic rename-swap into the
+ * live table name, naturally reflects redactions/corrections with no
+ * diff logic, and the live tables are never in a half-populated state
+ * (see FAC_API_Improvement Sprint 4 plan's "cracks found" section).
+ *
+ * Column sets mirrored are a SUBSET of each CSV's real columns — only
+ * what lib/fac-api.ts's FacGeneral/FacFinding/FacFindingText/FacCap
+ * interfaces read. This file's CREATE TABLE DDL must stay
+ * column-for-column identical to lib/db/schema.ts's fac-mirror Drizzle
+ * declarations (the read side) — there's no single source of truth
+ * for that today, just this comment on both ends.
+ *
+ * A truncated/corrupted CSV row fails LOUDLY (parser throws, sync
+ * aborts, `_new` tables dropped, live tables untouched, a `failed` row
+ * written to fac_mirror_sync_log, and an email sent if RESEND_API_KEY
+ * is set) rather than silently loading partial/wrong data — matches
+ * this app's "never guess, verify" standard for anything the site's
+ * accuracy depends on.
+ */
+
+import { createClient } from '@libsql/client';
+import { parse } from 'csv-parse';
+import { Readable } from 'node:stream';
+import { randomUUID } from 'node:crypto';
+
+const DATABASE_URL = process.env.DATABASE_URL;
+const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
+
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL is not set — refusing to run against no configured database.');
+  process.exit(1);
+}
+
+const client = createClient(
+  TURSO_AUTH_TOKEN ? { url: DATABASE_URL, authToken: TURSO_AUTH_TOKEN } : { url: DATABASE_URL }
+);
+
+const FAC_CSV_BASE = 'https://app.fac.gov/dissemination/public-data/gsa/full';
+
+// Rows per client.batch() call. 500 measured at ~1.75ms/row against the
+// real production DB during this sprint's build (878ms/500 rows) — not
+// tuned further than that single measurement; if a real full run turns
+// out slow, this is the first knob to try, not the CSV-parsing side.
+const BATCH_SIZE = 500;
+
+// TEST-ONLY: caps rows loaded per table, for a fast end-to-end smoke
+// test against real data without waiting out a full multi-hour run.
+// Unset (undefined) in the real scheduled GitHub Actions run — never
+// set there. Deliberately read once at module load so a truncated test
+// run can't be mistaken for a real one in the sync log (see
+// `truncatedForTest` below).
+const TEST_MAX_ROWS_PER_TABLE = process.env.SYNC_TEST_MAX_ROWS_PER_TABLE
+  ? Number(process.env.SYNC_TEST_MAX_ROWS_PER_TABLE)
+  : null;
+
+/**
+ * One table's sync spec: which CSV, which columns to keep (CSV column
+ * name -> mirror column name), and the CREATE TABLE DDL for a table
+ * under a given name (so it can build both `<name>` for a first-ever
+ * run and `<name>_new` for every subsequent one).
+ */
+const TABLES = [
+  {
+    key: 'general',
+    csvFile: 'general.csv',
+    liveTable: 'fac_mirror_general',
+    columns: {
+      report_id: 'report_id',
+      auditee_ein: 'auditee_ein',
+      auditee_uei: 'auditee_uei',
+      auditee_name: 'auditee_name',
+      audit_year: 'audit_year',
+      fy_end_date: 'fy_end_date',
+      fy_start_date: 'fy_start_date',
+      total_amount_expended: 'total_amount_expended',
+      entity_type: 'entity_type',
+      is_low_risk_auditee: 'is_low_risk_auditee',
+      is_going_concern_included: 'is_going_concern_included',
+      is_material_noncompliance_disclosed: 'is_material_noncompliance_disclosed',
+      gaap_results: 'gaap_results',
+      auditor_firm_name: 'auditor_firm_name',
+      auditor_ein: 'auditor_ein',
+      cognizant_agency: 'cognizant_agency',
+      oversight_agency: 'oversight_agency',
+      fac_accepted_date: 'fac_accepted_date',
+    },
+    ddl: (name) => `CREATE TABLE ${name} (
+      report_id TEXT PRIMARY KEY,
+      auditee_ein TEXT NOT NULL,
+      auditee_uei TEXT,
+      auditee_name TEXT,
+      audit_year TEXT,
+      fy_end_date TEXT,
+      fy_start_date TEXT,
+      total_amount_expended REAL,
+      entity_type TEXT,
+      is_low_risk_auditee TEXT,
+      is_going_concern_included TEXT,
+      is_material_noncompliance_disclosed TEXT,
+      gaap_results TEXT,
+      auditor_firm_name TEXT,
+      auditor_ein TEXT,
+      cognizant_agency TEXT,
+      oversight_agency TEXT,
+      fac_accepted_date TEXT
+    )`,
+    indexes: (name, idxSuffix) => [`CREATE INDEX ein_idx_${idxSuffix} ON ${name} (auditee_ein)`],
+  },
+  {
+    key: 'findings',
+    csvFile: 'findings.csv',
+    liveTable: 'fac_mirror_findings',
+    columns: {
+      report_id: 'report_id',
+      audit_year: 'audit_year',
+      reference_number: 'reference_number',
+      award_reference: 'award_reference',
+      type_requirement: 'type_requirement',
+      is_material_weakness: 'is_material_weakness',
+      is_significant_deficiency: 'is_significant_deficiency',
+      is_modified_opinion: 'is_modified_opinion',
+      is_other_matters: 'is_other_matters',
+      is_other_findings: 'is_other_findings',
+      is_questioned_costs: 'is_questioned_costs',
+      is_repeat_finding: 'is_repeat_finding',
+      prior_finding_ref_numbers: 'prior_finding_ref_numbers',
+    },
+    ddl: (name) => `CREATE TABLE ${name} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id TEXT NOT NULL,
+      audit_year TEXT,
+      reference_number TEXT NOT NULL,
+      award_reference TEXT,
+      type_requirement TEXT,
+      is_material_weakness TEXT,
+      is_significant_deficiency TEXT,
+      is_modified_opinion TEXT,
+      is_other_matters TEXT,
+      is_other_findings TEXT,
+      is_questioned_costs TEXT,
+      is_repeat_finding TEXT,
+      prior_finding_ref_numbers TEXT
+    )`,
+    indexes: (name, idxSuffix) => [`CREATE INDEX report_idx_${idxSuffix} ON ${name} (report_id)`],
+  },
+  {
+    key: 'findings_text',
+    csvFile: 'findings_text.csv',
+    liveTable: 'fac_mirror_findings_text',
+    columns: {
+      report_id: 'report_id',
+      finding_ref_number: 'finding_ref_number',
+      finding_text: 'finding_text',
+      contains_chart_or_table: 'contains_chart_or_table',
+    },
+    ddl: (name) => `CREATE TABLE ${name} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id TEXT NOT NULL,
+      finding_ref_number TEXT NOT NULL,
+      finding_text TEXT,
+      contains_chart_or_table TEXT
+    )`,
+    indexes: (name, idxSuffix) => [`CREATE INDEX findings_text_ref_idx_${idxSuffix} ON ${name} (report_id, finding_ref_number)`],
+  },
+  {
+    key: 'corrective_action_plans',
+    csvFile: 'corrective_action_plans.csv',
+    liveTable: 'fac_mirror_corrective_action_plans',
+    columns: {
+      report_id: 'report_id',
+      finding_ref_number: 'finding_ref_number',
+      planned_action: 'planned_action',
+      contains_chart_or_table: 'contains_chart_or_table',
+    },
+    ddl: (name) => `CREATE TABLE ${name} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      report_id TEXT NOT NULL,
+      finding_ref_number TEXT NOT NULL,
+      planned_action TEXT,
+      contains_chart_or_table TEXT
+    )`,
+    indexes: (name, idxSuffix) => [`CREATE INDEX cap_ref_idx_${idxSuffix} ON ${name} (report_id, finding_ref_number)`],
+  },
+];
+
+function log(msg) {
+  console.log(`[sync-fac-mirror] ${new Date().toISOString()} ${msg}`);
+}
+
+/**
+ * Drizzle's sqlite `integer(..., { mode: 'timestamp' })` stores
+ * SECONDS-since-epoch, not milliseconds — confirmed live against this
+ * same database's fac_fetch_log table while investigating a Turso
+ * dashboard read-spike question earlier in this build. This script
+ * writes fac_mirror_sync_log via raw SQL, not Drizzle, so it has to
+ * match that convention by hand — caught for real here too: an earlier
+ * version of this script stored `.getTime()` (milliseconds) directly,
+ * which would make any Drizzle-side read of this table (or a duration
+ * computed as completed_at - started_at) come out ~1000x wrong.
+ */
+function toEpochSeconds(date) {
+  return Math.floor(date.getTime() / 1000);
+}
+
+/**
+ * Streams one CSV from FAC straight into the `_new` table for its spec
+ * — no temp file, no buffering the whole response in memory. Rejects
+ * with a real Error (aborting the whole sync) on any parse failure,
+ * including a truncated/malformed download — see the file header
+ * comment on why that's the deliberate behavior, not a bug to relax.
+ */
+async function loadTable(spec, newTableName) {
+  const url = `${FAC_CSV_BASE}/${spec.csvFile}`;
+  log(`downloading ${spec.csvFile} -> ${newTableName}`);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`FAC bulk download for ${spec.csvFile} returned HTTP ${res.status}`);
+  }
+
+  const csvCols = Object.keys(spec.columns);
+  const dbCols = Object.values(spec.columns);
+  const placeholders = dbCols.map(() => '?').join(', ');
+  const insertSql = `INSERT INTO ${newTableName} (${dbCols.join(', ')}) VALUES (${placeholders})`;
+
+  const nodeStream = Readable.fromWeb(res.body);
+  // relax_column_count deliberately left at its default (false) — a
+  // header/data mismatch (FAC changing a column set out from under us)
+  // should abort the sync loudly, not silently misalign columns. See
+  // the FAC_API_Improvement Sprint 4 plan's "schema drift" crack.
+  const parser = nodeStream.pipe(parse({ columns: true }));
+
+  let rowCount = 0;
+  let batch = [];
+  let headerChecked = false;
+
+  const flush = async () => {
+    if (batch.length === 0) return;
+    await client.batch(
+      batch.map((args) => ({ sql: insertSql, args })),
+      'write'
+    );
+    batch = [];
+  };
+
+  for await (const record of parser) {
+    if (!headerChecked) {
+      const missing = csvCols.filter((c) => !(c in record));
+      if (missing.length > 0) {
+        throw new Error(
+          `${spec.csvFile}: expected column(s) missing from CSV header: ${missing.join(', ')} — FAC may have changed their export schema. Aborting rather than guessing.`
+        );
+      }
+      headerChecked = true;
+    }
+
+    batch.push(csvCols.map((c) => record[c] ?? null));
+    rowCount++;
+
+    if (batch.length >= BATCH_SIZE) {
+      await flush();
+      if (rowCount % 50_000 === 0) log(`  ${spec.csvFile}: ${rowCount} rows so far`);
+    }
+
+    if (TEST_MAX_ROWS_PER_TABLE !== null && rowCount >= TEST_MAX_ROWS_PER_TABLE) {
+      log(`  ${spec.csvFile}: TEST MODE — stopping early at ${rowCount} rows (SYNC_TEST_MAX_ROWS_PER_TABLE set)`);
+      parser.destroy();
+      break;
+    }
+  }
+  await flush();
+
+  log(`${spec.csvFile}: ${rowCount} rows loaded into ${newTableName}`);
+  return rowCount;
+}
+
+async function main() {
+  const syncId = randomUUID();
+  const startedAt = new Date();
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS fac_mirror_sync_log (
+      id TEXT PRIMARY KEY,
+      started_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      status TEXT NOT NULL,
+      row_counts TEXT,
+      error TEXT
+    )
+  `);
+  await client.execute({
+    sql: 'INSERT INTO fac_mirror_sync_log (id, started_at, status) VALUES (?, ?, ?)',
+    args: [syncId, toEpochSeconds(startedAt), 'running'],
+  });
+
+  const rowCounts = {};
+  // Index names must be globally unique in SQLite and, critically, an
+  // index does NOT get renamed when its table does (ALTER TABLE RENAME
+  // only renames the table) — so an index built on `<table>_new` keeps
+  // that literal name forever after the swap, and the NEXT run's
+  // CREATE INDEX with the same name collides with it. Suffixing with
+  // this run's syncId (hyphens stripped — not a valid identifier char)
+  // guarantees each run's index names are new; the stale-named index
+  // from the previous run is dropped automatically when its now-`_old`
+  // table gets dropped a few lines below. Caught by an actual second
+  // local test run before this was ever scheduled to run twice for
+  // real — see the Sprint 4 build notes.
+  const idxSuffix = syncId.replace(/-/g, '');
+
+  try {
+    for (const spec of TABLES) {
+      const newTableName = `${spec.liveTable}_new`;
+      await client.execute(`DROP TABLE IF EXISTS ${newTableName}`);
+      await client.execute(spec.ddl(newTableName));
+      const count = await loadTable(spec, newTableName);
+      rowCounts[spec.key] = count;
+      for (const indexSql of spec.indexes(newTableName, idxSuffix)) {
+        await client.execute(indexSql);
+      }
+    }
+
+    // Atomic swap, all 4 tables in one transaction — either every table
+    // flips to the new data or none do.
+    log('swapping all tables into place');
+    const swapStatements = [];
+    for (const spec of TABLES) {
+      const oldName = `${spec.liveTable}_old`;
+      swapStatements.push(`DROP TABLE IF EXISTS ${oldName}`);
+    }
+    for (const spec of TABLES) {
+      swapStatements.push(`ALTER TABLE ${spec.liveTable} RENAME TO ${spec.liveTable}_old`);
+      swapStatements.push(`ALTER TABLE ${spec.liveTable}_new RENAME TO ${spec.liveTable}`);
+    }
+    // First run ever: the live tables don't exist yet, so the RENAME
+    // FROM statements above would fail. Detect that case up front and
+    // build a simpler statement list instead of guessing.
+    const existing = await client.execute(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${TABLES.map(() => '?').join(',')})`,
+      TABLES.map((s) => s.liveTable)
+    ).catch(() => ({ rows: [] }));
+    const liveTablesExist = new Set(existing.rows?.map((r) => r.name) ?? []);
+
+    const finalSwap = [];
+    for (const spec of TABLES) {
+      if (liveTablesExist.has(spec.liveTable)) {
+        finalSwap.push(`DROP TABLE IF EXISTS ${spec.liveTable}_old`);
+        finalSwap.push(`ALTER TABLE ${spec.liveTable} RENAME TO ${spec.liveTable}_old`);
+      }
+      finalSwap.push(`ALTER TABLE ${spec.liveTable}_new RENAME TO ${spec.liveTable}`);
+    }
+    await client.batch(finalSwap, 'write');
+    for (const spec of TABLES) {
+      await client.execute(`DROP TABLE IF EXISTS ${spec.liveTable}_old`);
+    }
+
+    const completedAt = new Date();
+    const rowCountsPayload =
+      TEST_MAX_ROWS_PER_TABLE !== null ? { ...rowCounts, TEST_RUN_TRUNCATED: true } : rowCounts;
+    await client.execute({
+      sql: 'UPDATE fac_mirror_sync_log SET completed_at = ?, status = ?, row_counts = ? WHERE id = ?',
+      args: [toEpochSeconds(completedAt), 'success', JSON.stringify(rowCountsPayload), syncId],
+    });
+    log(`sync complete: ${JSON.stringify(rowCountsPayload)}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    log(`SYNC FAILED: ${message}`);
+
+    // Leave live tables untouched — just drop whatever `_new` tables
+    // got partway built, so a retry starts clean.
+    for (const spec of TABLES) {
+      await client.execute(`DROP TABLE IF EXISTS ${spec.liveTable}_new`).catch(() => {});
+    }
+
+    await client.execute({
+      sql: 'UPDATE fac_mirror_sync_log SET completed_at = ?, status = ?, error = ? WHERE id = ?',
+      args: [toEpochSeconds(new Date()), 'failed', message, syncId],
+    });
+
+    await notifyOnFailure(message);
+    process.exitCode = 1;
+  }
+}
+
+/**
+ * Standalone-safe: does NOT import lib/send-owner-notification.ts,
+ * which is guarded by `import 'server-only'` and lives inside the
+ * Next.js app's module graph — this script runs in a separate GitHub
+ * Actions job, not the Next.js build, so it talks to Resend directly
+ * rather than depending on Next-specific module resolution. Silently
+ * no-ops if RESEND_API_KEY isn't set, same fallback behavior as the
+ * app's own email sending.
+ */
+async function notifyOnFailure(errorMessage) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const notifyEmail = process.env.WAITLIST_NOTIFY_EMAIL;
+  if (!apiKey || !notifyEmail) {
+    log('RESEND_API_KEY or WAITLIST_NOTIFY_EMAIL not set — skipping failure email');
+    return;
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+        to: notifyEmail,
+        subject: 'FAC mirror sync failed',
+        text: `The scheduled FAC bulk-CSV mirror sync failed:\n\n${errorMessage}\n\nThe live mirror tables were left untouched (still serving whatever data they had before this run). Check the GitHub Actions run log for the full trace.`,
+      }),
+    });
+    if (!res.ok) {
+      log(`failure-notification email itself failed to send: HTTP ${res.status}`);
+    }
+  } catch (err) {
+    log(`failure-notification email itself threw: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+main()
+  .catch((err) => {
+    console.error('FATAL (outside the normal error handling path):', err);
+    process.exitCode = 1;
+  })
+  .finally(() => client.close());

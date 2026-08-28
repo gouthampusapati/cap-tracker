@@ -497,25 +497,20 @@ export function dedupeFindingRows(rows: FacFinding[]): FacFinding[] {
 }
 
 /**
- * Pull findings, finding text and CAPs for a set of reports and stitch
- * them into one row per finding.
- *
- * PostgREST supports `in.(a,b,c)` so all three tables are fetched in one
- * request each rather than per-report.
+ * Dedupes/stitches already-fetched findings + finding text + CAP rows
+ * into one NormalizedFinding per finding. Pure — no FAC calls of its
+ * own — so it's shared between getFindingsForReports (live API rows)
+ * and lib/fac-mirror-read.ts (mirror-table rows, Sprint 4): both
+ * sources produce rows in the exact same FacFinding/FacFindingText/
+ * FacCap shape (confirmed live against real CSV data — same column
+ * names and value encodings as the JSON API), so this stitching logic
+ * only needs to exist once.
  */
-export async function getFindingsForReports(
-  reportIds: string[]
-): Promise<NormalizedFinding[]> {
-  if (reportIds.length === 0) return [];
-
-  const inList = `in.(${reportIds.join(',')})`;
-
-  const [rawFindings, texts, caps] = await Promise.all([
-    facGet<FacFinding>('findings', { report_id: inList, limit: '1000' }),
-    facGet<FacFindingText>('findings_text', { report_id: inList, limit: '1000' }),
-    facGet<FacCap>('corrective_action_plans', { report_id: inList, limit: '1000' }),
-  ]);
-
+export function normalizeFindings(
+  rawFindings: FacFinding[],
+  texts: FacFindingText[],
+  caps: FacCap[]
+): NormalizedFinding[] {
   const findings = dedupeFindingRows(rawFindings);
 
   const key = (reportId: string, ref: string) => `${reportId}::${ref}`;
@@ -552,14 +547,39 @@ export async function getFindingsForReports(
 }
 
 /**
+ * Pull findings, finding text and CAPs for a set of reports and stitch
+ * them into one row per finding.
+ *
+ * PostgREST supports `in.(a,b,c)` so all three tables are fetched in one
+ * request each rather than per-report.
+ */
+export async function getFindingsForReports(
+  reportIds: string[]
+): Promise<NormalizedFinding[]> {
+  if (reportIds.length === 0) return [];
+
+  const inList = `in.(${reportIds.join(',')})`;
+
+  const [rawFindings, texts, caps] = await Promise.all([
+    facGet<FacFinding>('findings', { report_id: inList, limit: '1000' }),
+    facGet<FacFindingText>('findings_text', { report_id: inList, limit: '1000' }),
+    facGet<FacCap>('corrective_action_plans', { report_id: inList, limit: '1000' }),
+  ]);
+
+  return normalizeFindings(rawFindings, texts, caps);
+}
+
+/**
  * Stitches one org's already-fetched reports + already-fetched findings
  * pool into an ImportedOrg — pure assembly, no FAC calls of its own.
- * Shared by importOrgByEin (one org, its own findings fetch) and
+ * Shared by importOrgByEin (one org, its own findings fetch),
  * importOrgsByEins (many orgs, one shared findings fetch across all of
- * them) so the fiscal-year-fill-in + sort logic only lives once.
+ * them), and lib/fac-mirror-read.ts (Sprint 4, rows read from the local
+ * mirror instead of a live FAC call) — the fiscal-year-fill-in + sort
+ * logic only lives once regardless of where the raw rows came from.
  * `reports` must already be this org's reports only, newest-first.
  */
-function assembleImportedOrg(
+export function assembleImportedOrg(
   ein: string,
   reports: FacGeneral[],
   findingsPool: NormalizedFinding[]

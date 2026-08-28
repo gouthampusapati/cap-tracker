@@ -1,0 +1,56 @@
+name: Sync FAC Bulk Mirror
+
+# Sprint 4, FAC_API_Improvement_Sprint_Checklist.md — refreshes the
+# local mirror of FAC's bulk CSV export (scripts/sync-fac-mirror.mjs).
+# No FAC_API_KEY needed here: the bulk download is a plain file fetch,
+# doesn't touch FAC's ~1,000/hour rate-limited API quota at all.
+#
+# Schedule: FAC's own refresh cadence isn't documented and was
+# confirmed live during this sprint's build to be NOT daily (contrary
+# to the original checklist's guess) — the observed refresh was ~5 days
+# before the check. Twice a week (Mon/Thu) is a safety margin against
+# that being wrong in either direction, not a guess at the exact real
+# cadence — cheap to run (the real full sync measured ~17.5 minutes
+# end-to-end) so there's little cost to checking more often than
+# strictly necessary. Revisit once more cadence data points exist.
+on:
+  schedule:
+    - cron: '17 9 * * 1,4' # 09:17 UTC Monday and Thursday
+  workflow_dispatch: {} # manual trigger, e.g. for a first-run or a retry
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-fac-mirror
+  cancel-in-progress: false # never cancel a run mid-swap
+
+jobs:
+  sync:
+    name: Sync mirror tables
+    runs-on: ubuntu-latest
+    timeout-minutes: 90 # measured ~17.5 min for a real full run; generous margin for FAC being slow, not a sign this normally takes that long
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Run sync
+        run: node scripts/sync-fac-mirror.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          # Optional — the script no-ops the failure-notification email
+          # (with a log line, not an error) if these aren't set.
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          WAITLIST_NOTIFY_EMAIL: ${{ secrets.WAITLIST_NOTIFY_EMAIL }}

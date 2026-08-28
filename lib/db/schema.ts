@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey, index } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -172,6 +172,126 @@ export const publicOrgCache = sqliteTable('public_org_cache', {
 export const facFetchLog = sqliteTable('fac_fetch_log', {
   id: text('id').primaryKey(),
   fetchedAt: integer('fetched_at', { mode: 'timestamp' }).notNull(),
+});
+
+/**
+ * Local mirror of FAC's bulk CSV export — Sprint 4,
+ * FAC_API_Improvement_Sprint_Checklist.md. Populated ONLY by
+ * scripts/sync-fac-mirror.mjs, via a blue-green table-rename swap, NOT
+ * by `drizzle-kit push` the way every other table in this file is —
+ * that script's raw CREATE TABLE SQL has to build a table under a
+ * dynamic `_new` suffix name at runtime, which Drizzle's static schema
+ * can't do itself. These declarations exist for the READ side
+ * (lib/public-org-cache.ts querying the live, un-suffixed table names)
+ * — the sync script's raw DDL is a separate representation of the exact
+ * same column list. Change one, change the other; there's no single
+ * source of truth enforcing that today, only this comment.
+ *
+ * Column sets are a SUBSET of each CSV's real columns — only the
+ * fields lib/fac-api.ts's FacGeneral/FacFinding/FacFindingText/FacCap
+ * interfaces actually read, verified live against real sample rows
+ * 2026-08-27 to use the exact same column names and "Yes"/"No" /
+ * "Y"/"N" value encodings as the live JSON API — so every existing
+ * parsing helper (isYes, isYesNo, mapCategory, parseGaapResults, etc.)
+ * runs unchanged against rows read from these tables.
+ */
+export const facMirrorGeneral = sqliteTable(
+  'fac_mirror_general',
+  {
+    reportId: text('report_id').primaryKey(),
+    auditeeEin: text('auditee_ein').notNull(),
+    auditeeUei: text('auditee_uei'),
+    auditeeName: text('auditee_name'),
+    auditYear: text('audit_year'),
+    fyEndDate: text('fy_end_date'),
+    fyStartDate: text('fy_start_date'),
+    totalAmountExpended: real('total_amount_expended'),
+    entityType: text('entity_type'),
+    isLowRiskAuditee: text('is_low_risk_auditee'),
+    isGoingConcernIncluded: text('is_going_concern_included'),
+    isMaterialNoncomplianceDisclosed: text('is_material_noncompliance_disclosed'),
+    gaapResults: text('gaap_results'),
+    auditorFirmName: text('auditor_firm_name'),
+    auditorEin: text('auditor_ein'),
+    cognizantAgency: text('cognizant_agency'),
+    oversightAgency: text('oversight_agency'),
+    facAcceptedDate: text('fac_accepted_date'),
+  },
+  (t) => ({
+    einIdx: index('fac_mirror_general_ein_idx').on(t.auditeeEin),
+  })
+);
+
+export const facMirrorFindings = sqliteTable(
+  'fac_mirror_findings',
+  {
+    // Synthetic key, not (report_id, reference_number, award_reference)
+    // — matches the live API's /findings shape, one row per award a
+    // finding is cited against; dedupeFindingRows collapses this the
+    // same way regardless of which source (API or mirror) the rows
+    // came from.
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    reportId: text('report_id').notNull(),
+    auditYear: text('audit_year'),
+    referenceNumber: text('reference_number').notNull(),
+    awardReference: text('award_reference'),
+    typeRequirement: text('type_requirement'),
+    isMaterialWeakness: text('is_material_weakness'),
+    isSignificantDeficiency: text('is_significant_deficiency'),
+    isModifiedOpinion: text('is_modified_opinion'),
+    isOtherMatters: text('is_other_matters'),
+    isOtherFindings: text('is_other_findings'),
+    isQuestionedCosts: text('is_questioned_costs'),
+    isRepeatFinding: text('is_repeat_finding'),
+    priorFindingRefNumbers: text('prior_finding_ref_numbers'),
+  },
+  (t) => ({
+    reportIdx: index('fac_mirror_findings_report_idx').on(t.reportId),
+  })
+);
+
+export const facMirrorFindingsText = sqliteTable(
+  'fac_mirror_findings_text',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    reportId: text('report_id').notNull(),
+    findingRefNumber: text('finding_ref_number').notNull(),
+    findingText: text('finding_text'),
+    containsChartOrTable: text('contains_chart_or_table'),
+  },
+  (t) => ({
+    reportRefIdx: index('fac_mirror_findings_text_report_ref_idx').on(t.reportId, t.findingRefNumber),
+  })
+);
+
+export const facMirrorCorrectiveActionPlans = sqliteTable(
+  'fac_mirror_corrective_action_plans',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    reportId: text('report_id').notNull(),
+    findingRefNumber: text('finding_ref_number').notNull(),
+    plannedAction: text('planned_action'),
+    containsChartOrTable: text('contains_chart_or_table'),
+  },
+  (t) => ({
+    reportRefIdx: index('fac_mirror_cap_report_ref_idx').on(t.reportId, t.findingRefNumber),
+  })
+);
+
+/**
+ * One row per sync attempt (not per table) — lets the app and a human
+ * both tell how fresh the mirror actually is, and makes a failed sync
+ * visible instead of silently leaving stale data in place indefinitely.
+ * `rowCounts` is JSON ({general: n, findings: n, ...}), set on success;
+ * `error` set on failure. status: 'running' | 'success' | 'failed'.
+ */
+export const facMirrorSyncLog = sqliteTable('fac_mirror_sync_log', {
+  id: text('id').primaryKey(),
+  startedAt: integer('started_at', { mode: 'timestamp' }).notNull(),
+  completedAt: integer('completed_at', { mode: 'timestamp' }),
+  status: text('status').notNull(),
+  rowCounts: text('row_counts'),
+  error: text('error'),
 });
 
 /**
