@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -5,6 +6,7 @@ import { SITE_URL } from '@/lib/site-url';
 import { Footer } from '@/app/footer';
 import { getFederalAwardsForOrg } from '@/lib/federal-awards';
 import { AwardTable } from './award-table';
+import { BackLinks } from './back-links';
 
 // federal_awards is fetched live (not mirrored — see
 // lib/fac-api.ts:getFederalAwardsForReports). ISR caches the rendered
@@ -92,12 +94,18 @@ export default async function RiskAssessmentPage(props: {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <Link
-            href={`/single-audit/${ein}`}
-            className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold mb-3"
+          <Suspense
+            fallback={
+              <Link
+                href={`/single-audit/${ein}`}
+                className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold mb-3"
+              >
+                ← Back to audit history
+              </Link>
+            }
           >
-            ← Back to audit history
-          </Link>
+            <BackLinks ein={ein} />
+          </Suspense>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{data.name}</h1>
           <p className="text-gray-600 text-lg mb-1">Federal awards & risk assessment</p>
           <div className="text-gray-600 space-y-1">
