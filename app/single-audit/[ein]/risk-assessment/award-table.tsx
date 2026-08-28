@@ -176,6 +176,22 @@ export function AwardTable({
         </div>
       </div>
 
+      {/* 10% de minimis indirect cost rate (2 CFR 200.414(f)) —
+          notes_to_sefa.is_minimis_rate_used. Suppressed when the record
+          doesn't say (legacy rows). */}
+      {year.deMinimisRate && (
+        <p className="text-xs text-muted mb-3">
+          10% de minimis indirect cost rate:{' '}
+          <span className="font-semibold text-text">
+            {year.deMinimisRate === 'used'
+              ? 'used'
+              : year.deMinimisRate === 'not-used'
+                ? 'not used'
+                : 'used for some awards'}
+          </span>
+        </p>
+      )}
+
       {/* Cross-check against the general-table total for the same report —
           shown only when they diverge, since a mismatch is a data-quality
           signal worth seeing, not noise when they agree. */}

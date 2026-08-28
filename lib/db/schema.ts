@@ -308,6 +308,44 @@ export const facMirrorCorrectiveActionPlans = sqliteTable(
 );
 
 /**
+ * Sprint 5 — additional EINs / UEIs an audit was filed under, keyed on
+ * report_id (the extras beyond general.auditee_ein / .auditee_uei).
+ * Read side for lib/entity-resolution.ts; populated by
+ * scripts/sync-fac-mirror.mjs like every other fac_mirror_* table (raw
+ * DDL + blue-green swap, NOT drizzle-kit push — index names here are
+ * informational, the sync script owns the real ones).
+ */
+export const facMirrorAdditionalEins = sqliteTable(
+  'fac_mirror_additional_eins',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    reportId: text('report_id').notNull(),
+    auditeeUei: text('auditee_uei'),
+    auditYear: text('audit_year'),
+    additionalEin: text('additional_ein').notNull(),
+  },
+  (t) => ({
+    reportIdx: index('fac_mirror_additional_eins_report_idx').on(t.reportId),
+    einIdx: index('fac_mirror_additional_eins_ein_idx').on(t.additionalEin),
+  })
+);
+
+export const facMirrorAdditionalUeis = sqliteTable(
+  'fac_mirror_additional_ueis',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    reportId: text('report_id').notNull(),
+    auditeeUei: text('auditee_uei'),
+    auditYear: text('audit_year'),
+    additionalUei: text('additional_uei').notNull(),
+  },
+  (t) => ({
+    reportIdx: index('fac_mirror_additional_ueis_report_idx').on(t.reportId),
+    ueiIdx: index('fac_mirror_additional_ueis_uei_idx').on(t.additionalUei),
+  })
+);
+
+/**
  * One row per sync attempt (not per table) — lets the app and a human
  * both tell how fresh the mirror actually is, and makes a failed sync
  * visible instead of silently leaving stale data in place indefinitely.

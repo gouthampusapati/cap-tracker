@@ -12,6 +12,7 @@ import {
   resolveClusterName,
   formatAln,
   normalizeAwards,
+  parseDeMinimis,
   dedupeFindingRows,
 } from '../lib/fac-api';
 
@@ -386,6 +387,22 @@ describe('normalizeAwards', () => {
 
   it('handles an empty list', () => {
     expect(normalizeAwards([])).toEqual([]);
+  });
+});
+
+describe('parseDeMinimis', () => {
+  // notes_to_sefa.is_minimis_rate_used — confirmed live 2026-08: Y / N
+  // / Both, plus GSA_MIGRATION on legacy rows.
+  it('maps the three real values', () => {
+    expect(parseDeMinimis('Y')).toBe('used');
+    expect(parseDeMinimis('n')).toBe('not-used');
+    expect(parseDeMinimis('Both')).toBe('partial');
+  });
+  it('returns null for legacy / missing / unexpected values so nothing renders', () => {
+    expect(parseDeMinimis('GSA_MIGRATION')).toBeNull();
+    expect(parseDeMinimis('')).toBeNull();
+    expect(parseDeMinimis(null)).toBeNull();
+    expect(parseDeMinimis('maybe')).toBeNull();
   });
 });
 
