@@ -30,7 +30,7 @@ import { sendOwnerNotification } from '@/lib/send-owner-notification';
 // it's capturing demand for one specific feature that doesn't exist yet
 // (AI-drafted CAP narratives — see app/dashboard/page.tsx's "Generate
 // Draft" button) from someone who already has full product access.
-const VALID_SOURCES = ['homepage-cta-band', 'generate-draft-cta'] as const;
+const VALID_SOURCES = ['homepage-cta-band', 'generate-draft-cta', 'pricing-page'] as const;
 
 // recipient vs. pass-through vs. adviser/auditor is the question the
 // whole product strategy hangs on, and the early-access form is the one

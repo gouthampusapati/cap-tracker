@@ -44,8 +44,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/guide" className="hover:text-gray-900">
-                  Compliance guide
+                <Link href="/auditors" className="hover:text-gray-900">
+                  Auditor directory
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-gray-900">
+                  Pricing
                 </Link>
               </li>
               <li>
@@ -93,6 +98,16 @@ export function Footer() {
                   Compliance Supplement
                 </a>
               </li>
+              <li>
+                <Link href="/guide" className="hover:text-gray-900">
+                  Compliance guide
+                </Link>
+              </li>
+              <li>
+                <Link href="/faq" className="hover:text-gray-900">
+                  FAQ
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
@@ -109,11 +124,14 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                {/* Placeholder inbox — swap for a real monitored address
-                    before this is relied on for actual contact. */}
-                <a href="mailto:hello@singleauditintel.com" className="hover:text-gray-900">
+                <Link href="/about" className="hover:text-gray-900">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-gray-900">
                   Contact
-                </a>
+                </Link>
               </li>
             </ul>
             <p className="text-xs">

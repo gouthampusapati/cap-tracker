@@ -59,11 +59,11 @@ export default function PrivacyPage() {
 
         <div className="bg-gray-100 border border-gray-200 rounded-lg p-6">
           <p className="text-sm text-gray-700">
-            Questions about your data? Reach out via the{' '}
-            <a href="mailto:hello@singleauditintel.com" className="underline font-semibold hover:text-gray-900">
-              contact address
-            </a>{' '}
-            in the footer.
+            Questions about your data? Email{' '}
+            <a href="mailto:contact@singleauditintel.com" className="underline font-semibold hover:text-gray-900">
+              contact@singleauditintel.com
+            </a>
+            .
           </p>
         </div>
       </article>

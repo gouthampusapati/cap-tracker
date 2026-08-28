@@ -68,7 +68,7 @@ export function WaitlistForm({
   variant = 'dark',
   defaultEmail = '',
 }: {
-  source: 'homepage-cta-band' | 'generate-draft-cta';
+  source: 'homepage-cta-band' | 'generate-draft-cta' | 'pricing-page';
   ein?: string;
   ctaLabel?: string;
   className?: string;
