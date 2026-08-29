@@ -13,7 +13,12 @@ import path from 'node:path';
  */
 const DATA_PATH = path.join(process.cwd(), 'data', 'fac-orgs.csv.gz');
 
-export const SITEMAP_CHUNK_SIZE = 50_000;
+// The sitemaps protocol caps a single sitemap file at 50,000 URLs. Chunk
+// 0 also carries the ~dozen static-page URLs (see app/sitemap.ts), so a
+// 50,000 chunk size made /sitemap/0.xml 50,012 URLs — over the limit, and
+// Google reported it as "Couldn't fetch" in Search Console. 45,000 leaves
+// comfortable headroom for the static list to grow.
+export const SITEMAP_CHUNK_SIZE = 45_000;
 
 export function getSitemapChunkCount(): number {
   const total = loadOrgEins().length;
