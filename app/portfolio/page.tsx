@@ -46,16 +46,11 @@ export default async function PortfolioPage(props: {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-4 flex justify-between items-center">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
-              ← Back to home
-            </Link>
-            <Link href="/guide" className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-              Compliance guide
-            </Link>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
-          <p className="text-gray-600 max-w-2xl">{description}</p>
+          <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+            ← Back to home
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 mt-3">{title}</h1>
+          <p className="text-gray-600 mt-2 max-w-2xl">{description}</p>
         </div>
       </div>
 

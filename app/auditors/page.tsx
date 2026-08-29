@@ -87,18 +87,13 @@ export default async function AuditorsDirectoryPage(props: {
 
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-4 flex justify-between items-center">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
-              ← Back to home
-            </Link>
-            <Link href="/guide" className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-              Compliance guide
-            </Link>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+            ← Back to home
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 mt-3">
             {focusName ? `Single Audit Firms in ${focusName}` : 'Single Audit Firm Directory'}
           </h1>
-          <p className="text-gray-600 max-w-2xl">
+          <p className="text-gray-600 mt-2 max-w-2xl">
             Any organization that spends <strong>$1,000,000 or more</strong> in federal award funds
             in a fiscal year must have a Single Audit under 2 CFR 200 Subpart F (the Uniform
             Guidance). These are the CPA firms that perform them, ranked by how many Single Audits
