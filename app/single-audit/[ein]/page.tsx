@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { getRelatedIdentifiers } from '@/lib/entity-resolution';
+import { getOrgSummary, stateName } from '@/lib/orgs';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
@@ -278,6 +279,10 @@ export default async function SingleAuditPage(props: {
   //   siblingEins — other EINs this same audit covers (can be hundreds
   //                 for a big health system — capped in the UI).
   const related = await getRelatedIdentifiers(org.ein);
+  // Mirror-only, 0 FAC calls — for the "other organizations in {state}"
+  // link into the SEO state index (SEO-3).
+  const orgSummary = await getOrgSummary(org.ein);
+  const orgStateName = orgSummary?.state ? stateName(orgSummary.state) : null;
   const parentEins = related.primaryEins;
   const siblingEins = related.eins.filter(
     (e) => e !== org.ein && !parentEins.includes(e)
@@ -725,6 +730,17 @@ export default async function SingleAuditPage(props: {
             .
           </p>
         </div>
+
+        {orgStateName && orgSummary?.state && (
+          <p className="text-sm text-gray-600 mb-8">
+            <Link
+              href={`/single-audit/state/${orgSummary.state.toLowerCase()}`}
+              className="text-blue-600 hover:text-blue-800 font-semibold"
+            >
+              Browse other Single Audit organizations in {orgStateName} →
+            </Link>
+          </p>
+        )}
 
         {/* CTAs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
