@@ -13,8 +13,8 @@ export const revalidate = 86400;
 const BASE_TITLE = 'Single Audit Firms — CPA Firm Directory';
 const BASE_DESC =
   'Find a CPA firm that performs Single Audits (2 CFR 200 Subpart F / Uniform Guidance). ' +
-  'Search 8,000+ firms by state and name, with the number of Single Audits each has filed with ' +
-  'the Federal Audit Clearinghouse.';
+  'Search 8,000+ firms by state, name, or city, with the number of Single Audits each has filed ' +
+  'with the Federal Audit Clearinghouse.';
 
 function cleanState(v: string | undefined): string {
   const s = (v ?? '').trim().toUpperCase();
@@ -125,7 +125,7 @@ export default async function AuditorsDirectoryPage(props: {
         {rows.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-600">
             No firms found{focusName ? ` in ${focusName}` : ''}
-            {q ? ` matching “${q}”` : ''}. Try a different state or a shorter name.
+            {q ? ` matching “${q}”` : ''}. Try a different state, or a shorter firm name or city.
           </div>
         ) : (
           <>
