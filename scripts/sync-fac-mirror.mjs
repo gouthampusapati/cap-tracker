@@ -96,6 +96,8 @@ const TABLES = [
       auditee_ein: 'auditee_ein',
       auditee_uei: 'auditee_uei',
       auditee_name: 'auditee_name',
+      auditee_city: 'auditee_city',
+      auditee_state: 'auditee_state',
       audit_year: 'audit_year',
       fy_end_date: 'fy_end_date',
       fy_start_date: 'fy_start_date',
@@ -123,6 +125,8 @@ const TABLES = [
       auditee_ein TEXT NOT NULL,
       auditee_uei TEXT,
       auditee_name TEXT,
+      auditee_city TEXT,
+      auditee_state TEXT,
       audit_year TEXT,
       fy_end_date TEXT,
       fy_start_date TEXT,
@@ -281,7 +285,7 @@ const TABLES = [
  * from a CSV of their own, then swapped in atomically alongside
  * everything in TABLES. See buildAuditorFirmsTable.
  */
-const DERIVED_TABLES = ['fac_mirror_auditor_firms'];
+const DERIVED_TABLES = ['fac_mirror_auditor_firms', 'fac_mirror_org_summary'];
 
 /** Every live table this sync owns — CSV-loaded + derived. */
 const ALL_LIVE_TABLES = [...TABLES.map((t) => t.liveTable), ...DERIVED_TABLES];
@@ -425,6 +429,128 @@ async function buildAuditorFirmsTable(generalNew, firmsNew, idxSuffix) {
   return rows.length;
 }
 
+const ORG_SUMMARY_DDL = (name) => `CREATE TABLE ${name} (
+  auditee_ein TEXT PRIMARY KEY,
+  name TEXT,
+  state TEXT,
+  city TEXT,
+  audit_count INTEGER NOT NULL,
+  most_recent_year TEXT,
+  total_expended REAL,
+  findings_count INTEGER NOT NULL DEFAULT 0,
+  is_going_concern INTEGER NOT NULL DEFAULT 0,
+  is_low_risk INTEGER NOT NULL DEFAULT 0
+)`;
+
+/**
+ * Roll a fac_mirror_general-shaped table (+ its findings) down to one
+ * row per audited organization (~68K). Backs the SEO landing pages
+ * (/single-audit hub, /single-audit/state/[state]) — an indexed read of
+ * this replaces a full GROUP BY + findings JOIN over ~413K general rows
+ * per request. name / state / city / total_expended / going-concern /
+ * low-risk are taken from the org's MOST RECENT audit year;
+ * findings_count is total distinct findings across all its audits.
+ *
+ * Two plain SELECTs + JS aggregation (same reasoning as
+ * computeAuditorFirmRows — a monster window query is unreliable on the
+ * free-tier Turso). Shared verbatim with backfill-org-summary.mjs.
+ */
+async function computeOrgSummaryRows(dbClient, generalTable, findingsTable) {
+  const generalRows = (
+    await dbClient.execute(`
+      SELECT report_id, auditee_ein, audit_year, auditee_name, auditee_city, auditee_state,
+             total_amount_expended, is_going_concern_included, is_low_risk_auditee
+      FROM ${generalTable}
+      WHERE auditee_ein IS NOT NULL AND auditee_ein <> ''
+    `)
+  ).rows;
+  const findingRows = (
+    await dbClient.execute(`SELECT report_id, reference_number FROM ${findingsTable}`)
+  ).rows;
+
+  const reportEin = new Map();
+  for (const r of generalRows) reportEin.set(r.report_id, r.auditee_ein);
+
+  const findingKeys = new Map(); // ein -> Set('<report_id>|<ref>')
+  for (const f of findingRows) {
+    const ein = reportEin.get(f.report_id);
+    if (!ein) continue;
+    if (!findingKeys.has(ein)) findingKeys.set(ein, new Set());
+    findingKeys.get(ein).add(`${f.report_id}|${f.reference_number}`);
+  }
+
+  const byEin = new Map(); // ein -> { count, latest: row }
+  for (const r of generalRows) {
+    let e = byEin.get(r.auditee_ein);
+    if (!e) {
+      e = { count: 0, latest: null };
+      byEin.set(r.auditee_ein, e);
+    }
+    e.count += 1;
+    if (!e.latest || (r.audit_year ?? '') > (e.latest.audit_year ?? '')) e.latest = r;
+  }
+
+  const yes = (v) => (String(v ?? '').toLowerCase() === 'yes' ? 1 : 0);
+
+  return [...byEin.entries()].map(([ein, e]) => {
+    const m = e.latest;
+    return [
+      ein,
+      m.auditee_name ?? null,
+      (m.auditee_state ?? '').trim().toUpperCase() || null,
+      (m.auditee_city ?? '').trim() || null,
+      e.count,
+      m.audit_year ?? null,
+      m.total_amount_expended ?? null,
+      findingKeys.get(ein)?.size ?? 0,
+      yes(m.is_going_concern_included),
+      yes(m.is_low_risk_auditee),
+    ];
+  });
+}
+
+async function insertOrgSummaryRows(dbClient, table, rows) {
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    await dbClient.batch(
+      rows.slice(i, i + BATCH_SIZE).map((r) => ({
+        sql: `INSERT INTO ${table}
+                (auditee_ein, name, state, city, audit_count, most_recent_year,
+                 total_expended, findings_count, is_going_concern, is_low_risk)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: r,
+      })),
+      'write'
+    );
+  }
+}
+
+/**
+ * Build fac_mirror_org_summary `_new` from the freshly-loaded general +
+ * findings `_new` tables, then swapped in with everything else. See
+ * DERIVED_TABLES / the main() swap loop.
+ */
+async function buildOrgSummaryTable(generalNew, findingsNew, summaryNew, idxSuffix) {
+  await client.execute(`DROP TABLE IF EXISTS ${summaryNew}`);
+  await client.execute(ORG_SUMMARY_DDL(summaryNew));
+
+  const rows = await computeOrgSummaryRows(client, generalNew, findingsNew);
+  if (rows.length === 0 && TEST_MAX_ROWS_PER_TABLE === null) {
+    throw new Error('buildOrgSummaryTable produced 0 rows — refusing to swap an empty summary in');
+  }
+  await insertOrgSummaryRows(client, summaryNew, rows);
+
+  await client.execute(
+    `CREATE INDEX orgsum_state_exp_${idxSuffix} ON ${summaryNew} (state, total_expended DESC)`
+  );
+  await client.execute(
+    `CREATE INDEX orgsum_gc_exp_${idxSuffix} ON ${summaryNew} (is_going_concern, total_expended DESC)`
+  );
+  await client.execute(`CREATE INDEX orgsum_audits_${idxSuffix} ON ${summaryNew} (audit_count DESC)`);
+
+  log(`${summaryNew}: ${rows.length} organizations aggregated`);
+  return rows.length;
+}
+
 /**
  * Regenerate lib/site-stats.json — the numbers behind the homepage
  * "stat bar" (redesign brief, Section 2). Plain COUNT(*) reads against
@@ -440,7 +566,7 @@ async function writeSiteStats() {
   }
   const { rows } = await client.execute(`
     SELECT
-      (SELECT COUNT(DISTINCT auditee_ein) FROM fac_mirror_general) AS organizations,
+      (SELECT COUNT(*) FROM fac_mirror_org_summary) AS organizations,
       (SELECT COUNT(*) FROM fac_mirror_general) AS audit_reports,
       (SELECT COUNT(DISTINCT report_id || '|' || reference_number) FROM fac_mirror_findings) AS findings,
       (SELECT COUNT(*) FROM fac_mirror_auditor_firms) AS audit_firms,
@@ -591,6 +717,12 @@ async function main() {
     rowCounts.auditor_firms = await buildAuditorFirmsTable(
       'fac_mirror_general_new',
       'fac_mirror_auditor_firms_new',
+      idxSuffix
+    );
+    rowCounts.org_summary = await buildOrgSummaryTable(
+      'fac_mirror_general_new',
+      'fac_mirror_findings_new',
+      'fac_mirror_org_summary_new',
       idxSuffix
     );
 
