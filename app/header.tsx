@@ -51,11 +51,33 @@ const BREADCRUMBS: Record<string, string> = {
   '/dashboard/next-cycle-prep': 'Next-Cycle Prep',
 };
 
+const NAV_LINKS = [
+  { href: '/guide', label: 'Guide' },
+  { href: '/portfolio', label: 'Portfolio' },
+  { href: '/auditors', label: 'Auditors' },
+];
+
 export function Header() {
   const pathname = usePathname();
   const breadcrumb = BREADCRUMBS[pathname];
   const { data: session, status } = useSession();
   const [guestEmail, setGuestEmail] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the mobile menu on any navigation.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Close on Escape while it's open.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   // Plain localStorage read (getUser), not getOrCreateUser — the header
   // should reflect whatever identity already exists, not create a guest
@@ -72,6 +94,7 @@ export function Header() {
   }, [pathname]);
 
   const isSignInPage = pathname === '/auth/signin' || pathname === '/auth/verify-request';
+  const isGuest = !session && !!guestEmail && isGuestUser(guestEmail);
 
   return (
     <header className="sticky top-0 z-50 h-16 bg-surface/95 backdrop-blur border-b border-border">
@@ -89,53 +112,150 @@ export function Header() {
           )}
           {!isSignInPage && (
             <nav className="hidden md:flex items-center gap-4 ml-2">
-              <Link href="/guide" className="text-sm text-accent hover:text-blue-800 font-semibold">
-                Guide
-              </Link>
-              <Link href="/portfolio" className="text-sm text-accent hover:text-blue-800 font-semibold">
-                Portfolio
-              </Link>
-              <Link href="/auditors" className="text-sm text-accent hover:text-blue-800 font-semibold">
-                Auditors
-              </Link>
+              {NAV_LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="text-sm text-accent hover:text-blue-800 font-semibold"
+                >
+                  {l.label}
+                </Link>
+              ))}
             </nav>
           )}
         </div>
 
         {!isSignInPage && (
-          <div className="flex items-center gap-3 shrink-0">
-            {status === 'loading' ? null : session ? (
-              <>
-                <span className="hidden sm:inline text-sm text-muted truncate max-w-[14rem]">
-                  {session.user?.name || session.user?.email}
-                </span>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                  className="text-sm text-muted hover:text-text"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : guestEmail && isGuestUser(guestEmail) ? (
-              <Link href="/auth/signin" className="text-sm text-accent hover:underline font-semibold">
-                Sign in with Google to save your workspace
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth/signin" className="text-sm font-semibold text-text hover:text-accent">
-                  Sign in
+          <>
+            {/* Desktop auth cluster. */}
+            <div className="hidden md:flex items-center gap-3 shrink-0">
+              {status === 'loading' ? null : session ? (
+                <>
+                  <span className="hidden sm:inline text-sm text-muted truncate max-w-[14rem]">
+                    {session.user?.name || session.user?.email}
+                  </span>
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                    className="text-sm text-muted hover:text-text"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : isGuest ? (
+                <Link href="/auth/signin" className="text-sm text-accent hover:underline font-semibold">
+                  Sign in with Google to save your workspace
                 </Link>
-                <Link
-                  href="/auth/signin"
-                  className="bg-accent hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2 rounded-md"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
+              ) : (
+                <>
+                  <Link href="/auth/signin" className="text-sm font-semibold text-text hover:text-accent">
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/auth/signin"
+                    className="bg-accent hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2 rounded-md"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* Mobile menu toggle. The primary nav (Guide / Portfolio /
+                Auditors) previously just vanished below md with nothing
+                to replace it — a real gap for a research-heavy audience. */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              className="md:hidden -mr-2 inline-flex items-center justify-center rounded-md p-2 text-text hover:bg-border/40"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className="h-6 w-6"
+                aria-hidden="true"
+              >
+                {menuOpen ? (
+                  <path d="M6 6l12 12M18 6L6 18" />
+                ) : (
+                  <path d="M4 7h16M4 12h16M4 17h16" />
+                )}
+              </svg>
+            </button>
+          </>
         )}
       </div>
+
+      {/* Mobile dropdown. Rendered outside the h-16 bar so it can size to
+          its content; backdrop catches an outside tap. */}
+      {!isSignInPage && menuOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 top-16 z-40 bg-black/20"
+            aria-hidden="true"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div
+            id="mobile-menu"
+            className="md:hidden absolute inset-x-0 top-16 z-50 border-b border-border bg-surface shadow-lg"
+          >
+            <nav className="max-w-5xl mx-auto px-4 sm:px-6 py-2 flex flex-col">
+              {NAV_LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="py-3 text-base font-semibold text-accent"
+                >
+                  {l.label}
+                </Link>
+              ))}
+
+              <div className="my-2 border-t border-border" />
+
+              {status === 'loading' ? null : session ? (
+                <>
+                  <span className="py-2 text-sm text-muted truncate">
+                    {session.user?.name || session.user?.email}
+                  </span>
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                    className="py-3 text-left text-base font-semibold text-muted hover:text-text"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : isGuest ? (
+                <Link
+                  href="/auth/signin"
+                  className="py-3 text-base font-semibold text-accent"
+                >
+                  Sign in with Google to save your workspace
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/signin"
+                    className="py-3 text-base font-semibold text-text"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/auth/signin"
+                    className="my-2 rounded-md bg-accent px-4 py-2.5 text-center text-base font-semibold text-white hover:bg-blue-800"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </nav>
+          </div>
+        </>
+      )}
     </header>
   );
 }
