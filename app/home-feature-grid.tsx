@@ -18,6 +18,16 @@ type Feature = {
   href?: string;
   // Single <path> d-string, drawn on a shared 24x24 stroke icon.
   icon: string;
+  // Optional real badge pills — one card (Risk badges) uses this to show
+  // the colour system in place rather than describe it. Same
+  // severity-token classes as the org page.
+  badges?: { label: string; tone: 'critical' | 'warning' | 'positive' }[];
+};
+
+const BADGE_TONES: Record<NonNullable<Feature['badges']>[number]['tone'], string> = {
+  critical: 'border-severity-critical/30 bg-severity-critical/10 text-severity-critical',
+  warning: 'border-severity-warning/30 bg-severity-warning/10 text-severity-warning',
+  positive: 'border-green-200 bg-green-50 text-green-700',
 };
 
 const FEATURES: Feature[] = [
@@ -48,8 +58,13 @@ const FEATURES: Feature[] = [
   },
   {
     title: 'Risk badges',
-    body: 'Going concern, low-risk auditee, material noncompliance and more — flagged, not buried in booleans.',
+    body: 'Every record is flagged so you can scan risk at a glance — not buried in raw booleans.',
     icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z',
+    badges: [
+      { label: 'GOING CONCERN', tone: 'critical' },
+      { label: 'REPEAT', tone: 'warning' },
+      { label: 'LOW-RISK AUDITEE', tone: 'positive' },
+    ],
   },
   {
     title: 'Auditor directory',
@@ -97,6 +112,18 @@ export function HomeFeatureGrid() {
               <Icon d={f.icon} />
               <h3 className="mb-1 font-semibold text-gray-900">{f.title}</h3>
               <p className="text-sm text-gray-600">{f.body}</p>
+              {f.badges && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {f.badges.map((b) => (
+                    <span
+                      key={b.label}
+                      className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold ${BADGE_TONES[b.tone]}`}
+                    >
+                      {b.label}
+                    </span>
+                  ))}
+                </div>
+              )}
               {f.href && (
                 <span className="mt-2 inline-block text-sm font-semibold text-accent">
                   Open →
