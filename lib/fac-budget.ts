@@ -15,14 +15,21 @@ import { facFetchLog } from '@/lib/db/schema';
  * working through the sitemap was enough on its own to exhaust the
  * shared quota almost continuously, and two-thirds of fetch attempts in
  * a sample were failing outright — not degrading gracefully, just lost.
+ * (That crawl scenario is now mostly moot — the sitemap's org EINs are
+ * all in the local mirror at 0 FAC cost — but this gate is still the
+ * hard ceiling for genuinely-new orgs and deadline-window live checks.)
  */
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-// Each fetch is ~4 FAC calls (lib/fac-api.ts). 180 fetches/hour ≈ 720
-// calls/hour, safely under FAC's ~1,000/hour ceiling with headroom left
-// for direct dashboard imports and manual testing that don't go through
-// this shared cache at all.
-const HOURLY_FETCH_BUDGET = 180;
+// Each fetch is ~4 FAC calls (lib/fac-api.ts). 140 fetches/hour ≈ 560
+// calls/hour — under FAC's ~1,000/hour ceiling with a wide margin. Held
+// deliberately conservative: the org page no longer has a per-IP limiter
+// in middleware (that was incompatible with edge-caching it), so a burst
+// of cache-miss renders now reaches this gate directly. The extra
+// headroom covers the read-then-write race (concurrent misses all
+// passing the check before any logs its fetch) plus direct dashboard
+// imports / manual testing that skip this shared cache entirely.
+const HOURLY_FETCH_BUDGET = 140;
 
 export async function hasFacBudget(): Promise<boolean> {
   const windowStart = new Date(Date.now() - WINDOW_MS);

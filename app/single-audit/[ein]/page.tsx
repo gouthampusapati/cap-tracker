@@ -1,8 +1,10 @@
+import { cache, Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { getRelatedIdentifiers } from '@/lib/entity-resolution';
+import { getOrgSummary, stateName } from '@/lib/orgs';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
@@ -10,9 +12,25 @@ import { Footer } from '@/app/footer';
 import { FindingCard } from './finding-card';
 import { HashExpand } from './hash-expand';
 import { SeverityFilter } from './severity-filter';
+import { BackLink, BackButton, RiskAssessmentLink } from './portfolio-links';
 
-// FAC data changes at most daily; re-fetch each page hourly.
-export const revalidate = 3600;
+// The bulk mirror only refreshes weekly, and getPublicOrg does its own
+// filing-deadline-aware live check for the orgs where freshness actually
+// matters (lib/org-cache-ttl.ts) — so a daily page cache is plenty, and
+// means ~24x fewer cold re-renders than the old hourly value.
+export const revalidate = 86400;
+
+// Prerender nothing at build (68K org pages — not worth the build time,
+// and most are never visited), but DO opt the route into the ISR /
+// full-route cache: with dynamicParams staying true (the default), the
+// first hit for an EIN renders on demand and every hit after that within
+// `revalidate` is served from cache. Without an explicit
+// generateStaticParams, a dynamic segment like this one is treated as
+// fully dynamic (rendered from scratch every request) and the
+// `revalidate` above is silently ignored.
+export function generateStaticParams() {
+  return [];
+}
 
 // Each render does 4 FAC calls (1 sequential + 3 parallel — see
 // lib/fac-api.ts). Default Vercel function timeouts (10s Hobby / 15s Pro)
@@ -103,7 +121,11 @@ type OrgFetchResult =
  * them (the bug this comment used to warn about) tells a visitor "not
  * found" when the truth is "haven't checked yet."
  */
-async function fetchOrgData(ein: string): Promise<OrgFetchResult> {
+// cache() so generateMetadata and the page render share ONE getPublicOrg
+// lookup per request instead of doing the whole mirror read (synced-at +
+// general + findings/text/cap) twice. Same reason getAuditorProfile is
+// wrapped.
+const fetchOrgData = cache(async (ein: string): Promise<OrgFetchResult> => {
   if (!/^\d{9}$/.test(ein)) return { kind: 'not-found' };
 
   const { org, syncedAt, stale, unavailable } = await getPublicOrg(ein);
@@ -145,7 +167,7 @@ async function fetchOrgData(ein: string): Promise<OrgFetchResult> {
       repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
     },
   };
-}
+});
 
 export async function generateMetadata(props: {
   params: Promise<{ ein: string }>;
@@ -217,27 +239,15 @@ export async function generateMetadata(props: {
 
 export default async function SingleAuditPage(props: {
   params: Promise<{ ein: string }>;
-  searchParams: Promise<{ from?: string; eins?: string }>;
 }) {
+  // NOTE: this component deliberately does NOT read searchParams. Doing
+  // so forces a full dynamic render on every request (same as
+  // cookies()/headers()), which is exactly what kept this page — one of
+  // ~68K near-identical org pages, the bulk of the sitemap — off Vercel's
+  // edge cache entirely. The portfolio-trail links (?from=portfolio&eins=)
+  // are read client-side instead, in ./portfolio-links.tsx, so the page
+  // shell stays ISR-cacheable and the trail still works after hydration.
   const params = await props.params;
-  const searchParams = await props.searchParams;
-  // Set only when arriving via a "View →" link from /portfolio (see
-  // app/portfolio/portfolio-table.tsx) — restores that exact portfolio
-  // view rather than a blank /portfolio form. Absent on every other
-  // entry path (direct link, search, sitemap/crawler), so the "back to
-  // home" logic below stays the sole nav in the common case, same
-  // reasoning as removing the old duplicate site-wide nav here.
-  const backToPortfolioHref =
-    searchParams.from === 'portfolio' && searchParams.eins
-      ? `/portfolio?eins=${encodeURIComponent(searchParams.eins)}`
-      : null;
-  // Carry the portfolio context onward to the risk-assessment page so
-  // ITS "back" link can return here with the same params, not to a
-  // bare /single-audit/[ein] that's lost the portfolio trail.
-  const riskAssessmentHref =
-    searchParams.from === 'portfolio' && searchParams.eins
-      ? `/single-audit/${params.ein}/risk-assessment?from=portfolio&eins=${encodeURIComponent(searchParams.eins)}`
-      : `/single-audit/${params.ein}/risk-assessment`;
   const result = await fetchOrgData(params.ein);
 
   if (result.kind === 'not-found') {
@@ -258,12 +268,18 @@ export default async function SingleAuditPage(props: {
             yet, and the shared FAC request budget is fully used for this hour. This doesn&apos;t
             mean the organization has no audit history &mdash; check back in a little while.
           </p>
-          <Link
-            href={backToPortfolioHref ?? '/'}
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg"
+          <Suspense
+            fallback={
+              <Link
+                href="/"
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg"
+              >
+                Back to home
+              </Link>
+            }
           >
-            {backToPortfolioHref ? 'Back to portfolio' : 'Back to home'}
-          </Link>
+            <BackButton />
+          </Suspense>
         </div>
       </div>
     );
@@ -277,7 +293,14 @@ export default async function SingleAuditPage(props: {
   //                 audit; those are the filings that actually cover it.
   //   siblingEins — other EINs this same audit covers (can be hundreds
   //                 for a big health system — capped in the UI).
-  const related = await getRelatedIdentifiers(org.ein);
+  // Both are independent mirror reads (0 FAC calls) — run them together
+  // so the org state lookup (for the SEO "other orgs in {state}" link)
+  // doesn't add a serial round-trip to a page that already does two.
+  const [related, orgSummary] = await Promise.all([
+    getRelatedIdentifiers(org.ein),
+    getOrgSummary(org.ein),
+  ]);
+  const orgStateName = orgSummary?.state ? stateName(orgSummary.state) : null;
   const parentEins = related.primaryEins;
   const siblingEins = related.eins.filter(
     (e) => e !== org.ein && !parentEins.includes(e)
@@ -351,12 +374,15 @@ export default async function SingleAuditPage(props: {
           a portfolio it also carries them back to that specific list. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <Link
-            href={backToPortfolioHref ?? '/'}
-            className="text-blue-600 hover:text-blue-800 text-sm"
+          <Suspense
+            fallback={
+              <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
+                ← Back to home
+              </Link>
+            }
           >
-            {backToPortfolioHref ? '← Back to portfolio' : '← Back to home'}
-          </Link>
+            <BackLink />
+          </Suspense>
           <h1 className="text-3xl font-bold text-gray-900 mt-3 mb-2">
             {org.name}
             {/* Entity type — org.auditHistory is newest-first (see
@@ -488,12 +514,21 @@ export default async function SingleAuditPage(props: {
               </p>
             )}
             <p className="pt-1">
-              <Link
-                href={riskAssessmentHref}
-                className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold"
+              <Suspense
+                fallback={
+                  <Link
+                    href={`/single-audit/${org.ein}/risk-assessment`}
+                    className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                  >
+                    View federal awards &amp; risk assessment →
+                  </Link>
+                }
               >
-                View federal awards &amp; risk assessment →
-              </Link>
+                <RiskAssessmentLink
+                  ein={org.ein}
+                  className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                />
+              </Suspense>
             </p>
             {org.stale ? (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-block">
@@ -725,6 +760,17 @@ export default async function SingleAuditPage(props: {
             .
           </p>
         </div>
+
+        {orgStateName && orgSummary?.state && (
+          <p className="text-sm text-gray-600 mb-8">
+            <Link
+              href={`/single-audit/state/${orgSummary.state.toLowerCase()}`}
+              className="text-blue-600 hover:text-blue-800 font-semibold"
+            >
+              Browse other Single Audit organizations in {orgStateName} →
+            </Link>
+          </p>
+        )}
 
         {/* CTAs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

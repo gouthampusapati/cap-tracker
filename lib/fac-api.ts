@@ -42,6 +42,22 @@ function parseRateHeaders(res: Response): { remaining: number | null; limit: num
   };
 }
 
+// How long Next may reuse a FAC HTTP response from its Data Cache.
+//
+// This is NOT the app's real freshness control — lib/public-org-cache.ts
+// (Turso + deadline-aware TTL) owns that, and facGet is only reached on a
+// miss there. Its job here is narrower but important: an *uncached* fetch
+// inside a Server Component render forces the whole route to be
+// dynamically rendered on every request (Next 15). That's what kept
+// /single-audit/[ein] and its risk-assessment sub-page — ~68K
+// near-identical pages, the bulk of the sitemap — off the ISR/edge cache
+// entirely, re-rendering from scratch (and re-hitting the DB) on every
+// hit. Giving the fetch an explicit revalidate makes it a *cached* data
+// request, so those pages can prerender and be served from cache per
+// their own `export const revalidate`. An hour-stale FAC response on the
+// rare miss path is harmless — FAC filings don't change intraday.
+const FAC_FETCH_REVALIDATE_SECONDS = 60 * 60;
+
 async function facGet<T>(path: string, params: Record<string, string>): Promise<T[]> {
   const qs = new URLSearchParams(params).toString();
   const url = `${FAC_BASE}/${path}?${qs}`;
@@ -55,7 +71,10 @@ async function facGet<T>(path: string, params: Record<string, string>): Promise<
 
     let res: Response;
     try {
-      res = await fetch(url, { headers: { 'X-Api-Key': key } });
+      res = await fetch(url, {
+        headers: { 'X-Api-Key': key },
+        next: { revalidate: FAC_FETCH_REVALIDATE_SECONDS },
+      });
     } catch (err) {
       // Network-level failure — record it (status 0) and try the next
       // key if there is one, otherwise rethrow.

@@ -16,6 +16,17 @@ import { BackLinks } from './back-links';
 // fetch per hour and zero DB writes.
 export const revalidate = 3600;
 
+// Prerender nothing at build, but opt into the ISR / full-route cache:
+// without an explicit generateStaticParams a dynamic segment is rendered
+// from scratch on every request and the `revalidate` above is ignored —
+// meaning a live FAC fetch (federal_awards isn't mirrored) on every hit.
+// With this, the first hit per EIN renders live and the rest of the hour
+// is served from cache. dynamicParams stays true (default) so any EIN
+// still works on demand. Same pattern as the parent org page.
+export function generateStaticParams() {
+  return [];
+}
+
 // One live FAC call (plus a mirror-backed getPublicOrg that's usually
 // free). 30s keeps headroom for FAC latency on a big state agency's SEFA
 // while staying under the Hobby 60s ceiling.

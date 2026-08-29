@@ -54,21 +54,11 @@ function createLimiter(windowMs: number, maxRequests: number) {
 // than a live FAC round-trip).
 export const isRateLimited = createLimiter(60_000, 120);
 
-// Same surfaces as isRateLimited, but over an hour rather than a minute
-// — the two run TOGETHER, not as alternatives. This is the one that
-// actually protects the shared FAC budget (lib/fac-budget.ts,
-// 180 lookups/hour site-wide): a single IP sustaining a high per-minute
-// rate for a while can still burn through the *entire* hourly site-wide
-// budget on its own IF every one of its requests happens to be a mirror
-// miss (a genuinely new EIN, or one near its filing deadline — see
-// lib/org-cache-ttl.ts). That worst case is far less likely post-Sprint
-// 4 (most crawl targets, e.g. from the sitemap, are already mirrored)
-// but not impossible, so this stays a real cap, not removed — just
-// loosened from capping one source's worst-case share of the shared
-// pool at ~11% to ~50%, which is generous for legitimate high-volume
-// crawling of mostly-mirrored content (Google, or any other crawler)
-// while still leaving room for the rest of the pool if the worst case
-// ever does happen.
+// Same surfaces as isRateLimited (now just the /api/* routes — the org
+// page moved off middleware, see middleware.ts), but over an hour. The
+// two run TOGETHER. Kept as a secondary cap on the API surfaces; the
+// shared FAC budget (lib/fac-budget.ts, 140 fetches/hour site-wide) is
+// the real ceiling and applies to the org page too via its data layer.
 export const isHourlyRateLimited = createLimiter(60 * 60_000, 90);
 
 // /portfolio: up to PORTFOLIO_MAX_EINS EINs per submission (10, was 50

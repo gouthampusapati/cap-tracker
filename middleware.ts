@@ -8,46 +8,32 @@ import {
 } from '@/lib/rate-limit';
 
 /**
- * Rate-limits: (1) the public surfaces that each cost calls against the
- * shared FAC API quota — single-org lookups (the org page itself — the
- * thing a crawler would actually hit at scale — the public JSON
- * endpoint kept for external consumers, and now /api/import, which used
- * to be the one FAC-costing surface with no IP throttling at all — see
- * app/api/import/route.ts) and portfolio submissions, which cost up to
- * ~10x a single lookup per request and get a much tighter budget;
- * (2) /api/waitlist, which doesn't touch FAC at all but is a public POST
- * endpoint that can still be spammed; and (3) /api/auth/signin/email
- * (magic-link sign-in requests — see auth.ts), since each one costs a
- * real email send to whatever address was typed in, not just this app's
- * own resources. Everything else — /dashboard, /auth/signin itself (the
- * page, not the email-send action), /api/cap-items, /api/findings, the
- * plain /api/org lookup-by-email route — is untouched; see the matcher
- * below.
+ * Rate-limits: (1) the FAC-costing JSON API surfaces — /api/org/[ein]
+ * (the public JSON endpoint kept for external consumers) and /api/import
+ * — plus portfolio submissions, which cost up to ~10x a single lookup
+ * and get a much tighter budget; (2) /api/waitlist, which doesn't touch
+ * FAC but is a public POST that can be spammed; and (3)
+ * /api/auth/signin/email (magic-link requests — see auth.ts), each of
+ * which costs a real email send. Everything else is untouched; see the
+ * matcher.
  *
- * Single-org surfaces get BOTH isRateLimited (per-minute burst) AND
- * isHourlyRateLimited (per-hour sustained) — the per-minute limiter
- * alone doesn't protect the shared 180/hour FAC budget
- * (lib/fac-budget.ts) from one sustained IP; see isHourlyRateLimited's
- * own comment in lib/rate-limit.ts.
+ * NOT here any more: the /single-audit HTML pages. Per-IP throttling
+ * forces a route to be served uncached (middleware runs on every
+ * request), and an edge-cached org page is worth far more than the
+ * per-IP layer — which, post-mirror, barely fires (the sitemap's ~68K
+ * org EINs are all served from the local mirror at 0 FAC cost). The org
+ * page relies on the global lib/fac-budget.ts ceiling instead, a hard
+ * cap on live FAC calls regardless of request volume or source.
+ *
+ * The API surfaces above still get BOTH isRateLimited (per-minute burst)
+ * AND isHourlyRateLimited (per-hour sustained) — see isHourlyRateLimited
+ * in lib/rate-limit.ts.
  */
 export function middleware(req: NextRequest) {
   const ip =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
     'unknown';
-
-  // TEMPORARY diagnostic: identify what's been discovering a new EIN on
-  // /single-audit/[ein] every ~5s (see 05d0c7f / the 86.6% error-rate
-  // investigation) — Vercel's log stream doesn't include request headers
-  // by default, so there was no way to see the User-Agent any other way.
-  // Remove once the source is confirmed (matters concretely: Googlebot
-  // ignores the Crawl-delay just added to robots.ts, so if it's
-  // Googlebot we need Search Console instead, not a robots.txt change).
-  if (req.nextUrl.pathname.startsWith('/single-audit/')) {
-    console.log(
-      `[crawler-diagnostic] ${ip} UA="${req.headers.get('user-agent') || 'none'}" ${req.nextUrl.pathname}`
-    );
-  }
 
   if (req.nextUrl.pathname === '/api/waitlist') {
     if (isWaitlistRateLimited(ip)) {
@@ -85,9 +71,10 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Single-org surfaces (org page, /api/org/[ein], /api/import): both
-  // limiters must pass — see the file comment above for why one alone
-  // isn't enough.
+  // The FAC-costing JSON API surfaces (/api/org/[ein], /api/import): both
+  // limiters must pass. The org page itself is no longer here — see the
+  // config.matcher note — so it's protected only by the global
+  // lib/fac-budget.ts ceiling now.
   if (isRateLimited(ip) || isHourlyRateLimited(ip)) {
     return NextResponse.json(
       { error: 'Too many requests. Try again shortly.' },
@@ -99,11 +86,23 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // :path+ requires at least one segment after /api/org/, so the
-  // authenticated /api/org (no EIN — lookup by signed-in user's email)
-  // route is not matched here.
+  // Any path matched here runs through middleware on every request, which
+  // makes Vercel serve it UNCACHED (middleware can rate-limit / rewrite,
+  // so the edge can't reuse a response). Per-IP throttling and an
+  // edge-cached page are mutually exclusive — so the HTML pages
+  // (/single-audit, /single-audit/state/*, /single-audit/<ein>, and its
+  // sub-routes) are all kept OUT of the matcher and rely on the shared,
+  // global FAC-fetch budget (lib/fac-budget.ts) instead. That budget is
+  // a hard ceiling on live FAC calls regardless of request volume, and
+  // post-mirror the sitemap's ~68K org EINs are all served from the
+  // local mirror at 0 FAC cost anyway, so the per-IP layer the org page
+  // used to have was doing very little.
+  //
+  // The JSON API surfaces still cost FAC calls per hit and don't benefit
+  // from page caching, so they keep the per-IP limiter. :path+ on
+  // /api/org requires a segment, so the authenticated /api/org (lookup
+  // by signed-in user's email) is not matched.
   matcher: [
-    '/single-audit/:path*',
     '/api/org/:path+',
     '/api/import',
     '/portfolio',
