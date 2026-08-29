@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { getSitemapChunkCount, loadOrgEins, SITEMAP_CHUNK_SIZE } from '@/lib/sitemap-orgs';
 import { SITE_URL } from '@/lib/site-url';
+import { US_STATES } from '@/lib/us-states';
 
 // FAC bulk data (data/fac-orgs.csv.gz) is refreshed at most daily by
 // scripts/ingest-fac-orgs.mjs; no need to regenerate these chunks more
@@ -109,6 +110,20 @@ export default async function sitemap({
         changeFrequency: 'weekly',
         priority: 0.8,
       },
+      {
+        url: `${baseUrl}/single-audit`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      },
+      // State org-index pages (SEO-3). Every US_STATES code has
+      // organizations in fac_mirror_org_summary, so none of these 404.
+      ...Object.keys(US_STATES).map((code) => ({
+        url: `${baseUrl}/single-audit/state/${code.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      })),
       {
         url: `${baseUrl}/faq`,
         lastModified: new Date(),

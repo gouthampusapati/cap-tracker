@@ -110,6 +110,23 @@ export async function getStateOrgIndex(stateCode: string, limit = 250): Promise<
   }
 }
 
+/** The single summary row for one org, or null. Used for the org page's
+ * "other organizations in {state}" cross-link. */
+export async function getOrgSummary(ein: string): Promise<OrgSummary | null> {
+  if (!/^\d{9}$/.test(ein)) return null;
+  try {
+    const rows = await db
+      .select(ORG_COLUMNS)
+      .from(facMirrorOrgSummary)
+      .where(eq(facMirrorOrgSummary.auditeeEin, ein))
+      .limit(1);
+    return rows.length ? shape(rows[0] as RawRow) : null;
+  } catch (err) {
+    console.error('[orgs] getOrgSummary failed:', err);
+    return null;
+  }
+}
+
 /** Org count per state — for the hub's "browse by state" grid. */
 export async function getStateOrgCounts(): Promise<Record<string, number>> {
   try {

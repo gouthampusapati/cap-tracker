@@ -39,6 +39,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/single-audit" className="hover:text-gray-900">
+                  Organization lookup
+                </Link>
+              </li>
+              <li>
                 <Link href="/portfolio" className="hover:text-gray-900">
                   Portfolio
                 </Link>
