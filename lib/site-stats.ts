@@ -20,6 +20,8 @@ export interface SiteStats {
   organizations: number;
   /** Rows in fac_mirror_general — one per (organization, audit year). */
   auditReports: number;
+  /** Distinct (report, reference number) findings across fac_mirror_findings. */
+  findings: number;
   /** Distinct auditor EINs, excluding FAC's placeholders ('' / 999999999). */
   auditFirms: number;
   earliestAuditYear: number;

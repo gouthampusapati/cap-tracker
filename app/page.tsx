@@ -142,40 +142,46 @@ export default function Home() {
           trust device for a data product; numbers are rounded down with
           a "+" since the mirror is a subset of FAC's full history. */}
       <div className="border-y border-border bg-surface-alt">
-        <dl className="max-w-5xl mx-auto grid grid-cols-2 gap-y-6 px-4 py-8 text-center sm:grid-cols-4 sm:px-6 lg:px-8">
-          <div>
-            <dt className="text-h3 font-semibold tabular-nums text-gray-900">
-              {approxCount(SITE_STATS.organizations)}
-            </dt>
-            <dd className="mt-1 text-small text-gray-600">Organizations</dd>
-          </div>
-          <div>
-            <dt className="text-h3 font-semibold tabular-nums text-gray-900">
-              {approxCount(SITE_STATS.auditReports)}
-            </dt>
-            <dd className="mt-1 text-small text-gray-600">Audit years indexed</dd>
-          </div>
-          <div>
-            <dt className="text-h3 font-semibold tabular-nums text-gray-900">
-              {approxCount(SITE_STATS.auditFirms)}
-            </dt>
-            <dd className="mt-1 text-small text-gray-600">Audit firms</dd>
-          </div>
-          <div>
-            <dt className="text-h3 font-semibold text-gray-900">Weekly</dt>
-            <dd className="mt-1 text-small text-gray-600">
-              Refreshed from{' '}
-              <a
-                href="https://www.fac.gov"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-accent"
-              >
-                FAC.gov
-              </a>
-            </dd>
-          </div>
-        </dl>
+        <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <dl className="grid grid-cols-2 gap-y-6 text-center sm:grid-cols-4">
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.organizations)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Organizations</dd>
+            </div>
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.auditReports)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Single audits indexed</dd>
+            </div>
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.findings)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Audit findings</dd>
+            </div>
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.auditFirms)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Audit firms</dd>
+            </div>
+          </dl>
+          <p className="mt-6 text-center text-caption text-gray-500">
+            Covering fiscal years {SITE_STATS.earliestAuditYear}–present · mirrored from the{' '}
+            <a
+              href="https://www.fac.gov"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-accent"
+            >
+              Federal Audit Clearinghouse
+            </a>{' '}
+            and refreshed weekly
+          </p>
+        </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

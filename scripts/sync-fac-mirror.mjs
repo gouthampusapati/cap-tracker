@@ -308,6 +308,7 @@ async function writeSiteStats() {
     SELECT
       (SELECT COUNT(DISTINCT auditee_ein) FROM fac_mirror_general) AS organizations,
       (SELECT COUNT(*) FROM fac_mirror_general) AS audit_reports,
+      (SELECT COUNT(DISTINCT report_id || '|' || reference_number) FROM fac_mirror_findings) AS findings,
       (SELECT COUNT(DISTINCT auditor_ein) FROM fac_mirror_general
          WHERE auditor_ein IS NOT NULL AND auditor_ein NOT IN ('', '999999999')) AS audit_firms,
       (SELECT MIN(audit_year) FROM fac_mirror_general) AS earliest_year,
@@ -317,6 +318,7 @@ async function writeSiteStats() {
   const stats = {
     organizations: Number(r.organizations),
     auditReports: Number(r.audit_reports),
+    findings: Number(r.findings),
     auditFirms: Number(r.audit_firms),
     earliestAuditYear: Number(r.earliest_year),
     latestAuditYear: Number(r.latest_year),
