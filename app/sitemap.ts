@@ -8,8 +8,10 @@ import { SITE_URL } from '@/lib/site-url';
 export const revalidate = 86400;
 
 /**
- * Splits the org list into <=50,000-URL chunks and tells Next.js to serve
- * one child sitemap per chunk at /sitemap/0.xml, /sitemap/1.xml, ... —
+ * Splits the org list into SITEMAP_CHUNK_SIZE-URL chunks (under the
+ * protocol's 50,000-per-file cap — chunk 0 also carries the static
+ * pages) and tells Next.js to serve one child sitemap per chunk at
+ * /sitemap/0.xml, /sitemap/1.xml, ... —
  * this is Next's built-in mechanism for exactly this
  * (https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap#generate-a-sitemap).
  *
