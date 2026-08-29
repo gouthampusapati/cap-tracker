@@ -263,6 +263,34 @@ export const facMirrorGeneral = sqliteTable(
   })
 );
 
+/**
+ * Derived, NOT loaded from a CSV — one row per audit firm (~8.4K),
+ * pre-aggregated from fac_mirror_general by scripts/sync-fac-mirror.mjs
+ * (buildAuditorFirmsTable) and swapped in with the rest of the mirror.
+ * Backs the /auditors directory: an indexed LIMIT scan here replaces a
+ * full GROUP BY + count(distinct) over every ~413K general row per
+ * request (~4.5s before). firm_name / city / state are the modal
+ * (most-frequent) values per firm, tie-broken by most-recent audit year
+ * — matches lib/auditors-shared.ts pickFirmName. Index names below are
+ * informational; the sync script owns the real (suffixed) ones.
+ */
+export const facMirrorAuditorFirms = sqliteTable(
+  'fac_mirror_auditor_firms',
+  {
+    auditorEin: text('auditor_ein').primaryKey(),
+    firmName: text('firm_name'),
+    city: text('city'),
+    state: text('state'),
+    auditCount: integer('audit_count').notNull(),
+    clientCount: integer('client_count').notNull(),
+    mostRecentYear: text('most_recent_year'),
+  },
+  (t) => ({
+    stateCountIdx: index('fac_mirror_auditor_firms_state_count_idx').on(t.state, t.auditCount),
+    countIdx: index('fac_mirror_auditor_firms_count_idx').on(t.auditCount),
+  })
+);
+
 export const facMirrorFindings = sqliteTable(
   'fac_mirror_findings',
   {
