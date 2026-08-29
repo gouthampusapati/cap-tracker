@@ -85,10 +85,16 @@ jobs:
 
     steps:
       - name: Check deployment status
+        # `deploy` only runs on a push to main; on every PR its `if`
+        # skips it, so `needs.deploy.result` is "skipped". The old check
+        # compared that literal against "success" and exited 1 — a
+        # permanent red "Notify on Deployment" X on every PR. "skipped"
+        # here means "no deploy was expected", which is fine; only a
+        # genuine "failure"/"cancelled" is worth failing on.
         run: |
-          if [ "${{ needs.deploy.result }}" = "success" ]; then
-            echo "✅ Deployment to Vercel succeeded"
-          else
-            echo "❌ Deployment failed"
-            exit 1
-          fi
+          result="${{ needs.deploy.result }}"
+          case "$result" in
+            success)  echo "✅ Deployment to Vercel succeeded" ;;
+            skipped)  echo "ℹ️ No deploy for this event (PR / non-main) — nothing to check" ;;
+            *)        echo "❌ Deploy job result: $result"; exit 1 ;;
+          esac
