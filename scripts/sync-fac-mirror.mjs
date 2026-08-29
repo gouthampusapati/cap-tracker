@@ -46,6 +46,9 @@ import { createClient } from '@libsql/client';
 import { parse } from 'csv-parse';
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
@@ -288,6 +291,47 @@ function log(msg) {
  * which would make any Drizzle-side read of this table (or a duration
  * computed as completed_at - started_at) come out ~1000x wrong.
  */
+/**
+ * Regenerate lib/site-stats.json — the numbers behind the homepage
+ * "stat bar" (redesign brief, Section 2). Plain COUNT(*) reads against
+ * the just-swapped live tables: no write-quota cost, so it's safe to
+ * run every sync. The GitHub Actions workflow commits the file back to
+ * main if it changed. Non-fatal by contract — the caller wraps this in
+ * try/catch so a stats hiccup never fails the actual mirror sync.
+ */
+async function writeSiteStats() {
+  if (TEST_MAX_ROWS_PER_TABLE !== null) {
+    log('site-stats: skipped (test run — counts would be truncated)');
+    return;
+  }
+  const { rows } = await client.execute(`
+    SELECT
+      (SELECT COUNT(DISTINCT auditee_ein) FROM fac_mirror_general) AS organizations,
+      (SELECT COUNT(*) FROM fac_mirror_general) AS audit_reports,
+      (SELECT COUNT(DISTINCT report_id || '|' || reference_number) FROM fac_mirror_findings) AS findings,
+      (SELECT COUNT(DISTINCT auditor_ein) FROM fac_mirror_general
+         WHERE auditor_ein IS NOT NULL AND auditor_ein NOT IN ('', '999999999')) AS audit_firms,
+      (SELECT MIN(audit_year) FROM fac_mirror_general) AS earliest_year,
+      (SELECT MAX(audit_year) FROM fac_mirror_general) AS latest_year
+  `);
+  const r = rows[0];
+  const stats = {
+    organizations: Number(r.organizations),
+    auditReports: Number(r.audit_reports),
+    findings: Number(r.findings),
+    auditFirms: Number(r.audit_firms),
+    earliestAuditYear: Number(r.earliest_year),
+    latestAuditYear: Number(r.latest_year),
+    refreshedAt: new Date().toISOString().slice(0, 10),
+  };
+  if (!stats.organizations || !stats.auditReports) {
+    throw new Error(`refusing to write empty-looking stats: ${JSON.stringify(stats)}`);
+  }
+  const target = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'site-stats.json');
+  await writeFile(target, `${JSON.stringify(stats, null, 2)}\n`);
+  log(`site-stats written: ${JSON.stringify(stats)}`);
+}
+
 function toEpochSeconds(date) {
   return Math.floor(date.getTime() / 1000);
 }
@@ -451,6 +495,15 @@ async function main() {
       args: [toEpochSeconds(completedAt), 'success', JSON.stringify(rowCountsPayload), syncId],
     });
     log(`sync complete: ${JSON.stringify(rowCountsPayload)}`);
+
+    // Homepage stat-bar numbers. Non-fatal: the mirror is already
+    // swapped and healthy at this point — a stats failure must not turn
+    // a successful sync into a failed one.
+    try {
+      await writeSiteStats();
+    } catch (err) {
+      log(`site-stats refresh failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log(`SYNC FAILED: ${message}`);
