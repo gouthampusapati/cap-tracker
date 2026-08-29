@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -12,8 +13,11 @@ import { FindingCard } from './finding-card';
 import { HashExpand } from './hash-expand';
 import { SeverityFilter } from './severity-filter';
 
-// FAC data changes at most daily; re-fetch each page hourly.
-export const revalidate = 3600;
+// The bulk mirror only refreshes weekly, and getPublicOrg does its own
+// filing-deadline-aware live check for the orgs where freshness actually
+// matters (lib/org-cache-ttl.ts) — so a daily page cache is plenty, and
+// means ~24x fewer cold re-renders than the old hourly value.
+export const revalidate = 86400;
 
 // Each render does 4 FAC calls (1 sequential + 3 parallel — see
 // lib/fac-api.ts). Default Vercel function timeouts (10s Hobby / 15s Pro)
@@ -104,7 +108,11 @@ type OrgFetchResult =
  * them (the bug this comment used to warn about) tells a visitor "not
  * found" when the truth is "haven't checked yet."
  */
-async function fetchOrgData(ein: string): Promise<OrgFetchResult> {
+// cache() so generateMetadata and the page render share ONE getPublicOrg
+// lookup per request instead of doing the whole mirror read (synced-at +
+// general + findings/text/cap) twice. Same reason getAuditorProfile is
+// wrapped.
+const fetchOrgData = cache(async (ein: string): Promise<OrgFetchResult> => {
   if (!/^\d{9}$/.test(ein)) return { kind: 'not-found' };
 
   const { org, syncedAt, stale, unavailable } = await getPublicOrg(ein);
@@ -146,7 +154,7 @@ async function fetchOrgData(ein: string): Promise<OrgFetchResult> {
       repeatFindingsCount: org.findings.filter((f) => f.isRepeatFinding).length,
     },
   };
-}
+});
 
 export async function generateMetadata(props: {
   params: Promise<{ ein: string }>;
@@ -278,10 +286,13 @@ export default async function SingleAuditPage(props: {
   //                 audit; those are the filings that actually cover it.
   //   siblingEins — other EINs this same audit covers (can be hundreds
   //                 for a big health system — capped in the UI).
-  const related = await getRelatedIdentifiers(org.ein);
-  // Mirror-only, 0 FAC calls — for the "other organizations in {state}"
-  // link into the SEO state index (SEO-3).
-  const orgSummary = await getOrgSummary(org.ein);
+  // Both are independent mirror reads (0 FAC calls) — run them together
+  // so the org state lookup (for the SEO "other orgs in {state}" link)
+  // doesn't add a serial round-trip to a page that already does two.
+  const [related, orgSummary] = await Promise.all([
+    getRelatedIdentifiers(org.ein),
+    getOrgSummary(org.ein),
+  ]);
   const orgStateName = orgSummary?.state ? stateName(orgSummary.state) : null;
   const parentEins = related.primaryEins;
   const siblingEins = related.eins.filter(
