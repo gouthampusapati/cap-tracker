@@ -6,6 +6,9 @@ import { WaitlistForm } from './waitlist-form';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomeFeatureGrid } from './home-feature-grid';
+import { HomeFacComparison } from './home-fac-comparison';
+import { HomeGuideTeaser } from './home-guide-teaser';
+import { HomeFaqPreview } from './home-faq-preview';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 
 const title = 'Single Audit Intelligence';
@@ -192,7 +195,7 @@ export default function Home() {
             reasoning, as the org-page "Are you this organization?" CTA
             (see app/single-audit/[ein]/page.tsx). "For Pass-Throughs"
             still goes straight to /portfolio, which needs no account. */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 mb-16">
           <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
@@ -253,6 +256,33 @@ export default function Home() {
               Start monitoring →
             </Link>
           </div>
+
+          {/* For Auditors — the directory is built (Sprint C) but the
+              homepage never pointed a firm at it. Framed as a
+              record/benchmarking tool, not a lead-gen pitch. */}
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-3"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h10M3 12h7M3 18h7M15 13l6 6M20 11.5a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+            </svg>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">For Auditors</h2>
+            <p className="text-gray-600 mb-4">
+              Look up any firm&apos;s Single Audit track record — client roster, audit counts,
+              findings history. Benchmark against peers, or show a prospective client your record.
+            </p>
+            <Link
+              href="/auditors"
+              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+            >
+              Browse the directory →
+            </Link>
+          </div>
         </div>
 
         {/* What is a Single Audit? */}
@@ -282,7 +312,13 @@ export default function Home() {
           </p>
         </div>
 
+        <HomeFacComparison />
+
         <HomeFeatureGrid />
+
+        <HomeGuideTeaser />
+
+        <HomeFaqPreview />
       </div>
 
       {/* CTA Footer — the one CTA that's genuinely just general-interest
