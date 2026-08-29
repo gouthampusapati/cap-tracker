@@ -27,7 +27,12 @@ on:
   workflow_dispatch: {} # manual trigger, e.g. for a first-run or a retry
 
 permissions:
-  contents: read
+  # write (was read) so the post-sync step can commit the refreshed
+  # lib/site-stats.json (homepage stat bar) back to main. If main is
+  # ever branch-protected against direct pushes, that step is
+  # continue-on-error — the mirror sync itself still succeeds and the
+  # stats just go stale until refreshed by hand.
+  contents: write
 
 concurrency:
   group: sync-fac-mirror
@@ -62,3 +67,22 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
           WAITLIST_NOTIFY_EMAIL: ${{ secrets.WAITLIST_NOTIFY_EMAIL }}
+
+      # scripts/sync-fac-mirror.mjs rewrites lib/site-stats.json (homepage
+      # stat bar) at the end of a successful run. Commit it back if it
+      # moved. [skip ci] + the fact that GITHUB_TOKEN pushes don't
+      # retrigger workflows keeps this from looping. continue-on-error so
+      # a protected main (or any push hiccup) never marks the sync failed.
+      - name: Commit refreshed homepage stats
+        if: success()
+        continue-on-error: true
+        run: |
+          if git diff --quiet -- lib/site-stats.json; then
+            echo "lib/site-stats.json unchanged — nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/site-stats.json
+          git commit -m "chore: refresh homepage stat bar from weekly FAC mirror sync [skip ci]"
+          git push
