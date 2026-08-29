@@ -231,6 +231,10 @@ export const facMirrorGeneral = sqliteTable(
     auditeeEin: text('auditee_ein').notNull(),
     auditeeUei: text('auditee_uei'),
     auditeeName: text('auditee_name'),
+    // Auditee location — added for the SEO landing pages (state org
+    // index). Feeds fac_mirror_org_summary; also shown on the org page.
+    auditeeCity: text('auditee_city'),
+    auditeeState: text('auditee_state'),
     auditYear: text('audit_year'),
     fyEndDate: text('fy_end_date'),
     fyStartDate: text('fy_start_date'),
@@ -288,6 +292,39 @@ export const facMirrorAuditorFirms = sqliteTable(
   (t) => ({
     stateCountIdx: index('fac_mirror_auditor_firms_state_count_idx').on(t.state, t.auditCount),
     countIdx: index('fac_mirror_auditor_firms_count_idx').on(t.auditCount),
+  })
+);
+
+/**
+ * Derived — one row per audited organization (~68K), pre-aggregated from
+ * fac_mirror_general + fac_mirror_findings by scripts/sync-fac-mirror.mjs
+ * (buildOrgSummaryTable), swapped in with the rest of the mirror. Backs
+ * the SEO landing pages: the /single-audit hub and /single-audit/state/*
+ * state indexes read this instead of a full GROUP BY + findings JOIN
+ * over ~413K general rows per request. name / state / city /
+ * total_expended / is_going_concern / is_low_risk are the org's
+ * MOST-RECENT audit year; findings_count and audit_count span all years.
+ * Index names below are informational; the sync script owns the real
+ * (suffixed) ones.
+ */
+export const facMirrorOrgSummary = sqliteTable(
+  'fac_mirror_org_summary',
+  {
+    auditeeEin: text('auditee_ein').primaryKey(),
+    name: text('name'),
+    state: text('state'),
+    city: text('city'),
+    auditCount: integer('audit_count').notNull(),
+    mostRecentYear: text('most_recent_year'),
+    totalExpended: real('total_expended'),
+    findingsCount: integer('findings_count').notNull().default(0),
+    isGoingConcern: integer('is_going_concern').notNull().default(0),
+    isLowRisk: integer('is_low_risk').notNull().default(0),
+  },
+  (t) => ({
+    stateExpIdx: index('fac_mirror_org_summary_state_exp_idx').on(t.state, t.totalExpended),
+    goingConcernIdx: index('fac_mirror_org_summary_gc_exp_idx').on(t.isGoingConcern, t.totalExpended),
+    auditsIdx: index('fac_mirror_org_summary_audits_idx').on(t.auditCount),
   })
 );
 
