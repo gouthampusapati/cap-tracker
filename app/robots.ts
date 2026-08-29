@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 
-const allow = ['/', '/single-audit/', '/guide', '/portfolio'];
-const disallow = ['/api/', '/auth/', '/dashboard/', '/.next/'];
+const allow = ['/', '/single-audit/', '/auditors', '/guide', '/portfolio', '/faq', '/pricing', '/about'];
+const disallow = ['/api/', '/auth/', '/dashboard/', '/admin/', '/.next/'];
 
 // A sitemap crawler discovering a brand-new (never-cached) EIN every ~5s
 // (~720/hr) outran the shared FAC fetch budget (~180/hr, see

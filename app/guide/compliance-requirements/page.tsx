@@ -2,8 +2,11 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { REQUIREMENT_LETTER_ORDER, REQUIREMENT_INFO } from '@/lib/compliance-requirements';
+import { article, breadcrumbList } from '@/lib/structured-data';
+import { JsonLd } from '@/app/json-ld';
 import { Footer } from '@/app/footer';
 
+const PAGE_URL = `${SITE_URL}/guide/compliance-requirements`;
 const title = 'Single Audit Compliance Requirements (A–P)';
 const description =
   "What each compliance requirement letter on a Single Audit finding means — the FAC's own category codes, explained in plain language.";
@@ -104,9 +107,19 @@ const sections: Section[] = [
   },
 ];
 
+const structuredData = [
+  article({ headline: title, description, url: PAGE_URL }),
+  breadcrumbList([
+    { name: 'Single Audit Intelligence', url: SITE_URL },
+    { name: 'Compliance Guide', url: `${SITE_URL}/guide` },
+    { name: 'Compliance Requirements (A–P)', url: PAGE_URL },
+  ]),
+];
+
 export default function ComplianceRequirementsGuide() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <JsonLd data={structuredData} />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-4">
