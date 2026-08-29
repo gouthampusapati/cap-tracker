@@ -196,7 +196,7 @@ export default function Home() {
             (see app/single-audit/[ein]/page.tsx). "For Pass-Throughs"
             still goes straight to /portfolio, which needs no account. */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 mb-16">
-          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex flex-col bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -223,13 +223,13 @@ export default function Home() {
             </p>
             <Link
               href="/auth/signin"
-              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+              className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →
             </Link>
           </div>
 
-          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex flex-col bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -251,7 +251,7 @@ export default function Home() {
             </p>
             <Link
               href="/portfolio"
-              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+              className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start monitoring →
             </Link>
@@ -260,7 +260,7 @@ export default function Home() {
           {/* For Auditors — the directory is built (Sprint C) but the
               homepage never pointed a firm at it. Framed as a
               record/benchmarking tool, not a lead-gen pitch. */}
-          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex flex-col bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -278,7 +278,7 @@ export default function Home() {
             </p>
             <Link
               href="/auditors"
-              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+              className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Browse the directory →
             </Link>
