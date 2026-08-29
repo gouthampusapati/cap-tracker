@@ -344,22 +344,20 @@ export default async function SingleAuditPage(props: {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
-      {/* Header — no local "back home"/Guide/Portfolio nav here anymore;
-          the site-wide sticky header (app/header.tsx, mounted in
-          app/layout.tsx) already covers all three via the logo link and
-          its own Guide/Portfolio nav. This block used to duplicate them
-          from before that header existed. */}
+      {/* Header — no local Guide/Portfolio nav here; the site-wide sticky
+          header (app/header.tsx) covers that. The "← Back to …" link
+          stays: every other content page (/auditors, /portfolio, /guide,
+          /about, …) has one above its h1, and when a visitor arrived via
+          a portfolio it also carries them back to that specific list. */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          {backToPortfolioHref && (
-            <Link
-              href={backToPortfolioHref}
-              className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold mb-3"
-            >
-              ← Back to portfolio
-            </Link>
-          )}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <Link
+            href={backToPortfolioHref ?? '/'}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+          >
+            {backToPortfolioHref ? '← Back to portfolio' : '← Back to home'}
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 mt-3 mb-2">
             {org.name}
             {/* Entity type — org.auditHistory is newest-first (see
                 getReportsByEin's order param), so [0] is the most
