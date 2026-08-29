@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
+import { article, breadcrumbList } from '@/lib/structured-data';
+import { JsonLd } from '@/app/json-ld';
 import { Footer } from '@/app/footer';
 
+const PAGE_URL = `${SITE_URL}/guide/subrecipient-monitoring`;
 const title = 'Subrecipient Monitoring Under 2 CFR 200.332';
 const description =
   "What a pass-through entity must do for every subrecipient it funds under 2 CFR 200.332: the 14 required subaward data elements, risk assessment, ongoing monitoring, and verifying the subrecipient's audit happened.";
@@ -60,13 +63,20 @@ const faqJsonLd = {
   ],
 };
 
+const structuredData = [
+  article({ headline: title, description, url: PAGE_URL }),
+  breadcrumbList([
+    { name: 'Single Audit Intelligence', url: SITE_URL },
+    { name: 'Compliance Guide', url: `${SITE_URL}/guide` },
+    { name: 'Subrecipient Monitoring', url: PAGE_URL },
+  ]),
+  faqJsonLd,
+];
+
 export default function SubrecipientMonitoringGuide() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
-      />
+      <JsonLd data={structuredData} />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-4">

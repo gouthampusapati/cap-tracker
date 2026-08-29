@@ -5,6 +5,8 @@ import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { Footer } from '@/app/footer';
 import { getFederalAwardsForOrg } from '@/lib/federal-awards';
+import { breadcrumbList } from '@/lib/structured-data';
+import { JsonLd } from '@/app/json-ld';
 import { AwardTable } from './award-table';
 import { BackLinks } from './back-links';
 
@@ -90,8 +92,16 @@ export default async function RiskAssessmentPage(props: {
 
   const { data } = result;
 
+  const orgUrl = `${SITE_URL}/single-audit/${ein}`;
+  const breadcrumb = breadcrumbList([
+    { name: 'Single Audit Intelligence', url: SITE_URL },
+    { name: data.name, url: orgUrl },
+    { name: 'Federal Awards & Risk Assessment', url: `${orgUrl}/risk-assessment` },
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50">
+      <JsonLd data={breadcrumb} />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <Suspense

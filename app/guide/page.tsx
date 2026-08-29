@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
+import { breadcrumbList, itemList } from '@/lib/structured-data';
+import { JsonLd } from '@/app/json-ld';
 import { Footer } from '@/app/footer';
 
 const title = 'Single Audit Compliance Guide';
@@ -50,9 +52,21 @@ const guides = [
   },
 ];
 
+const structuredData = [
+  breadcrumbList([
+    { name: 'Single Audit Intelligence', url: SITE_URL },
+    { name: 'Compliance Guide', url: `${SITE_URL}/guide` },
+  ]),
+  itemList(
+    'Single Audit compliance guide',
+    guides.map((g) => ({ name: g.title, url: `${SITE_URL}${g.href}` }))
+  ),
+];
+
 export default function GuideIndexPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <JsonLd data={structuredData} />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-4">
