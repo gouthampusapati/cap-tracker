@@ -353,11 +353,11 @@ export default async function SingleAuditPage(props: {
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <Link
             href={backToPortfolioHref ?? '/'}
-            className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold mb-3"
+            className="text-blue-600 hover:text-blue-800 text-sm"
           >
             {backToPortfolioHref ? '← Back to portfolio' : '← Back to home'}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mt-3 mb-2">
             {org.name}
             {/* Entity type — org.auditHistory is newest-first (see
                 getReportsByEin's order param), so [0] is the most
