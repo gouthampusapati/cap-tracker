@@ -99,35 +99,31 @@ export default function Home() {
               </div>
 
               {/* Example links — clickable chips, not plain text links +
-                  <br>, per the redesign brief's Components section.
-                  tabular-nums keeps the EINs from jittering in width as
-                  the eye scans across them. One chip (PROPEL Nonprofits)
-                  is a GOING CONCERN record on purpose, so the chips
-                  reinforce the preview card and badge legend instead of
-                  showing only clean records. */}
+                  <br>, per the redesign brief's Components section. Just
+                  the org name (no EIN) so the three fit one row in the
+                  hero's left column; the link still carries the EIN. One
+                  chip (PROPEL Nonprofits) is a GOING CONCERN record on
+                  purpose, so the chips reinforce the preview card. */}
               <div className="mt-6">
                 <p className="text-caption text-gray-500 mb-2">Try these examples</p>
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5">
                   <Link
                     href="/single-audit/916001236"
-                    className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-card transition-all hover:border-accent/40 hover:text-accent hover:shadow-card-hover"
                   >
                     City of Cheney, WA
-                    <span className="text-gray-400 tabular-nums">916001236</span>
                   </Link>
                   <Link
                     href="/single-audit/411916337"
-                    className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-card transition-all hover:border-accent/40 hover:text-accent hover:shadow-card-hover"
                   >
                     PROPEL Nonprofits
-                    <span className="text-gray-400 tabular-nums">411916337</span>
                   </Link>
                   <Link
                     href="/single-audit/421079767"
-                    className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-card transition-all hover:border-accent/40 hover:text-accent hover:shadow-card-hover"
                   >
                     Grinnell Housing Authority
-                    <span className="text-gray-400 tabular-nums">421079767</span>
                   </Link>
                 </div>
               </div>
