@@ -50,16 +50,22 @@ export default function Home() {
         <div className="absolute top-0 left-1/3 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-center">
+          {/* ~1.618 : 1 column split (golden ratio) — the left column
+              carries the headline, search, and three supporting actions,
+              so it earns the larger share; the preview card is a
+              supporting visual. items-start so the card top-aligns with
+              the headline rather than floating centred against the much
+              taller left column. */}
+          <div className="lg:grid lg:grid-cols-[1.618fr_1fr] lg:gap-12 lg:items-start">
             {/* Left column — the search and everything that frames it.
                 Centered on mobile/tablet (search is the single focal
                 point there); left-aligned once the preview card sits
                 beside it. */}
             <div className="text-center lg:text-left">
-              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-gray-900 mb-4">
+              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-balance text-gray-900 mb-4">
                 Look up any organization&apos;s Single Audit findings
               </h1>
-              <p className="text-lg text-gray-600 mb-2 max-w-2xl mx-auto lg:mx-0 font-light">
+              <p className="text-lg text-gray-600 mb-2 max-w-xl mx-auto lg:mx-0 font-light">
                 Search the Federal Audit Clearinghouse. See audit findings and corrective action
                 plans for any organization that receives federal awards.
               </p>
@@ -92,35 +98,31 @@ export default function Home() {
               </div>
 
               {/* Example links — clickable chips, not plain text links +
-                  <br>, per the redesign brief's Components section.
-                  tabular-nums keeps the EINs from jittering in width as
-                  the eye scans across them. One chip (PROPEL Nonprofits)
-                  is a GOING CONCERN record on purpose, so the chips
-                  reinforce the preview card and badge legend instead of
-                  showing only clean records. */}
-              <div className="mt-8">
-                <p className="text-small text-gray-500 mb-3">Try these examples</p>
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                  <br>, per the redesign brief's Components section. Just
+                  the org name (no EIN) so the three fit one row in the
+                  hero's left column; the link still carries the EIN. One
+                  chip (PROPEL Nonprofits) is a GOING CONCERN record on
+                  purpose, so the chips reinforce the preview card. */}
+              <div className="mt-6">
+                <p className="text-caption text-gray-500 mb-2">Try these examples</p>
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5">
                   <Link
                     href="/single-audit/916001236"
-                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-card transition-all hover:border-accent/40 hover:text-accent hover:shadow-card-hover"
                   >
                     City of Cheney, WA
-                    <span className="text-gray-400 tabular-nums">916001236</span>
                   </Link>
                   <Link
                     href="/single-audit/411916337"
-                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-card transition-all hover:border-accent/40 hover:text-accent hover:shadow-card-hover"
                   >
                     PROPEL Nonprofits
-                    <span className="text-gray-400 tabular-nums">411916337</span>
                   </Link>
                   <Link
                     href="/single-audit/421079767"
-                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 shadow-card transition-all hover:border-accent/40 hover:text-accent hover:shadow-card-hover"
                   >
                     Grinnell Housing Authority
-                    <span className="text-gray-400 tabular-nums">421079767</span>
                   </Link>
                 </div>
               </div>
@@ -129,7 +131,13 @@ export default function Home() {
             {/* Right column — a static recreation of an org page card, so
                 the payoff of searching is visible before a visitor
                 commits to typing an EIN (redesign brief, Section 1). */}
-            <div className="mt-12 lg:mt-0">
+            {/* Dialled back — the card lost its shadow (in
+                home-sample-card.tsx) and is held at 80% opacity beside
+                the search, so it reads as a supporting illustration
+                rather than something competing with the search box for
+                the first click. Full strength on mobile, where it's the
+                stand-alone "here's the payoff" below the search. */}
+            <div className="mt-12 lg:mt-2 lg:opacity-80">
               <HomeSampleCard />
             </div>
           </div>
@@ -192,8 +200,8 @@ export default function Home() {
             reasoning, as the org-page "Are you this organization?" CTA
             (see app/single-audit/[ein]/page.tsx). "For Pass-Throughs"
             still goes straight to /portfolio, which needs no account. */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12 mb-16">
-          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 mb-16">
+          <div className="flex flex-col bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -220,13 +228,13 @@ export default function Home() {
             </p>
             <Link
               href="/auth/signin"
-              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+              className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start tracking findings →
             </Link>
           </div>
 
-          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+          <div className="flex flex-col bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -248,9 +256,36 @@ export default function Home() {
             </p>
             <Link
               href="/portfolio"
-              className="inline-block bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+              className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
               Start monitoring →
+            </Link>
+          </div>
+
+          {/* For Auditors — the directory is built (Sprint C) but the
+              homepage never pointed a firm at it. Framed as a
+              record/benchmarking tool, not a lead-gen pitch. */}
+          <div className="flex flex-col bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="w-8 h-8 text-primary mb-3"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h10M3 12h7M3 18h7M15 13l6 6M20 11.5a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+            </svg>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">For Auditors</h2>
+            <p className="text-gray-600 mb-4">
+              Look up any firm&apos;s Single Audit track record — client roster, audit counts,
+              findings history. Benchmark against peers, or show a prospective client your record.
+            </p>
+            <Link
+              href="/auditors"
+              className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
+            >
+              Browse the directory →
             </Link>
           </div>
         </div>
@@ -278,7 +313,8 @@ export default function Home() {
             >
               Federal Audit Clearinghouse
             </a>
-            . This site makes it easier to find and understand that data.
+            . This site adds the structure raw FAC search doesn&apos;t: risk badges, deadline
+            tracking, and views across organizations and firms.
           </p>
         </div>
 
