@@ -15,7 +15,7 @@
  */
 export function HomeSampleCard() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-card">
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
       <div className="mb-3 flex items-center justify-between">
         <span className="rounded bg-surface-alt px-2 py-1 text-caption font-semibold uppercase tracking-wide text-muted">
           Example

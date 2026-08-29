@@ -131,7 +131,13 @@ export default function Home() {
             {/* Right column — a static recreation of an org page card, so
                 the payoff of searching is visible before a visitor
                 commits to typing an EIN (redesign brief, Section 1). */}
-            <div className="mt-12 lg:mt-2">
+            {/* Dialled back — the card lost its shadow (in
+                home-sample-card.tsx) and is held at 80% opacity beside
+                the search, so it reads as a supporting illustration
+                rather than something competing with the search box for
+                the first click. Full strength on mobile, where it's the
+                stand-alone "here's the payoff" below the search. */}
+            <div className="mt-12 lg:mt-2 lg:opacity-80">
               <HomeSampleCard />
             </div>
           </div>
