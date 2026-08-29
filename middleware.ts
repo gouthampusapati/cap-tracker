@@ -99,11 +99,22 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // :path+ requires at least one segment after /api/org/, so the
-  // authenticated /api/org (no EIN — lookup by signed-in user's email)
-  // route is not matched here.
+  // Any path matched here runs through middleware on every request, which
+  // makes Vercel serve it uncached (middleware can rate-limit / rewrite,
+  // so the edge can't safely reuse a response). So match ONLY the paths
+  // that actually cost FAC calls and need the per-IP throttle:
+  //   - /single-audit/<9-digit EIN>            the org page
+  //   - /single-audit/<9-digit EIN>/...        risk-assessment (live FAC)
+  // Deliberately NOT matched (mirror-only, prerendered, no FAC cost — and
+  // they need the edge cache to be fast): /single-audit itself and
+  // /single-audit/state/*.
+  //
+  // :path+ on /api/org requires at least one segment, so the
+  // authenticated /api/org (lookup by signed-in user's email) is not
+  // matched.
   matcher: [
-    '/single-audit/:path*',
+    '/single-audit/:ein(\\d{9})',
+    '/single-audit/:ein(\\d{9})/:sub+',
     '/api/org/:path+',
     '/api/import',
     '/portfolio',
