@@ -6,7 +6,6 @@ import { WaitlistForm } from './waitlist-form';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomeFeatureGrid } from './home-feature-grid';
-import { HomeGuideTeaser } from './home-guide-teaser';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 
 const title = 'Single Audit Intelligence';
@@ -314,8 +313,6 @@ export default function Home() {
         </div>
 
         <HomeFeatureGrid />
-
-        <HomeGuideTeaser />
       </div>
 
       {/* CTA Footer — the one CTA that's genuinely just general-interest
