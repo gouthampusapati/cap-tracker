@@ -1,6 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
-import { and, eq, inArray, like, sql } from 'drizzle-orm';
+import { unstable_cache } from 'next/cache';
+import { and, eq, inArray, like, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { facMirrorGeneral, facMirrorFindings } from '@/lib/db/schema';
 import {
@@ -38,15 +39,61 @@ const isRealFirmEin = sql`${facMirrorGeneral.auditorEin} is not null and ${facMi
 
 const CLIENT_RENDER_CAP = 300;
 
-export async function searchAuditorFirms(opts: AuditorSearchOpts): Promise<AuditorSearchRow[]> {
-  const limit = Math.min(opts.limit ?? 150, 500);
-  const state = opts.state?.trim().toUpperCase();
-  const q = opts.q?.trim();
+/**
+ * Normalise a city string for matching: lowercase, drop periods, and
+ * fold the "Saint" / "St." abbreviation to one form, so a search for
+ * "Saint Louis" finds firms the FAC records in "St. Louis" (and vice
+ * versa). The SQL side applies the same transform to auditor_city.
+ */
+function normalizeCity(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\./g, '')
+    .replace(/\bsaint\b/g, 'st')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
+/**
+ * These reads hit an unindexed full GROUP BY over the whole
+ * fac_mirror_general table (~2.5s for the unfiltered "top firms" view,
+ * ~2s more to resolve the 150 firms' name spellings) and the page is
+ * dynamic (reads searchParams), so nothing was cached between requests.
+ * Wrap the whole thing in the Next data cache, keyed by (state, q,
+ * limit), revalidated daily — the mirror only changes weekly, so a
+ * day-stale directory listing is fine. The proper fix is a precomputed
+ * per-firm summary table in the sync script; this is the cheap interim.
+ */
+export function searchAuditorFirms(opts: AuditorSearchOpts): Promise<AuditorSearchRow[]> {
+  const stateRaw = (opts.state ?? '').trim().toUpperCase();
+  const state = US_STATES[stateRaw] ? stateRaw : '';
+  const q = (opts.q ?? '').trim().slice(0, 80);
+  const limit = Math.min(opts.limit ?? 150, 500);
+  return cachedSearchAuditorFirms(state, q, limit);
+}
+
+const cachedSearchAuditorFirms = unstable_cache(
+  _searchAuditorFirms,
+  ['auditor-firm-search-v2'],
+  { revalidate: 86400, tags: ['auditor-directory'] }
+);
+
+async function _searchAuditorFirms(
+  state: string,
+  q: string,
+  limit: number
+): Promise<AuditorSearchRow[]> {
   try {
-    const where = [isRealFirmEin];
-    if (state && US_STATES[state]) where.push(eq(facMirrorGeneral.auditorState, state));
-    if (q) where.push(like(facMirrorGeneral.auditorFirmName, `%${q}%`));
+    const where: SQL[] = [isRealFirmEin];
+    if (state) where.push(eq(facMirrorGeneral.auditorState, state));
+    if (q) {
+      const nq = normalizeCity(q);
+      const qCond = or(
+        like(facMirrorGeneral.auditorFirmName, `%${q}%`),
+        sql`replace(replace(lower(${facMirrorGeneral.auditorCity}), '.', ''), 'saint', 'st') like ${`%${nq}%`}`
+      );
+      if (qCond) where.push(qCond);
+    }
 
     const agg = await db
       .select({
@@ -127,8 +174,24 @@ export async function topAuditorEins(limit = 3000): Promise<string[]> {
   }
 }
 
-/** cache() so generateMetadata + the page render share one lookup. */
-export const getAuditorProfile = cache(_getAuditorProfile);
+/**
+ * Two layers:
+ *  - unstable_cache: the profile query for a big firm is slow (~1.5s to
+ *    pull every filing + ~3s for the findings JOIN — CliftonLarsonAllen
+ *    has ~14k filings) and the page is dynamic, so persist the built
+ *    profile in the Next data cache, revalidated daily (mirror is
+ *    weekly).
+ *  - cache(): request-level dedup so generateMetadata + the page render
+ *    still share a single lookup within one request.
+ */
+const cachedAuditorProfile = unstable_cache(_getAuditorProfile, ['auditor-profile-v2'], {
+  revalidate: 86400,
+  tags: ['auditor-directory'],
+});
+
+export const getAuditorProfile = cache(
+  (ein: string): Promise<AuditorProfile | null> => cachedAuditorProfile(ein)
+);
 
 async function _getAuditorProfile(ein: string): Promise<AuditorProfile | null> {
   if (!/^\d{9}$/.test(ein) || PLACEHOLDER_AUDITOR_EINS.includes(ein)) return null;
