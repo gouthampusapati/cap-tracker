@@ -6,9 +6,7 @@ import { WaitlistForm } from './waitlist-form';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomeFeatureGrid } from './home-feature-grid';
-import { HomeFacComparison } from './home-fac-comparison';
 import { HomeGuideTeaser } from './home-guide-teaser';
-import { HomeFaqPreview } from './home-faq-preview';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 
 const title = 'Single Audit Intelligence';
@@ -53,16 +51,22 @@ export default function Home() {
         <div className="absolute top-0 left-1/3 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-center">
+          {/* ~1.618 : 1 column split (golden ratio) — the left column
+              carries the headline, search, and three supporting actions,
+              so it earns the larger share; the preview card is a
+              supporting visual. items-start so the card top-aligns with
+              the headline rather than floating centred against the much
+              taller left column. */}
+          <div className="lg:grid lg:grid-cols-[1.618fr_1fr] lg:gap-12 lg:items-start">
             {/* Left column — the search and everything that frames it.
                 Centered on mobile/tablet (search is the single focal
                 point there); left-aligned once the preview card sits
                 beside it. */}
             <div className="text-center lg:text-left">
-              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-gray-900 mb-4">
+              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-balance text-gray-900 mb-4">
                 Look up any organization&apos;s Single Audit findings
               </h1>
-              <p className="text-lg text-gray-600 mb-2 max-w-2xl mx-auto lg:mx-0 font-light">
+              <p className="text-lg text-gray-600 mb-2 max-w-xl mx-auto lg:mx-0 font-light">
                 Search the Federal Audit Clearinghouse. See audit findings and corrective action
                 plans for any organization that receives federal awards.
               </p>
@@ -101,26 +105,26 @@ export default function Home() {
                   is a GOING CONCERN record on purpose, so the chips
                   reinforce the preview card and badge legend instead of
                   showing only clean records. */}
-              <div className="mt-8">
-                <p className="text-small text-gray-500 mb-3">Try these examples</p>
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+              <div className="mt-6">
+                <p className="text-caption text-gray-500 mb-2">Try these examples</p>
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5">
                   <Link
                     href="/single-audit/916001236"
-                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
                   >
                     City of Cheney, WA
                     <span className="text-gray-400 tabular-nums">916001236</span>
                   </Link>
                   <Link
                     href="/single-audit/411916337"
-                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
                   >
                     PROPEL Nonprofits
                     <span className="text-gray-400 tabular-nums">411916337</span>
                   </Link>
                   <Link
                     href="/single-audit/421079767"
-                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                    className="inline-flex items-center gap-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
                   >
                     Grinnell Housing Authority
                     <span className="text-gray-400 tabular-nums">421079767</span>
@@ -132,7 +136,7 @@ export default function Home() {
             {/* Right column — a static recreation of an org page card, so
                 the payoff of searching is visible before a visitor
                 commits to typing an EIN (redesign brief, Section 1). */}
-            <div className="mt-12 lg:mt-0">
+            <div className="mt-12 lg:mt-2">
               <HomeSampleCard />
             </div>
           </div>
@@ -308,17 +312,14 @@ export default function Home() {
             >
               Federal Audit Clearinghouse
             </a>
-            . This site makes it easier to find and understand that data.
+            . This site adds the structure raw FAC search doesn&apos;t: risk badges, deadline
+            tracking, and views across organizations and firms.
           </p>
         </div>
-
-        <HomeFacComparison />
 
         <HomeFeatureGrid />
 
         <HomeGuideTeaser />
-
-        <HomeFaqPreview />
       </div>
 
       {/* CTA Footer — the one CTA that's genuinely just general-interest
