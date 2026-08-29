@@ -1,8 +1,13 @@
 import { topAuditorEins, US_STATES } from '@/lib/auditors';
 import { SITE_URL } from '@/lib/site-url';
 
-// The mirror refreshes weekly; a day-old auditor sitemap is fine.
-export const revalidate = 86400;
+// Render on request, not at build. topAuditorEins() reads the DB, which
+// isn't reliably reachable during `next build` (it was returning [] — so
+// the prerendered sitemap had the /auditors root + state facets but ZERO
+// firm pages). Now that it's a fast indexed read of
+// fac_mirror_auditor_firms, doing it per-request is cheap; the CDN still
+// caches the response for a day via the Cache-Control header below.
+export const dynamic = 'force-dynamic';
 
 /**
  * Standalone sitemap for the /auditors directory: the directory root,

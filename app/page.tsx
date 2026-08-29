@@ -4,6 +4,9 @@ import { SITE_URL } from '@/lib/site-url';
 import EinSearchForm from './ein-search-form';
 import { WaitlistForm } from './waitlist-form';
 import { Footer } from './footer';
+import { HomeSampleCard } from './home-sample-card';
+import { HomeFeatureGrid } from './home-feature-grid';
+import { SITE_STATS, approxCount } from '@/lib/site-stats';
 
 const title = 'Single Audit Intelligence';
 const description =
@@ -46,76 +49,137 @@ export default function Home() {
         <div className="absolute top-24 -left-32 w-80 h-80 bg-accent-soft/10 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
         <div className="absolute top-0 left-1/3 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none" aria-hidden="true" />
 
-        <div className="relative z-10 max-w-5xl mx-auto px-4 py-14 sm:py-20 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h1 className="text-h1 sm:text-display font-medium tracking-tight text-gray-900 mb-4">
-              Look up any organization&apos;s Single Audit findings
-            </h1>
-            <p className="text-lg text-gray-600 mb-2 max-w-2xl mx-auto font-light">
-              Search the Federal Audit Clearinghouse. See audit findings and corrective action
-              plans for any organization that receives federal awards.
-            </p>
-            {/* Independence statement — above the fold on purpose. The
-                visual language here is institutional and the subject is
-                federal; say plainly what this is so nobody has to infer
-                it. */}
-            <p className="text-caption text-gray-500 mb-8">
-              Independent tool built on public Federal Audit Clearinghouse data. Not affiliated
-              with GSA, OMB, or any federal agency.
-            </p>
+        <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-center">
+            {/* Left column — the search and everything that frames it.
+                Centered on mobile/tablet (search is the single focal
+                point there); left-aligned once the preview card sits
+                beside it. */}
+            <div className="text-center lg:text-left">
+              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-gray-900 mb-4">
+                Look up any organization&apos;s Single Audit findings
+              </h1>
+              <p className="text-lg text-gray-600 mb-2 max-w-2xl mx-auto lg:mx-0 font-light">
+                Search the Federal Audit Clearinghouse. See audit findings and corrective action
+                plans for any organization that receives federal awards.
+              </p>
+              {/* Independence statement — above the fold on purpose. The
+                  visual language here is institutional and the subject is
+                  federal; say plainly what this is so nobody has to infer
+                  it. */}
+              <p className="text-caption text-gray-500 mb-8">
+                Independent tool built on public Federal Audit Clearinghouse data. Not affiliated
+                with GSA, OMB, or any federal agency.
+              </p>
 
-            {/* Search Box */}
-            <EinSearchForm />
+              {/* Search Box */}
+              <EinSearchForm />
 
-            {/* Portfolio promotion — a real second action in the hero, not
-                a footnote under the search box. The genuinely
-                differentiated, working, no-login feature deserves more
-                than an inline text mention; outline style keeps it
-                visually secondary to the primary Search button above
-                without burying it. Pushed further down (mt-8, was mt-5)
-                so search reads as the undeniable single focal point per
-                the redesign brief. */}
-            <div className="mt-8 flex flex-col items-center gap-1.5">
-              <p className="text-small text-gray-600">Checking more than one organization?</p>
-              <Link
-                href="/portfolio"
-                className="inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2 rounded-lg transition-colors"
-              >
-                Try the portfolio view — free, no account →
-              </Link>
-            </div>
-
-            {/* Example links — clickable chips, not plain text links +
-                <br>, per the redesign brief's Components section.
-                tabular-nums keeps the EINs from jittering in width as
-                the eye scans across them. */}
-            <div className="mt-10">
-              <p className="text-small text-gray-500 mb-3">Try these examples</p>
-              <div className="flex flex-wrap items-center justify-center gap-2">
+              {/* Portfolio promotion — a real second action in the hero,
+                  not a footnote under the search box. The genuinely
+                  differentiated, working, no-login feature deserves more
+                  than an inline text mention; outline style keeps it
+                  visually secondary to the primary Search button above
+                  without burying it. */}
+              <div className="mt-6 flex flex-col items-center lg:items-start gap-1.5">
+                <p className="text-small text-gray-600">Checking more than one organization?</p>
                 <Link
-                  href="/single-audit/916001236"
-                  className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                  href="/portfolio"
+                  className="inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2 rounded-lg transition-colors"
                 >
-                  City of Cheney, WA
-                  <span className="text-gray-400 tabular-nums">916001236</span>
-                </Link>
-                <Link
-                  href="/single-audit/742089103"
-                  className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
-                >
-                  Atascosa Health Center
-                  <span className="text-gray-400 tabular-nums">742089103</span>
-                </Link>
-                <Link
-                  href="/single-audit/421079767"
-                  className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
-                >
-                  Grinnell Housing Authority
-                  <span className="text-gray-400 tabular-nums">421079767</span>
+                  Try the portfolio view — free, no account →
                 </Link>
               </div>
+
+              {/* Example links — clickable chips, not plain text links +
+                  <br>, per the redesign brief's Components section.
+                  tabular-nums keeps the EINs from jittering in width as
+                  the eye scans across them. One chip (PROPEL Nonprofits)
+                  is a GOING CONCERN record on purpose, so the chips
+                  reinforce the preview card and badge legend instead of
+                  showing only clean records. */}
+              <div className="mt-8">
+                <p className="text-small text-gray-500 mb-3">Try these examples</p>
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                  <Link
+                    href="/single-audit/916001236"
+                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                  >
+                    City of Cheney, WA
+                    <span className="text-gray-400 tabular-nums">916001236</span>
+                  </Link>
+                  <Link
+                    href="/single-audit/411916337"
+                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                  >
+                    PROPEL Nonprofits
+                    <span className="text-gray-400 tabular-nums">411916337</span>
+                  </Link>
+                  <Link
+                    href="/single-audit/421079767"
+                    className="inline-flex items-center gap-1.5 text-small text-gray-700 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-card hover:shadow-card-hover hover:border-accent/40 hover:text-accent transition-all"
+                  >
+                    Grinnell Housing Authority
+                    <span className="text-gray-400 tabular-nums">421079767</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Right column — a static recreation of an org page card, so
+                the payoff of searching is visible before a visitor
+                commits to typing an EIN (redesign brief, Section 1). */}
+            <div className="mt-12 lg:mt-0">
+              <HomeSampleCard />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Stat bar — real row counts from the FAC bulk mirror
+          (lib/site-stats.json, refreshed each weekly sync). A standard
+          trust device for a data product; numbers are rounded down with
+          a "+" since the mirror is a subset of FAC's full history. */}
+      <div className="border-y border-border bg-surface-alt">
+        <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+          <dl className="grid grid-cols-2 gap-y-6 text-center sm:grid-cols-4">
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.organizations)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Organizations</dd>
+            </div>
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.auditReports)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Single audits indexed</dd>
+            </div>
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.findings)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Audit findings</dd>
+            </div>
+            <div>
+              <dt className="text-h3 font-semibold tabular-nums text-gray-900">
+                {approxCount(SITE_STATS.auditFirms)}
+              </dt>
+              <dd className="mt-1 text-small text-gray-600">Audit firms</dd>
+            </div>
+          </dl>
+          <p className="mt-6 text-center text-caption text-gray-500">
+            Covering fiscal years {SITE_STATS.earliestAuditYear}–present · mirrored from the{' '}
+            <a
+              href="https://www.fac.gov"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-accent"
+            >
+              Federal Audit Clearinghouse
+            </a>{' '}
+            and refreshed weekly
+          </p>
         </div>
       </div>
 
@@ -128,7 +192,7 @@ export default function Home() {
             reasoning, as the org-page "Are you this organization?" CTA
             (see app/single-audit/[ein]/page.tsx). "For Pass-Throughs"
             still goes straight to /portfolio, which needs no account. */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12 mb-16">
           <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
             <svg
               viewBox="0 0 24 24"
@@ -192,7 +256,7 @@ export default function Home() {
         </div>
 
         {/* What is a Single Audit? */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 sm:p-10 my-24">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 sm:p-10 my-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">What is a Single Audit?</h2>
           <p className="text-gray-700 mb-4">
             A non-Federal entity that expends $1,000,000 or more during the non-Federal entity&apos;s
@@ -218,74 +282,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Features. Inline SVG on the token palette, not emoji — a
-            precise, institutional tone doesn't read well with emoji, and
-            currentColor lets these inherit text-primary without a new
-            asset/dependency for three icons. Wrapped in a bg-surface-alt
-            "mist" panel — the alternating section rhythm the redesign
-            brief asks for (white hero/cards → tinted explainer → mist
-            feature panel → dark CTA), without a full-bleed background
-            change that would be a bigger structural departure. */}
-        <div className="bg-surface-alt rounded-2xl p-10 sm:p-12 my-24">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Each item "lights up" on hover — bg-white + shadow lifts
-                it off the mist panel, icon shifts to the accent color —
-                the cursor-follows-the-section feedback Stripe uses on
-                its own feature grids, even though these aren't links.
-                -m-5 p-5 so the larger hit/highlight area doesn't change
-                the grid's outer spacing. */}
-            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M8 17V10M13 17V6M18 17v-4" />
-              </svg>
-              <h3 className="font-semibold text-gray-900 mb-2">Audit History</h3>
-              <p className="text-sm text-gray-600">
-                See all years of audit history for any organization.
-              </p>
-            </div>
-            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18M5 4h11l-2.5 3.5L16 11H5" />
-              </svg>
-              <h3 className="font-semibold text-gray-900 mb-2">Findings at a Glance</h3>
-              <p className="text-sm text-gray-600">
-                View findings by category, flag repeats, and track status.
-              </p>
-            </div>
-            <div className="group -m-5 p-5 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-card">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-8 h-8 text-primary mb-3 transition-colors duration-200 group-hover:text-accent"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h6" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6M9 17h4" />
-              </svg>
-              <h3 className="font-semibold text-gray-900 mb-2">CAP Text</h3>
-              <p className="text-sm text-gray-600">
-                Read the corrective action plans organizations filed with auditors.
-              </p>
-            </div>
-          </div>
-        </div>
+        <HomeFeatureGrid />
       </div>
 
       {/* CTA Footer — the one CTA that's genuinely just general-interest

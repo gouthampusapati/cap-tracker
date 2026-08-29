@@ -46,6 +46,9 @@ import { createClient } from '@libsql/client';
 import { parse } from 'csv-parse';
 import { Readable } from 'node:stream';
 import { randomUUID } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
@@ -273,6 +276,16 @@ const TABLES = [
   },
 ];
 
+/**
+ * Derived tables — built from the freshly-loaded CSV `_new` tables, not
+ * from a CSV of their own, then swapped in atomically alongside
+ * everything in TABLES. See buildAuditorFirmsTable.
+ */
+const DERIVED_TABLES = ['fac_mirror_auditor_firms'];
+
+/** Every live table this sync owns — CSV-loaded + derived. */
+const ALL_LIVE_TABLES = [...TABLES.map((t) => t.liveTable), ...DERIVED_TABLES];
+
 function log(msg) {
   console.log(`[sync-fac-mirror] ${new Date().toISOString()} ${msg}`);
 }
@@ -288,6 +301,170 @@ function log(msg) {
  * which would make any Drizzle-side read of this table (or a duration
  * computed as completed_at - started_at) come out ~1000x wrong.
  */
+const REAL_FIRM_EIN =
+  "auditor_ein IS NOT NULL AND auditor_ein NOT IN ('', 'GSA_MIGRATION', '999999999')";
+
+/**
+ * Roll a fac_mirror_general-shaped table down to one row per audit firm.
+ * Two plain GROUP BYs + JS ranking rather than one window-function
+ * INSERT…SELECT: on the free-tier Turso a single monster query over all
+ * ~413K rows is unreliable (seen it run past 2 min), whereas each of
+ * these completes on its own and the ranking is trivial in memory
+ * (~8.4K firms, ~48K name/location variants). Shared verbatim with
+ * backfill-auditor-firms.mjs so the two can't diverge. `fromTable` is
+ * interpolated, never user input.
+ */
+async function computeAuditorFirmRows(dbClient, fromTable) {
+  const agg = (
+    await dbClient.execute(`
+      SELECT auditor_ein, COUNT(*) AS ac, COUNT(DISTINCT auditee_ein) AS cc, MAX(audit_year) AS my
+      FROM ${fromTable} WHERE ${REAL_FIRM_EIN} GROUP BY auditor_ein
+    `)
+  ).rows;
+  const variants = (
+    await dbClient.execute(`
+      SELECT auditor_ein, auditor_firm_name AS nm, auditor_city AS ci, auditor_state AS st,
+             COUNT(*) AS n, MAX(audit_year) AS y
+      FROM ${fromTable} WHERE ${REAL_FIRM_EIN}
+      GROUP BY auditor_ein, auditor_firm_name, auditor_city, auditor_state
+    `)
+  ).rows;
+
+  const names = new Map(); // ein -> [{v,n,y}]  (name spellings)
+  const locs = new Map(); //  ein -> [{city,state,n,y}]  (city+state pairs)
+  for (const r of variants) {
+    const ein = r.auditor_ein;
+    if (r.nm) {
+      if (!names.has(ein)) names.set(ein, []);
+      names.get(ein).push({ v: r.nm, n: Number(r.n), y: r.y ?? '' });
+    }
+    if (r.st) {
+      if (!locs.has(ein)) locs.set(ein, []);
+      locs.get(ein).push({ city: r.ci ?? '', state: r.st, n: Number(r.n), y: r.y ?? '' });
+    }
+  }
+  // Modal value, tie-broken by most-recent year then alphabetically —
+  // mirrors lib/auditors-shared.ts pickFirmName and the old per-request
+  // "variant seen most often" location pick.
+  const bestName = (arr) =>
+    arr?.slice().sort((a, b) => b.n - a.n || b.y.localeCompare(a.y) || a.v.localeCompare(b.v))[0]?.v ?? null;
+  const bestLoc = (arr) =>
+    arr
+      ?.slice()
+      .sort(
+        (a, b) =>
+          b.n - a.n || b.y.localeCompare(a.y) || a.state.localeCompare(b.state) || a.city.localeCompare(b.city)
+      )[0] ?? null;
+
+  return agg.map((a) => {
+    const loc = bestLoc(locs.get(a.auditor_ein));
+    return [
+      a.auditor_ein,
+      bestName(names.get(a.auditor_ein)),
+      loc?.city || null,
+      loc?.state || null,
+      Number(a.ac),
+      Number(a.cc),
+      a.my ?? null,
+    ];
+  });
+}
+
+/** Insert the [ein, name, city, state, ac, cc, year] rows in batches. */
+async function insertAuditorFirmRows(dbClient, table, rows) {
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    await dbClient.batch(
+      rows.slice(i, i + BATCH_SIZE).map((r) => ({
+        sql: `INSERT INTO ${table}
+                (auditor_ein, firm_name, city, state, audit_count, client_count, most_recent_year)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        args: r,
+      })),
+      'write'
+    );
+  }
+}
+
+const AUDITOR_FIRMS_DDL = (name) => `CREATE TABLE ${name} (
+  auditor_ein TEXT PRIMARY KEY,
+  firm_name TEXT,
+  city TEXT,
+  state TEXT,
+  audit_count INTEGER NOT NULL,
+  client_count INTEGER NOT NULL,
+  most_recent_year TEXT
+)`;
+
+/**
+ * Build the fac_mirror_auditor_firms `_new` table — one row per audit
+ * firm (~8.4K), pre-aggregated from the freshly-loaded general `_new`
+ * table so the /auditors directory is an indexed LIMIT scan instead of
+ * a full GROUP BY + count(distinct) over every ~413K general row on
+ * each request (~4.5s before).
+ *
+ * Runs inside the main try, before the swap: a failure here fails the
+ * whole sync and rolls everything back (live tables, including the
+ * previous fac_mirror_auditor_firms, stay untouched).
+ */
+async function buildAuditorFirmsTable(generalNew, firmsNew, idxSuffix) {
+  await client.execute(`DROP TABLE IF EXISTS ${firmsNew}`);
+  await client.execute(AUDITOR_FIRMS_DDL(firmsNew));
+
+  const rows = await computeAuditorFirmRows(client, generalNew);
+  if (rows.length === 0 && TEST_MAX_ROWS_PER_TABLE === null) {
+    throw new Error('buildAuditorFirmsTable produced 0 rows — refusing to swap an empty directory in');
+  }
+  await insertAuditorFirmRows(client, firmsNew, rows);
+
+  await client.execute(
+    `CREATE INDEX afirms_state_count_${idxSuffix} ON ${firmsNew} (state, audit_count DESC)`
+  );
+  await client.execute(`CREATE INDEX afirms_count_${idxSuffix} ON ${firmsNew} (audit_count DESC)`);
+
+  log(`${firmsNew}: ${rows.length} firms aggregated`);
+  return rows.length;
+}
+
+/**
+ * Regenerate lib/site-stats.json — the numbers behind the homepage
+ * "stat bar" (redesign brief, Section 2). Plain COUNT(*) reads against
+ * the just-swapped live tables: no write-quota cost, so it's safe to
+ * run every sync. The GitHub Actions workflow commits the file back to
+ * main if it changed. Non-fatal by contract — the caller wraps this in
+ * try/catch so a stats hiccup never fails the actual mirror sync.
+ */
+async function writeSiteStats() {
+  if (TEST_MAX_ROWS_PER_TABLE !== null) {
+    log('site-stats: skipped (test run — counts would be truncated)');
+    return;
+  }
+  const { rows } = await client.execute(`
+    SELECT
+      (SELECT COUNT(DISTINCT auditee_ein) FROM fac_mirror_general) AS organizations,
+      (SELECT COUNT(*) FROM fac_mirror_general) AS audit_reports,
+      (SELECT COUNT(DISTINCT report_id || '|' || reference_number) FROM fac_mirror_findings) AS findings,
+      (SELECT COUNT(*) FROM fac_mirror_auditor_firms) AS audit_firms,
+      (SELECT MIN(audit_year) FROM fac_mirror_general) AS earliest_year,
+      (SELECT MAX(audit_year) FROM fac_mirror_general) AS latest_year
+  `);
+  const r = rows[0];
+  const stats = {
+    organizations: Number(r.organizations),
+    auditReports: Number(r.audit_reports),
+    findings: Number(r.findings),
+    auditFirms: Number(r.audit_firms),
+    earliestAuditYear: Number(r.earliest_year),
+    latestAuditYear: Number(r.latest_year),
+    refreshedAt: new Date().toISOString().slice(0, 10),
+  };
+  if (!stats.organizations || !stats.auditReports) {
+    throw new Error(`refusing to write empty-looking stats: ${JSON.stringify(stats)}`);
+  }
+  const target = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'site-stats.json');
+  await writeFile(target, `${JSON.stringify(stats, null, 2)}\n`);
+  log(`site-stats written: ${JSON.stringify(stats)}`);
+}
+
 function toEpochSeconds(date) {
   return Math.floor(date.getTime() / 1000);
 }
@@ -409,38 +586,42 @@ async function main() {
       }
     }
 
-    // Atomic swap, every table in one transaction — either all of them
-    // flip to the new data or none do.
+    // Derived tables — built from the `_new` CSV data just loaded, then
+    // swapped in with everything else below.
+    rowCounts.auditor_firms = await buildAuditorFirmsTable(
+      'fac_mirror_general_new',
+      'fac_mirror_auditor_firms_new',
+      idxSuffix
+    );
+
+    // Atomic swap, every table (CSV-loaded + derived) in one
+    // transaction — either all of them flip to the new data or none do.
     log('swapping all tables into place');
-    const swapStatements = [];
-    for (const spec of TABLES) {
-      const oldName = `${spec.liveTable}_old`;
-      swapStatements.push(`DROP TABLE IF EXISTS ${oldName}`);
-    }
-    for (const spec of TABLES) {
-      swapStatements.push(`ALTER TABLE ${spec.liveTable} RENAME TO ${spec.liveTable}_old`);
-      swapStatements.push(`ALTER TABLE ${spec.liveTable}_new RENAME TO ${spec.liveTable}`);
-    }
-    // First run ever: the live tables don't exist yet, so the RENAME
-    // FROM statements above would fail. Detect that case up front and
-    // build a simpler statement list instead of guessing.
-    const existing = await client.execute(
-      `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${TABLES.map(() => '?').join(',')})`,
-      TABLES.map((s) => s.liveTable)
-    ).catch(() => ({ rows: [] }));
+
+    // First run ever: the live tables don't exist yet, so a
+    // `RENAME <live> TO <live>_old` would fail. Detect that per-table
+    // and skip the rename-out step for any that aren't there yet.
+    const existing = await client
+      .execute(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${ALL_LIVE_TABLES.map(
+          () => '?'
+        ).join(',')})`,
+        ALL_LIVE_TABLES
+      )
+      .catch(() => ({ rows: [] }));
     const liveTablesExist = new Set(existing.rows?.map((r) => r.name) ?? []);
 
     const finalSwap = [];
-    for (const spec of TABLES) {
-      if (liveTablesExist.has(spec.liveTable)) {
-        finalSwap.push(`DROP TABLE IF EXISTS ${spec.liveTable}_old`);
-        finalSwap.push(`ALTER TABLE ${spec.liveTable} RENAME TO ${spec.liveTable}_old`);
+    for (const t of ALL_LIVE_TABLES) {
+      if (liveTablesExist.has(t)) {
+        finalSwap.push(`DROP TABLE IF EXISTS ${t}_old`);
+        finalSwap.push(`ALTER TABLE ${t} RENAME TO ${t}_old`);
       }
-      finalSwap.push(`ALTER TABLE ${spec.liveTable}_new RENAME TO ${spec.liveTable}`);
+      finalSwap.push(`ALTER TABLE ${t}_new RENAME TO ${t}`);
     }
     await client.batch(finalSwap, 'write');
-    for (const spec of TABLES) {
-      await client.execute(`DROP TABLE IF EXISTS ${spec.liveTable}_old`);
+    for (const t of ALL_LIVE_TABLES) {
+      await client.execute(`DROP TABLE IF EXISTS ${t}_old`);
     }
 
     const completedAt = new Date();
@@ -451,14 +632,23 @@ async function main() {
       args: [toEpochSeconds(completedAt), 'success', JSON.stringify(rowCountsPayload), syncId],
     });
     log(`sync complete: ${JSON.stringify(rowCountsPayload)}`);
+
+    // Homepage stat-bar numbers. Non-fatal: the mirror is already
+    // swapped and healthy at this point — a stats failure must not turn
+    // a successful sync into a failed one.
+    try {
+      await writeSiteStats();
+    } catch (err) {
+      log(`site-stats refresh failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log(`SYNC FAILED: ${message}`);
 
     // Leave live tables untouched — just drop whatever `_new` tables
     // got partway built, so a retry starts clean.
-    for (const spec of TABLES) {
-      await client.execute(`DROP TABLE IF EXISTS ${spec.liveTable}_new`).catch(() => {});
+    for (const t of ALL_LIVE_TABLES) {
+      await client.execute(`DROP TABLE IF EXISTS ${t}_new`).catch(() => {});
     }
 
     await client.execute({

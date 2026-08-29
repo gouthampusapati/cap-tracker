@@ -34,7 +34,7 @@ export default function EinSearchForm() {
     // dominate the hero there too), capped at max-w-lg from sm: up —
     // widened from max-w-md as part of the Stripe-inspired pass, to give
     // the search its "clear hero element" presence per the brief.
-    <form onSubmit={handleSearch} className="w-full sm:max-w-lg mx-auto">
+    <form onSubmit={handleSearch} className="w-full sm:max-w-lg mx-auto lg:mx-0">
       <div className="flex gap-2">
         <input
           type="text"

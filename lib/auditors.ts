@@ -1,8 +1,9 @@
 import 'server-only';
 import { cache } from 'react';
-import { and, eq, inArray, like, sql } from 'drizzle-orm';
+import { unstable_cache } from 'next/cache';
+import { and, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { facMirrorGeneral, facMirrorFindings } from '@/lib/db/schema';
+import { facMirrorGeneral, facMirrorFindings, facMirrorAuditorFirms } from '@/lib/db/schema';
 import {
   pickFirmName,
   US_STATES,
@@ -33,77 +34,73 @@ export * from '@/lib/auditors-shared';
  * firms). */
 const PLACEHOLDER_AUDITOR_EINS = ['', 'GSA_MIGRATION', '999999999'];
 
-/** SQL predicate: auditor_ein is a real firm EIN. */
-const isRealFirmEin = sql`${facMirrorGeneral.auditorEin} is not null and ${facMirrorGeneral.auditorEin} not in ('', 'GSA_MIGRATION', '999999999')`;
-
 const CLIENT_RENDER_CAP = 300;
 
+/**
+ * Normalise a city string for matching: lowercase, drop periods, and
+ * fold the "Saint" / "St." abbreviation to one form, so a search for
+ * "Saint Louis" finds firms the FAC records in "St. Louis" (and vice
+ * versa). The SQL side applies the same transform to the stored city.
+ */
+function normalizeCity(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/\./g, '')
+    .replace(/\bsaint\b/g, 'st')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Directory search — a single indexed read of fac_mirror_auditor_firms
+ * (one pre-aggregated row per firm, built by the weekly sync; see
+ * lib/db/schema.ts). This replaced a full GROUP BY + count(distinct)
+ * over every ~413K-row fac_mirror_general row plus a second query to
+ * resolve name spellings — ~4.5s per request, on a dynamic page with no
+ * caching. The summary table makes it a few ms, so no cache layer here.
+ */
 export async function searchAuditorFirms(opts: AuditorSearchOpts): Promise<AuditorSearchRow[]> {
+  const stateRaw = (opts.state ?? '').trim().toUpperCase();
+  const state = US_STATES[stateRaw] ? stateRaw : '';
+  const q = (opts.q ?? '').trim().slice(0, 80);
   const limit = Math.min(opts.limit ?? 150, 500);
-  const state = opts.state?.trim().toUpperCase();
-  const q = opts.q?.trim();
 
   try {
-    const where = [isRealFirmEin];
-    if (state && US_STATES[state]) where.push(eq(facMirrorGeneral.auditorState, state));
-    if (q) where.push(like(facMirrorGeneral.auditorFirmName, `%${q}%`));
-
-    const agg = await db
-      .select({
-        ein: sql<string>`${facMirrorGeneral.auditorEin}`,
-        auditCount: sql<number>`count(*)`,
-        clientCount: sql<number>`count(distinct ${facMirrorGeneral.auditeeEin})`,
-        mostRecentYear: sql<string>`max(${facMirrorGeneral.auditYear})`,
-      })
-      .from(facMirrorGeneral)
-      .where(and(...where))
-      .groupBy(facMirrorGeneral.auditorEin)
-      .orderBy(sql`count(*) desc`)
-      .limit(limit);
-
-    if (agg.length === 0) return [];
-
-    const eins = agg.map((a) => a.ein);
-    const nameRows = await db
-      .select({
-        ein: sql<string>`${facMirrorGeneral.auditorEin}`,
-        name: facMirrorGeneral.auditorFirmName,
-        city: facMirrorGeneral.auditorCity,
-        state: facMirrorGeneral.auditorState,
-        year: facMirrorGeneral.auditYear,
-        n: sql<number>`count(*)`,
-      })
-      .from(facMirrorGeneral)
-      .where(inArray(facMirrorGeneral.auditorEin, eins))
-      .groupBy(
-        facMirrorGeneral.auditorEin,
-        facMirrorGeneral.auditorFirmName,
-        facMirrorGeneral.auditorCity,
-        facMirrorGeneral.auditorState
+    const where: SQL[] = [];
+    if (state) where.push(eq(facMirrorAuditorFirms.state, state));
+    if (q) {
+      const nq = normalizeCity(q);
+      const qCond = or(
+        like(facMirrorAuditorFirms.firmName, `%${q}%`),
+        sql`replace(replace(lower(${facMirrorAuditorFirms.city}), '.', ''), 'saint', 'st') like ${`%${nq}%`}`
       );
-
-    const byEin = new Map<string, typeof nameRows>();
-    for (const r of nameRows) {
-      const list = byEin.get(r.ein);
-      if (list) list.push(r);
-      else byEin.set(r.ein, [r]);
+      if (qCond) where.push(qCond);
     }
 
-    return agg.map((a) => {
-      const variants = byEin.get(a.ein) ?? [];
-      const { primary } = pickFirmName(variants.map((v) => ({ name: v.name, year: v.year })));
-      // Location from the variant seen most often (proxy for "current").
-      const loc = [...variants].sort((x, y) => (y.n ?? 0) - (x.n ?? 0))[0];
-      return {
-        ein: a.ein,
-        name: primary || a.ein,
-        city: loc?.city || null,
-        state: loc?.state || null,
-        auditCount: Number(a.auditCount),
-        clientCount: Number(a.clientCount),
-        mostRecentYear: a.mostRecentYear || null,
-      };
-    });
+    const rows = await db
+      .select({
+        ein: facMirrorAuditorFirms.auditorEin,
+        name: facMirrorAuditorFirms.firmName,
+        city: facMirrorAuditorFirms.city,
+        state: facMirrorAuditorFirms.state,
+        auditCount: facMirrorAuditorFirms.auditCount,
+        clientCount: facMirrorAuditorFirms.clientCount,
+        mostRecentYear: facMirrorAuditorFirms.mostRecentYear,
+      })
+      .from(facMirrorAuditorFirms)
+      .where(where.length ? and(...where) : undefined)
+      .orderBy(desc(facMirrorAuditorFirms.auditCount))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      ein: r.ein,
+      name: r.name || r.ein,
+      city: r.city ?? null,
+      state: r.state ?? null,
+      auditCount: r.auditCount,
+      clientCount: r.clientCount,
+      mostRecentYear: r.mostRecentYear ?? null,
+    }));
   } catch (err) {
     console.error('[auditors] searchAuditorFirms failed:', err);
     return [];
@@ -114,11 +111,9 @@ export async function searchAuditorFirms(opts: AuditorSearchOpts): Promise<Audit
 export async function topAuditorEins(limit = 3000): Promise<string[]> {
   try {
     const rows = await db
-      .select({ ein: sql<string>`${facMirrorGeneral.auditorEin}`, n: sql<number>`count(*)` })
-      .from(facMirrorGeneral)
-      .where(isRealFirmEin)
-      .groupBy(facMirrorGeneral.auditorEin)
-      .orderBy(sql`count(*) desc`)
+      .select({ ein: facMirrorAuditorFirms.auditorEin })
+      .from(facMirrorAuditorFirms)
+      .orderBy(desc(facMirrorAuditorFirms.auditCount))
       .limit(limit);
     return rows.map((r) => r.ein).filter((e) => /^\d{9}$/.test(e));
   } catch (err) {
@@ -127,8 +122,24 @@ export async function topAuditorEins(limit = 3000): Promise<string[]> {
   }
 }
 
-/** cache() so generateMetadata + the page render share one lookup. */
-export const getAuditorProfile = cache(_getAuditorProfile);
+/**
+ * Two layers:
+ *  - unstable_cache: the profile query for a big firm is slow (~1.5s to
+ *    pull every filing + ~3s for the findings JOIN — CliftonLarsonAllen
+ *    has ~14k filings) and the page is dynamic, so persist the built
+ *    profile in the Next data cache, revalidated daily (mirror is
+ *    weekly).
+ *  - cache(): request-level dedup so generateMetadata + the page render
+ *    still share a single lookup within one request.
+ */
+const cachedAuditorProfile = unstable_cache(_getAuditorProfile, ['auditor-profile-v2'], {
+  revalidate: 86400,
+  tags: ['auditor-directory'],
+});
+
+export const getAuditorProfile = cache(
+  (ein: string): Promise<AuditorProfile | null> => cachedAuditorProfile(ein)
+);
 
 async function _getAuditorProfile(ein: string): Promise<AuditorProfile | null> {
   if (!/^\d{9}$/.test(ein) || PLACEHOLDER_AUDITOR_EINS.includes(ein)) return null;

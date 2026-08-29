@@ -44,9 +44,9 @@ export function AuditorSearchForm({
         type="text"
         value={q}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Firm name (e.g. CliftonLarsonAllen)"
+        placeholder="Firm name or city (e.g. CliftonLarsonAllen, or St. Louis)"
         className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1"
-        aria-label="Search by firm name"
+        aria-label="Search by firm name or city"
       />
       <button
         type="submit"
