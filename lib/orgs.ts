@@ -176,6 +176,27 @@ export async function getMostAuditedOrgs(limit = 15): Promise<OrgSummary[]> {
   }
 }
 
+/**
+ * The N organizations with the largest federal-award expenditure —
+ * drives generateStaticParams for /single-audit/[ein], so the org pages
+ * most likely to be linked (state indexes are sorted by this figure) and
+ * crawled are prerendered at build instead of rendering cold on first
+ * visit. Returns EINs only; one indexed scan of fac_mirror_org_summary.
+ */
+export async function getTopOrgEinsByExpenditure(limit: number): Promise<string[]> {
+  try {
+    const rows = await db
+      .select({ ein: facMirrorOrgSummary.auditeeEin })
+      .from(facMirrorOrgSummary)
+      .orderBy(desc(facMirrorOrgSummary.totalExpended))
+      .limit(limit);
+    return rows.map((r) => r.ein).filter((e) => /^\d{9}$/.test(e));
+  } catch (err) {
+    console.error('[orgs] getTopOrgEinsByExpenditure failed:', err);
+    return [];
+  }
+}
+
 /** Distinct state codes present in the summary — drives generateStaticParams. */
 export async function getPopulatedStateCodes(): Promise<string[]> {
   try {
