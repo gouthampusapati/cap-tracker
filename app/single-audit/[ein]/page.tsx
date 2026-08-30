@@ -207,7 +207,21 @@ export async function generateMetadata(props: {
   // result reads as though the FAC published this page — the site footer
   // already disclaims that affiliation, so the title was contradicting it.
   const title = `${org.name} - Single Audit | Single Audit Intelligence`;
-  const description = `Audit history and findings for ${org.name} (EIN: ${org.ein}). ${org.findingsCount} findings across ${org.totalReports} audits.`;
+
+  // Enrich the description with the facts a searcher is actually
+  // weighing — how recent the data is, and whether there's a
+  // going-concern year — rather than just the raw counts. org.auditHistory
+  // is newest-first (see getReportsByEin's order param).
+  const latestFy = org.auditHistory[0]?.fiscalYearEnd?.slice(0, 4) || null;
+  const hasGoingConcern = org.auditHistory.some((ay) => ay.isGoingConcern);
+  const audits = `${org.totalReports} audit${org.totalReports === 1 ? '' : 's'}`;
+  const findings = `${org.findingsCount} finding${org.findingsCount === 1 ? '' : 's'}`;
+  const repeat = org.repeatFindingsCount > 0 ? ` (${org.repeatFindingsCount} repeat)` : '';
+  const description =
+    `Single Audit history for ${org.name} (EIN ${org.ein}) from the Federal Audit Clearinghouse: ` +
+    `${audits} on file, ${findings}${repeat}` +
+    `${latestFy ? `, most recent FY ${latestFy}` : ''}.` +
+    `${hasGoingConcern ? ' Includes a year with a going-concern opinion.' : ''}`;
   const canonicalUrl = `${SITE_URL}/single-audit/${org.ein}`;
 
   return {

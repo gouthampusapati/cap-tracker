@@ -95,6 +95,14 @@ export default function GuideIndexPage() {
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
           <p className="text-sm text-blue-900 mb-3">
+            New to the terminology? The{' '}
+            <Link href="/glossary" className="underline font-semibold hover:text-blue-700">
+              glossary
+            </Link>{' '}
+            defines every term on a Single Audit and its findings, each tied to its 2 CFR 200
+            section.
+          </p>
+          <p className="text-sm text-blue-900 mb-3">
             Looking at more than one organization?{' '}
             <Link href="/portfolio" className="underline font-semibold hover:text-blue-700">
               The portfolio view

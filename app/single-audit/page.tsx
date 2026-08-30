@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { Footer } from '@/app/footer';
 import { JsonLd } from '@/app/json-ld';
-import { breadcrumbList } from '@/lib/structured-data';
+import { breadcrumbList, webSite } from '@/lib/structured-data';
 import EinSearchForm from '@/app/ein-search-form';
 import { getStateOrgCounts, getGoingConcernOrgs, US_STATES, stateName } from '@/lib/orgs';
 
@@ -44,17 +44,9 @@ const structuredData = [
     { name: 'Single Audit Intelligence', url: SITE_URL },
     { name: 'Single Audit Organizations', url: canonical },
   ]),
-  {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: 'Single Audit Intelligence',
-    url: SITE_URL,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SITE_URL}/single-audit/{ein}`,
-      'query-input': 'required name=ein',
-    },
-  },
+  // Shared builder — same shape as the homepage's WebSite node rather
+  // than a second hand-rolled one that could drift.
+  webSite(),
 ];
 
 export default async function SingleAuditHubPage() {

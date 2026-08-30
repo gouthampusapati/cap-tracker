@@ -7,6 +7,8 @@ import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
+import { JsonLd } from './json-ld';
+import { organization, webSite } from '@/lib/structured-data';
 
 const title = 'Single Audit Intelligence';
 const description =
@@ -34,6 +36,12 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Top-level entity + site search action. Every other page's
+          JSON-LD carries an Organization node inside a breadcrumb or
+          service shape; the homepage is where it's declared standalone,
+          alongside the WebSite SearchAction. */}
+      <JsonLd data={[organization(), webSite()]} />
+
       {/* The site-wide sticky header (app/header.tsx, mounted in
           app/layout.tsx) now covers brand + Guide/Portfolio nav + Sign
           in/Get Started — this page no longer renders its own. */}

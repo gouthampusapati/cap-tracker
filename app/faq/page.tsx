@@ -245,6 +245,9 @@ export default function FaqPage() {
           <Link href="/guide" className="text-blue-600 hover:text-blue-800 font-semibold">
             Compliance guide →
           </Link>
+          <Link href="/glossary" className="text-blue-600 hover:text-blue-800 font-semibold">
+            Glossary →
+          </Link>
           <Link href="/auditors" className="text-blue-600 hover:text-blue-800 font-semibold">
             Auditor directory →
           </Link>
