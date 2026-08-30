@@ -2,7 +2,7 @@ import 'server-only';
 import { Resend } from 'resend';
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { waitlistSignups } from '@/lib/db/schema';
+import { foundingSignups } from '@/lib/db/schema';
 
 /**
  * Owner-facing notification on every Founding Customer signup.
@@ -66,7 +66,7 @@ export async function sendOwnerNotification(signup: {
   try {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(waitlistSignups);
+      .from(foundingSignups);
     totalSignups = count;
   } catch (error) {
     console.error('sendOwnerNotification: signup count query failed:', error);

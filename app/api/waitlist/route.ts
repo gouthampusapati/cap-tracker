@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { waitlistSignups } from '@/lib/db/schema';
+import { foundingSignups } from '@/lib/db/schema';
 import { sendOwnerNotification } from '@/lib/send-owner-notification';
 
 /**
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await db.insert(waitlistSignups).values({
+    await db.insert(foundingSignups).values({
       id: crypto.randomUUID(),
       email,
       source,
