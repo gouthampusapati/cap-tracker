@@ -176,10 +176,21 @@ export async function getMostAuditedOrgs(limit = 15): Promise<OrgSummary[]> {
   }
 }
 
+// Prerendered (ISR) pages larger than ~19 MB fail Vercel's build
+// (FALLBACK_BODY_TOO_LARGE). The org page renders every finding across
+// every audit year inline, and finding text length varies wildly —
+// State of Indiana (350 findings) is ~30 MB, State of Missouri (116)
+// is ~4 MB. Orgs above this finding count are excluded from the
+// prerender set and keep working the way they do today: rendered on
+// demand (no size cap there), then ISR-cached. Measured: every org at
+// ≤100 findings renders well under 5 MB.
+const PRERENDER_MAX_FINDINGS = 100;
+
 /**
- * The N organizations with the largest federal-award expenditure —
- * drives generateStaticParams for /single-audit/[ein], so the org pages
- * most likely to be linked (state indexes are sorted by this figure) and
+ * The N organizations with the largest federal-award expenditure (and a
+ * finding count small enough to prerender safely — see above) — drives
+ * generateStaticParams for /single-audit/[ein], so the org pages most
+ * likely to be linked (state indexes are sorted by expenditure) and
  * crawled are prerendered at build instead of rendering cold on first
  * visit. Returns EINs only; one indexed scan of fac_mirror_org_summary.
  */
@@ -188,6 +199,7 @@ export async function getTopOrgEinsByExpenditure(limit: number): Promise<string[
     const rows = await db
       .select({ ein: facMirrorOrgSummary.auditeeEin })
       .from(facMirrorOrgSummary)
+      .where(sql`${facMirrorOrgSummary.findingsCount} <= ${PRERENDER_MAX_FINDINGS}`)
       .orderBy(desc(facMirrorOrgSummary.totalExpended))
       .limit(limit);
     return rows.map((r) => r.ein).filter((e) => /^\d{9}$/.test(e));

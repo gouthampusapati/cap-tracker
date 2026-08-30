@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { getRelatedIdentifiers } from '@/lib/entity-resolution';
-import { getOrgSummary, stateName } from '@/lib/orgs';
+import { getOrgSummary, getTopOrgEinsByExpenditure, stateName } from '@/lib/orgs';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
@@ -25,18 +25,23 @@ export const revalidate = 86400;
 // the ones a crawler working the sitemap hits first, so they're served
 // static from the edge on the very first visit instead of rendering cold
 // (~1-2s of mirror reads + render). dynamicParams stays true (default):
-// every other EIN (the ~65K long tail) still renders on demand and then
+// every other EIN (the ~67K long tail) still renders on demand and then
 // ISR-caches per `revalidate` — without SOME generateStaticParams a
 // dynamic segment is treated as fully dynamic and `revalidate` is
 // silently ignored.
 //
+// Held at 500 deliberately: Vercel's build machine is small (2 cores,
+// 8 GB) and each of these is a mirror read + render, so this is a
+// balance between first-visit coverage and build time. getTopOrgEins…
+// also filters out the giant orgs whose pages exceed Vercel's ~19 MB
+// prerender ceiling (see lib/orgs.ts).
+//
 // Build safety: getPublicOrg serves these from the mirror at build time
 // (0 FAC calls — see IS_BUILD in lib/public-org-cache.ts), so hundreds of
 // back-to-back prerenders can't exhaust the shared FAC budget.
-const PRERENDER_TOP_ORGS = 1000;
+const PRERENDER_TOP_ORGS = 500;
 
 export async function generateStaticParams(): Promise<{ ein: string }[]> {
-  const { getTopOrgEinsByExpenditure } = await import('@/lib/orgs');
   const eins = await getTopOrgEinsByExpenditure(PRERENDER_TOP_ORGS);
   return eins.map((ein) => ({ ein }));
 }
