@@ -35,6 +35,7 @@ await client.execute(`
     source text NOT NULL,
     ein text,
     segment text,
+    organization text,
     interest_level text,
     org_count text,
     current_method text,

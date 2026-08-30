@@ -44,6 +44,7 @@ export async function sendOwnerNotification(signup: {
   source: string;
   ein: string | null;
   referrer: string | null;
+  organization?: string | null;
   interest?: string | null;
   orgCount?: string | null;
   method?: string | null;
@@ -85,6 +86,7 @@ export async function sendOwnerNotification(signup: {
   const lines = [
     `Role: ${signup.segment}`,
     `Email: ${signup.email}`,
+    ...(signup.organization ? [`Organization: ${signup.organization}`] : []),
     `Time: ${timestamp}`,
     `Source: ${signup.source}${signup.ein ? ` (EIN ${signup.ein})` : ''}`,
     `Referrer: ${signup.referrer || '(direct / none)'}`,

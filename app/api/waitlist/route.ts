@@ -63,6 +63,7 @@ export async function POST(request: Request) {
     source?: unknown;
     ein?: unknown;
     segment?: unknown;
+    organization?: unknown;
     interest?: unknown;
     orgCount?: unknown;
     method?: unknown;
@@ -78,6 +79,12 @@ export async function POST(request: Request) {
   const source = typeof body.source === 'string' ? body.source : '';
   const ein = typeof body.ein === 'string' && /^\d{9}$/.test(body.ein) ? body.ein : null;
   const segment = typeof body.segment === 'string' ? body.segment : '';
+  // Optional free-text org name — trimmed and length-capped, no
+  // allowlist (it's a name). Stored for follow-up, never used to gate.
+  const organization =
+    typeof body.organization === 'string' && body.organization.trim()
+      ? body.organization.trim().slice(0, 200)
+      : null;
   // Optional founding qualifiers — accept only allowlisted values, drop
   // anything else to null rather than reject the whole signup over an
   // optional field.
@@ -121,6 +128,7 @@ export async function POST(request: Request) {
       source,
       ein,
       segment,
+      organization,
       interestLevel: interest,
       orgCount,
       currentMethod: method,
@@ -141,6 +149,7 @@ export async function POST(request: Request) {
       source,
       ein,
       referrer,
+      organization,
       interest,
       orgCount,
       method,

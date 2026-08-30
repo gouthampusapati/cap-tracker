@@ -73,9 +73,10 @@ const METHOD_OPTIONS: { value: CurrentMethod; label: string }[] = [
  * template + unsubscribe work.
  *
  * `qualifying` controls form depth:
- *   - true  (pricing page): role + interest + org count + current
- *     method. This is a higher-intent surface — someone reading a
- *     pricing page — so the extra questions earn their friction.
+ *   - true  (pricing page): role + optional organization name + interest
+ *     + org count + optional current method. This is a higher-intent
+ *     surface — someone reading a pricing page — so the questions earn
+ *     their friction.
  *   - false (homepage band, dashboard draft CTA): role + email only.
  *     The homepage closing band catches a low-intent scroller; a
  *     four-question form there would tank completion.
@@ -94,7 +95,7 @@ const METHOD_OPTIONS: { value: CurrentMethod; label: string }[] = [
 export function WaitlistForm({
   source,
   ein,
-  ctaLabel = 'Request founding access',
+  ctaLabel = 'Request Founding Access',
   className = '',
   variant = 'dark',
   defaultEmail = '',
@@ -129,6 +130,7 @@ export function WaitlistForm({
     if (defaultEmail) setEmail(defaultEmail);
   }, [defaultEmail]);
   const [segment, setSegment] = useState<Segment | ''>('');
+  const [organization, setOrganization] = useState('');
   const [interest, setInterest] = useState<InterestLevel | ''>('');
   const [orgCount, setOrgCount] = useState<OrgCount | ''>('');
   const [method, setMethod] = useState<CurrentMethod | ''>('');
@@ -185,6 +187,7 @@ export function WaitlistForm({
           source,
           ein,
           segment,
+          organization: qualifying && organization.trim() ? organization.trim() : undefined,
           interest: qualifying ? interest : undefined,
           orgCount: qualifying ? orgCount : undefined,
           method: qualifying && method ? method : undefined,
@@ -274,6 +277,30 @@ export function WaitlistForm({
 
       {qualifying && (
         <>
+          <div className="mb-3">
+            <label
+              htmlFor="founding-organization"
+              className={`block text-sm font-semibold mb-2 ${isLight ? 'text-gray-900' : 'text-white'}`}
+            >
+              Organization{' '}
+              <span className={`font-normal ${isLight ? 'text-gray-500' : 'text-white/60'}`}>
+                (optional)
+              </span>
+            </label>
+            <input
+              id="founding-organization"
+              type="text"
+              value={organization}
+              onChange={(e) => {
+                setOrganization(e.target.value);
+                clearErrorState();
+              }}
+              placeholder="Your organization or firm"
+              maxLength={200}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+          </div>
+
           <fieldset className="mb-3">
             <legend className={`text-sm font-semibold mb-2 ${isLight ? 'text-gray-900' : 'text-white'}`}>
               Which best describes your interest?
@@ -400,12 +427,6 @@ export function WaitlistForm({
       </div>
       {status === 'error' && (
         <p className={`text-xs mt-2 ${isLight ? 'text-red-600' : 'text-red-300'}`}>{error}</p>
-      )}
-      {qualifying && (
-        <p className={`text-xs mt-2 ${isLight ? 'text-gray-500' : 'text-white/60'}`}>
-          Founding pilots start at $750/month, billed quarterly, and credit toward an annual
-          plan. No commitment for the first conversation.
-        </p>
       )}
       <p className={`text-xs mt-2 ${isLight ? 'text-gray-500' : 'text-white/60'}`}>
         We&apos;ll only use this to follow up about the Founding Customer Program — never shared,

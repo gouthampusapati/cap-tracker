@@ -463,6 +463,7 @@ export const foundingSignups = sqliteTable('founding_signups', {
   source: text('source').notNull(),
   ein: text('ein'), // set when the signup came from an org page; null otherwise
   segment: text('segment'),
+  organization: text('organization'), // optional free-text org/firm name (qualifying form only)
   interestLevel: text('interest_level'),
   orgCount: text('org_count'),
   currentMethod: text('current_method'),
