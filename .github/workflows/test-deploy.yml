@@ -41,6 +41,14 @@ jobs:
         env:
           FAC_API_KEY: ${{ secrets.FAC_API_KEY }}
           NEXT_PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_URL }}
+          # The mirror-backed pages that prerender at build time
+          # (/single-audit, /single-audit/state/*) read the live Turso
+          # DB during `next build` — without these the client falls back
+          # to a throwaway local SQLite file (lib/db/index.ts) and those
+          # pages prerender empty. Same DB the deploy step's `vercel
+          # build` needs (below) and the weekly sync writes to.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
   deploy:
     name: Deploy to Vercel
@@ -73,6 +81,15 @@ jobs:
 
       - name: Build project artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          # `vercel pull` writes prod env to .vercel/.env.production.local,
+          # but `vercel build` on a non-Vercel runner doesn't reliably
+          # apply it to the `next build` subprocess — the prerendered
+          # mirror-backed pages (/single-audit, /single-audit/state/*)
+          # came out empty because the DB client fell back to a local
+          # SQLite file. Pass the DB creds through explicitly.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
 
       - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
