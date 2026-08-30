@@ -2,31 +2,52 @@ import 'server-only';
 import { Resend } from 'resend';
 import { sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { waitlistSignups } from '@/lib/db/schema';
+import { foundingSignups } from '@/lib/db/schema';
 
 /**
- * Owner-facing notification on every early-access signup — see
- * REVISED_FINAL_PASS.md Task 5 and
- * /Users/Bunnu/.claude/plans/merry-enchanting-kay.md. Deliberately NOT
- * an auto-reply to the visitor who signed up — that was explicitly
- * declined (see app/waitlist-form.tsx's doc comment); this only tells
- * the site owner a signup happened.
+ * Owner-facing notification on every Founding Customer signup.
+ * Deliberately NOT an auto-reply to the visitor who signed up — that
+ * was explicitly declined (see app/waitlist-form.tsx's doc comment);
+ * this only tells the site owner a signup happened.
  *
- * Safe no-op by design: RESEND_API_KEY and WAITLIST_NOTIFY_EMAIL aren't
- * set anywhere yet (no Resend account exists), so this logs a warning
- * and returns rather than throwing — signups must keep working before
- * and after this is actually configured. See .env.example.
+ * Safe no-op by design: if RESEND_API_KEY or WAITLIST_NOTIFY_EMAIL is
+ * unset (e.g. local dev, or CI) this logs a warning and returns rather
+ * than throwing — signups must keep working whether or not email is
+ * configured. Both are set in Vercel prod. See .env.example.
  *
  * Called from app/api/waitlist/route.ts strictly AFTER the DB insert
  * succeeds, and its own caller swallows any error — losing a
  * notification is recoverable, losing a signup is not.
  */
+// Human-readable labels for the founding qualifiers — the raw slugs
+// ('pay-now') read badly in an email. Keys match VALID_* in
+// app/api/waitlist/route.ts.
+const INTEREST_LABELS: Record<string, string> = {
+  'pay-now': 'Would pay now',
+  'after-demo': 'Would consider after a demo',
+  'test-first': 'Wants to test first',
+  'free-only': 'Only wants the free tools',
+};
+const METHOD_LABELS: Record<string, string> = {
+  spreadsheet: 'Spreadsheet',
+  'manual-fac': 'Manual FAC searches',
+  'internal-system': 'Internal system',
+  'email-calendar': 'Email / calendar reminders',
+  'audit-software': 'Audit / compliance software',
+  none: "Doesn't currently monitor",
+  other: 'Other',
+};
+
 export async function sendOwnerNotification(signup: {
   email: string;
   segment: string;
   source: string;
   ein: string | null;
   referrer: string | null;
+  organization?: string | null;
+  interest?: string | null;
+  orgCount?: string | null;
+  method?: string | null;
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const notifyEmail = process.env.WAITLIST_NOTIFY_EMAIL;
@@ -46,7 +67,7 @@ export async function sendOwnerNotification(signup: {
   try {
     const [{ count }] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(waitlistSignups);
+      .from(foundingSignups);
     totalSignups = count;
   } catch (error) {
     console.error('sendOwnerNotification: signup count query failed:', error);
@@ -65,13 +86,29 @@ export async function sendOwnerNotification(signup: {
   const lines = [
     `Role: ${signup.segment}`,
     `Email: ${signup.email}`,
+    ...(signup.organization ? [`Organization: ${signup.organization}`] : []),
     `Time: ${timestamp}`,
     `Source: ${signup.source}${signup.ein ? ` (EIN ${signup.ein})` : ''}`,
     `Referrer: ${signup.referrer || '(direct / none)'}`,
   ];
+  if (signup.interest) {
+    lines.push(`Interest: ${INTEREST_LABELS[signup.interest] ?? signup.interest}`);
+  }
+  if (signup.orgCount) {
+    lines.push(`Orgs to monitor: ${signup.orgCount}`);
+  }
+  if (signup.method) {
+    lines.push(`Current method: ${METHOD_LABELS[signup.method] ?? signup.method}`);
+  }
   if (totalSignups !== null) {
     lines.push(`Total signups: ${totalSignups}`);
   }
+
+  // Lead the subject with the interest level when it's the strong
+  // signal — "would pay now" is worth seeing without opening the email.
+  const subjectTag = signup.interest
+    ? INTEREST_LABELS[signup.interest] ?? signup.interest
+    : signup.segment;
 
   const resend = new Resend(apiKey);
   const fromAddress = process.env.RESEND_FROM_EMAIL || 'Single Audit Intelligence <onboarding@resend.dev>';
@@ -80,7 +117,7 @@ export async function sendOwnerNotification(signup: {
     await resend.emails.send({
       from: fromAddress,
       to: notifyEmail,
-      subject: `New early-access signup: ${signup.segment}`,
+      subject: `New founding-customer signup: ${subjectTag}`,
       text: lines.join('\n'),
     });
   } catch (error) {

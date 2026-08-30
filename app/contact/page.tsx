@@ -56,7 +56,7 @@ export default function ContactPage() {
       <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-4">
         <Card heading="General inquiries" email="contact@singleauditintel.com">
           Questions about the site, feedback, partnership or press, and anything about the
-          Single Audit Watchlist.
+          Founding Customer Program.
         </Card>
 
         <Card heading="Product support" email="support@singleauditintel.com">

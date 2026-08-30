@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import EinSearchForm from './ein-search-form';
-import { WaitlistForm } from './waitlist-form';
+import { FoundingCtaButton } from './founding-cta-button';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomeFeatureGrid } from './home-feature-grid';
@@ -329,43 +329,31 @@ export default function Home() {
         <HomeFeatureGrid />
       </div>
 
-      {/* CTA Footer — the one CTA that's genuinely just general-interest
-          capture (a visitor who hasn't self-identified as anything in
-          particular — unlike "For Recipients"/"For Pass-Throughs"
-          above, which link straight into the real product). Named as
-          its own product ("Single Audit Watchlist"), not generic
-          "early access to enterprise features" framing — the three
-          alerts plus the monthly exception report are concrete
-          features, not a vague pitch. Still deliberately does NOT
-          mention repeat-finding alerts: that consequence thesis was
-          tested against real data and falsified, so it's not a claim
-          this site makes — reconfirmed (not just inherited) when this
-          copy was rewritten, since the new draft initially included it
-          and that was caught and removed before shipping. The role
-          radio question (in WaitlistForm) is the actual point of this
-          block: recipient vs. pass-through vs. adviser/auditor is the
-          split the whole strategy hangs on, and this is the one moment
-          a visitor is motivated to answer it.
+      {/* CTA Footer — the Founding Customer entry point for a visitor
+          who's scrolled the whole homepage without self-identifying
+          (unlike "For Recipients"/"For Pass-Throughs" above, which link
+          straight into the real product). The three alerts plus the
+          monthly exception report are concrete features, not a vague
+          pitch, and the copy is honest that we're "onboarding a limited
+          number of founding customers" rather than claiming the product
+          is finished. Still deliberately does NOT advertise
+          repeat-finding alerts: that consequence thesis was tested
+          against real data and falsified, so it's not a claim this site
+          makes — reconfirmed each time this copy is rewritten.
+
+          This band is a teaser + a single button, NOT its own form:
+          everyone goes through the one qualifying form on
+          /pricing#founding-form so we're not maintaining two capture
+          paths that drift out of sync. FoundingCtaButton fires the
+          monitor-CTA-click event with surface:'homepage-band'.
 
           Full-bleed, light mist background (bg-surface-alt), not a dark
-          box — went back to the actual stripe.com production site
-          rather than guess a third time: their own "Ready to get
-          started?" CTA-before-footer section is a light mist tone
-          (#F8FAFD, confirmed via computed style), not dark, and their
-          footer is that exact same light color too — no color break at
-          all between the two. app/footer.tsx now matches this
-          section's bg-surface-alt for the same reason. No rounded
-          corners, no bottom margin, so it still flows directly into the
-          Footer with zero gap. */}
+          box — matches the actual stripe.com production site's
+          "Ready to get started?" CTA-before-footer section (#F8FAFD,
+          confirmed via computed style), and app/footer.tsx matches this
+          section's bg-surface-alt so there's no color break into the
+          footer. No rounded corners, no bottom margin. */}
       <div className="bg-surface-alt text-gray-900 text-center py-16 sm:py-20">
-        {/* max-w-2xl, not max-w-md — that narrower width was sized for
-            just the form and left the heading (now the longer
-            "Enterprise-Grade..." version) wrapping across 3 cramped
-            lines, visibly narrower than every other heading on the
-            page. Heading/body copy get the wider column; the form
-            itself stays at max-w-md (passed via className below) so the
-            email input/button don't stretch into an awkwardly wide
-            single row. */}
         <div className="max-w-2xl mx-auto px-4">
           {/* logo-mark.png — the current red/navy "SAI" mark. This
               section is light, so no dark-background knockout variant
@@ -374,26 +362,23 @@ export default function Home() {
             <img src="/brand/logo-mark.png" alt="" className="h-8 w-8" />
             <span className="text-lg font-semibold text-gray-900">Single Audit Intelligence</span>
           </div>
-          <h2 className="text-2xl font-bold mb-1">Single Audit Watchlist</h2>
+          <h2 className="text-2xl font-bold mb-1">Stop checking. Start monitoring.</h2>
           <p className="text-base font-semibold text-accent mb-3">
-            Continuous monitoring for pass-through entities
+            Continuous monitoring of the Federal Audit Clearinghouse
           </p>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
               copy harder to skim; this audience is skimming. max-w-md
-              mx-auto so this block lines up with the form directly
-              below it — only the heading above uses the full max-w-2xl
-              width, to give it breathing room without also stretching
-              the paragraph/bullets wider than the form they lead into.
-              "Up to 100" — not an arbitrary round number. Checked
-              against the FAC's full national pass-through dataset
-              (225k entities): a 100-subrecipient cap covers 99.8% of
-              every pass-through entity that exists, so a real
+              mx-auto keeps this list narrow and centered under the
+              heading. "Up to 100" — not an arbitrary round number.
+              Checked against the FAC's full national pass-through
+              dataset (225k entities): a 100-subrecipient cap covers
+              99.8% of every pass-through entity that exists, so a real
               state-agency-scale customer practically never hits it. */}
           <div className="text-left mb-4 space-y-3 max-w-md mx-auto">
             <div>
               <p className="text-gray-600 mb-2">
-                Monitor up to 100 named subrecipients and get alerted when:
+                Keep up to 100 organizations in one monitored portfolio and get alerted when:
               </p>
               <ul className="list-disc list-outside pl-5 text-gray-600 space-y-1">
                 <li>A new FAC audit is accepted</li>
@@ -403,10 +388,20 @@ export default function Home() {
             </div>
             <p className="text-gray-600">Plus: a monthly portfolio exception report.</p>
           </div>
-          <p className="font-semibold text-gray-900 mb-4">
-            Coming soon — join the early-access list
+          <p className="font-semibold text-gray-900 mb-1">
+            We&apos;re onboarding a limited number of founding customers.
           </p>
-          <WaitlistForm source="homepage-cta-band" variant="light" className="max-w-md mx-auto" />
+          <p className="text-sm text-gray-600 mb-4">
+            $3,600 for your first year, then a locked founding rate. See{' '}
+            <Link href="/pricing#founding" className="underline font-semibold hover:text-accent">
+              full founding pricing
+            </Link>
+            .
+          </p>
+          <FoundingCtaButton surface="homepage-band" />
+          <p className="text-xs text-gray-500 mt-3">
+            Takes you to a short form about what you need to monitor — not a checkout.
+          </p>
         </div>
       </div>
 

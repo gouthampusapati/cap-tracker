@@ -55,6 +55,7 @@ const NAV_LINKS = [
   { href: '/guide', label: 'Guide' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/auditors', label: 'Auditors' },
+  { href: '/pricing', label: 'Pricing' },
 ];
 
 export function Header() {

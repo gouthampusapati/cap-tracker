@@ -21,12 +21,31 @@ export const EVENT_ORG_PAGE_CLICKTHROUGH = 'org_page_clickthrough';
  * twenty suggests a pass-through monitoring a portfolio. */
 export const EVENT_PORTFOLIO_SUBMIT = 'portfolio_submit';
 
-/** Fired when the homepage early-access form is submitted successfully.
- * Carries the role bucket only (recipient/passthrough/adviser/other) —
- * never the email address, per the ground rule above. This is the
- * cleanest read available on the recipient-vs-pass-through-vs-adviser
- * split everything downstream depends on. */
-export const EVENT_EARLY_ACCESS_SUBMIT = 'early_access_submit';
+/** Fired when the Founding Customer form is submitted successfully.
+ * Carries the role bucket and, when the form collected them, the
+ * interest level and org-count bucket — never the email address, per
+ * the ground rule above. This is the cleanest read available on the
+ * recipient-vs-pass-through-vs-adviser split, plus how much of the
+ * qualified intent is "would pay now" vs "wants to test first". */
+export const EVENT_FOUNDING_SUBMIT = 'founding_submit';
+
+/** Fired the first time someone focuses a field in the Founding
+ * Customer form (not on every keystroke). Paired with
+ * EVENT_FOUNDING_SUBMIT this gives the form's start→finish completion
+ * rate — the single number that says whether the qualifying questions
+ * are worth their friction. */
+export const EVENT_FOUNDING_FORM_START = 'founding_form_start';
+
+/** Fired when a contextual "Monitor these organizations" CTA is
+ * clicked (portfolio results today; more surfaces later). Carries the
+ * surface it was clicked from, never any EIN. Tells us which page
+ * actually drives commercial intent vs. which just gets traffic. */
+export const EVENT_MONITOR_CTA_CLICK = 'monitor_cta_click';
+
+/** Fired once per /pricing view. The denominator for "of people who
+ * saw pricing, how many started the founding form" — worth knowing
+ * separately from homepage-band conversions, which are lower intent. */
+export const EVENT_PRICING_VIEW = 'pricing_view';
 
 export function bucketEinCount(count: number): string {
   if (count <= 1) return '1';

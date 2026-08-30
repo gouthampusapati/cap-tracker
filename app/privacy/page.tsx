@@ -41,13 +41,16 @@ export default function PrivacyPage() {
             infer, or publish anything about an organization beyond what the FAC itself
             already discloses.
           </p>
-          <h2 className="text-lg font-bold text-gray-900 mt-6 mb-2">Account &amp; waitlist information</h2>
+          <h2 className="text-lg font-bold text-gray-900 mt-6 mb-2">
+            Account &amp; Founding Customer information
+          </h2>
           <p className="text-gray-700 leading-relaxed mb-4">
-            If you sign in or join the waitlist, we store the email address you provide and,
-            where relevant, which organization or page you were interested in. We use this to
-            follow up about the product and, for signed-in accounts, to save your tracked
-            findings and corrective action items. We don't sell this information or share it
-            with third parties for marketing.
+            If you sign in or request Founding Customer access, we store the email address you
+            provide and, where relevant, which organization or page you were interested in and
+            the answers you give on the form (your role, how many organizations you monitor, and
+            how you track them today). We use this to follow up about the product and, for
+            signed-in accounts, to save your tracked findings and corrective action items. We
+            don't sell this information or share it with third parties for marketing.
           </p>
           <h2 className="text-lg font-bold text-gray-900 mt-6 mb-2">Analytics</h2>
           <p className="text-gray-700 leading-relaxed">

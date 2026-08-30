@@ -5,6 +5,7 @@ import { parseEinList, fetchPortfolio, defaultSort, PORTFOLIO_MAX_EINS } from '@
 import { Footer } from '@/app/footer';
 import PortfolioForm from './portfolio-form';
 import PortfolioTable from './portfolio-table';
+import { MonitorPortfolioCta } from './monitor-portfolio-cta';
 
 // A full batch (PORTFOLIO_MAX_EINS EINs, ~6 at a time) is well past the
 // single-org page's already-bumped 30s — this needs the Hobby-plan
@@ -91,6 +92,8 @@ export default async function PortfolioPage(props: {
               </p>
             )}
             <PortfolioTable initialRows={rows} />
+
+            <MonitorPortfolioCta einCount={rows.length} />
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
               <p className="text-sm text-blue-900">

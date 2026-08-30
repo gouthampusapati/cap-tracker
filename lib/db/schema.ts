@@ -439,23 +439,33 @@ export const facMirrorSyncLog = sqliteTable('fac_mirror_sync_log', {
 });
 
 /**
- * Email signups from CTAs that used to point at /auth/signin (a private
- * workspace with no real onboarding yet) — see the UI/branding overhaul
- * plan, Phase 1.5. No uniqueness constraint on email: the same person
- * signing up from two different CTAs is two useful, distinct signals for
- * outreach (which page/EIN they were interested in), not a duplicate to
- * collapse. `source` is validated against a fixed allowlist at the API
- * layer (app/api/waitlist/route.ts), not here.
+ * Founding Customer Program signups — the qualifying form on /pricing
+ * (app/waitlist-form.tsx), plus the dashboard's "Generate Draft"
+ * feature-demand CTA (a different intent, disambiguated by `source`).
+ *
+ * Replaces the old `waitlist_signups` table (dropped — it only ever
+ * held the owner's own test rows). No uniqueness constraint on email:
+ * the same person signing up from two CTAs is two distinct outreach
+ * signals, not a duplicate. `source` / `segment` / `interestLevel` /
+ * `orgCount` / `currentMethod` are validated against fixed allowlists
+ * at the API layer (app/api/waitlist/route.ts), not here.
+ *
+ * `segment` (role) is required at the form/API layer for every signup;
+ * `interestLevel` + `orgCount` are required for the qualifying form;
+ * `organization` + `currentMethod` are always optional. All nullable at
+ * the DB level (the dashboard CTA sends only segment + email). There is
+ * deliberately NO willingness-to-pay column — that signal comes from
+ * the sales conversation, not a radio button.
  */
-export const waitlistSignups = sqliteTable('waitlist_signups', {
+export const foundingSignups = sqliteTable('founding_signups', {
   id: text('id').primaryKey(),
   email: text('email').notNull(),
   source: text('source').notNull(),
-  ein: text('ein'), // set when the signup came from an org page; null from the homepage
-  // recipient-vs-pass-through is the question the whole product strategy
-  // hangs on; nullable at the DB level (rows from before this field
-  // existed have none) but required at the form/API layer for every new
-  // signup — see app/waitlist-form.tsx and app/api/waitlist/route.ts.
+  ein: text('ein'), // set when the signup came from an org page; null otherwise
   segment: text('segment'),
+  organization: text('organization'), // optional free-text org/firm name (qualifying form only)
+  interestLevel: text('interest_level'),
+  orgCount: text('org_count'),
+  currentMethod: text('current_method'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
