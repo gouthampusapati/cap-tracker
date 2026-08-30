@@ -7,7 +7,7 @@ import { PricingViewTracker } from './pricing-view-tracker';
 
 const title = 'Pricing';
 const description =
-  'Single Audit Intelligence is free to research: organization findings, portfolio view, the auditor directory, and the compliance guide. Continuous monitoring of the Federal Audit Clearinghouse — new-audit, new-finding and management-decision-deadline alerts across a portfolio of up to 100 organizations — is the paid product, a $750/month founding pilot, now onboarding a limited initial cohort.';
+  'Single Audit Intelligence is free to research: organization findings, portfolio view, the auditor directory, and the compliance guide. Continuous monitoring of the Federal Audit Clearinghouse — new-audit, new-finding and management-decision-deadline alerts across a portfolio of up to 100 organizations — is the paid product: founding customers pay $3,600 for the first year (renewing at a locked $6,000/year), and a limited initial cohort is onboarding now.';
 
 export const metadata: Metadata = {
   title: `${title} — Free Research + Founding Customer Program | Single Audit Intelligence`,
@@ -75,8 +75,8 @@ export default function PricingPage() {
           <p className="text-gray-600 mt-2 max-w-2xl">
             <strong>Free to research. Paid to monitor.</strong> Everything you can look up on this
             site is free and needs no account. The paid product is continuous monitoring of the
-            Federal Audit Clearinghouse across a portfolio of organizations — a $750/month
-            founding pilot, onboarding a limited initial cohort now.
+            Federal Audit Clearinghouse across a portfolio of organizations. We&apos;re onboarding
+            a limited initial cohort of founding customers now.
           </p>
         </div>
       </div>
@@ -130,11 +130,16 @@ export default function PricingPage() {
               </span>
             </div>
 
-            <p className="text-3xl font-bold text-gray-900 mt-3">$750/mo</p>
-            <p className="text-sm text-gray-500 mt-1">
-              $2,250 billed quarterly · Founding pilot pricing
+            <p className="text-3xl font-bold text-gray-900 mt-3">
+              $3,600 <span className="text-base font-semibold text-gray-500">first year</span>
             </p>
-            <p className="text-sm text-gray-500">Quarterly payments credit toward an annual plan.</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Billed annually · about half off your first year
+            </p>
+            <p className="text-sm text-gray-500">
+              Renews at $6,000/year — your founding rate, locked for as long as you stay
+              subscribed.
+            </p>
 
             <p className="text-base font-semibold text-gray-900 mt-5">
               Continuously monitor up to 100 organizations for Single Audit changes that need
@@ -170,14 +175,14 @@ export default function PricingPage() {
               Request Founding Access
             </a>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              Paid founding pilot · Limited initial cohort
+              Founding customer · Limited initial cohort
             </p>
           </div>
         </div>
 
         {/* What's included — full width, detail is visually secondary to the card above */}
         <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
-          <h2 className="text-lg font-bold text-gray-900">Included in the founding pilot</h2>
+          <h2 className="text-lg font-bold text-gray-900">What founding customers get</h2>
           <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4 mt-4">
             {INCLUDED.map((item) => (
               <div key={item.label}>
@@ -208,11 +213,11 @@ export default function PricingPage() {
         </div>
 
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mt-6 text-sm text-gray-700">
-          <strong className="text-gray-900">Why isn&apos;t there a public price list yet?</strong>{' '}
-          We&apos;re onboarding a limited number of founding customers to shape the alerts and the
-          exception report around what compliance teams actually need — and to set pricing with
-          real usage behind it. Founding customers get founding rates locked in and a say in the
-          roadmap. Prefer email?{' '}
+          <strong className="text-gray-900">What does &ldquo;founding customer&rdquo; mean?</strong>{' '}
+          We&apos;re working with a limited initial cohort to shape the alerts and the exception
+          report around what compliance teams actually need. In exchange, founding customers get
+          roughly half off the first year, a renewal rate locked at $6,000/year for as long as
+          they stay subscribed, and a direct say in the roadmap. Prefer email?{' '}
           <a
             href="mailto:contact@singleauditintel.com"
             className="underline font-semibold text-blue-700 hover:text-blue-800"

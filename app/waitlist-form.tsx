@@ -62,7 +62,8 @@ const METHOD_OPTIONS: { value: CurrentMethod; label: string }[] = [
  * Founding Customer capture — the form behind "Request founding access"
  * on the homepage closing band and the /pricing page. Supersedes the
  * earlier generic "early access / waitlist" framing: this is now
- * explicitly the way into a paid founding pilot, not a notify-me list.
+ * explicitly the way into a paid founding subscription, not a notify-me
+ * list.
  *
  * NOTE — no auto-reply email: Resend is configured now (magic-link +
  * owner notification both send), but there is still deliberately no
@@ -237,9 +238,9 @@ export function WaitlistForm({
           }`}
         >
           <li>We learn which organizations you need to monitor.</li>
-          <li>We walk you through the monitoring workflow on your real data.</li>
-          <li>If it&apos;s a fit, we set up a paid founding pilot.</li>
-          <li>You get founding pricing and a say in the roadmap.</li>
+          <li>We give you a walkthrough of the monitoring service.</li>
+          <li>If it&apos;s a fit, we get your founding subscription started.</li>
+          <li>You get the founding rate locked in and a say in the roadmap.</li>
         </ol>
       </div>
     );
