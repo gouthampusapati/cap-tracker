@@ -1,15 +1,16 @@
 /**
- * One-off migration for the Founding Customer Program reframe (Sprint 1).
+ * Migration for the Founding Customer Program (Sprint 1).
  *
- * Creates `founding_signups` and DROPS the old `waitlist_signups` table.
- * The old table only ever held the owner's own dummy test rows, so
- * there is nothing to migrate — confirmed before writing this.
+ * Brings `founding_signups` to the shape in lib/db/schema.ts and drops
+ * the old `waitlist_signups` table (it only ever held the owner's own
+ * dummy test rows — nothing to migrate).
  *
- * `founding_signups` is an app-owned table (NOT a fac_mirror_* table),
- * so raw DDL here is fine. Keep the CREATE in sync with the
- * `foundingSignups` definition in lib/db/schema.ts.
+ * Fully idempotent and self-healing: creates the table if missing, and
+ * ALTERs in any column that's missing from an earlier partial run. Safe
+ * to run repeatedly. `founding_signups` is app-owned (NOT a
+ * fac_mirror_* table) so plain additive DDL is the right tool.
  *
- * Idempotent. Run once, before merging the PR:
+ * Run before merging the PR (and again if the schema below changes):
  *   node scripts/create-founding-table.mjs
  * Needs DATABASE_URL + TURSO_AUTH_TOKEN in the env (or .env.local).
  */
@@ -28,21 +29,35 @@ const client = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-await client.execute(`
-  CREATE TABLE IF NOT EXISTS founding_signups (
-    id text PRIMARY KEY NOT NULL,
-    email text NOT NULL,
-    source text NOT NULL,
-    ein text,
-    segment text,
-    organization text,
-    interest_level text,
-    org_count text,
-    current_method text,
-    created_at integer NOT NULL
-  )
-`);
-console.log('created founding_signups (or it already existed)');
+// Keep in sync with `foundingSignups` in lib/db/schema.ts.
+const COLUMNS = [
+  ['id', 'text PRIMARY KEY NOT NULL'],
+  ['email', 'text NOT NULL'],
+  ['source', 'text NOT NULL'],
+  ['ein', 'text'],
+  ['segment', 'text'],
+  ['organization', 'text'],
+  ['interest_level', 'text'],
+  ['org_count', 'text'],
+  ['current_method', 'text'],
+  ['created_at', 'integer NOT NULL'],
+];
+
+await client.execute(
+  `CREATE TABLE IF NOT EXISTS founding_signups (\n  ${COLUMNS.map(([n, t]) => `${n} ${t}`).join(',\n  ')}\n)`
+);
+console.log('founding_signups exists');
+
+// Add any columns missing from an earlier partial run. SQLite can only
+// ADD a nullable / non-PK / non-NOT NULL column, which is exactly what
+// every backfillable column here is.
+const info = await client.execute('PRAGMA table_info(founding_signups)');
+const have = new Set(info.rows.map((r) => r.name));
+for (const [name, type] of COLUMNS) {
+  if (have.has(name)) continue;
+  await client.execute(`ALTER TABLE founding_signups ADD COLUMN ${name} ${type.replace(/ (PRIMARY KEY )?NOT NULL/, '')}`);
+  console.log(`added missing column: ${name}`);
+}
 
 const old = await client.execute(
   "SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'waitlist_signups'"

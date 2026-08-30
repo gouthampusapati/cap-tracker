@@ -439,9 +439,9 @@ export const facMirrorSyncLog = sqliteTable('fac_mirror_sync_log', {
 });
 
 /**
- * Founding Customer Program signups — the form on /pricing and the
- * homepage closing band (app/waitlist-form.tsx), plus the dashboard's
- * "Generate Draft" feature-demand CTA (disambiguated by `source`).
+ * Founding Customer Program signups — the qualifying form on /pricing
+ * (app/waitlist-form.tsx), plus the dashboard's "Generate Draft"
+ * feature-demand CTA (a different intent, disambiguated by `source`).
  *
  * Replaces the old `waitlist_signups` table (dropped — it only ever
  * held the owner's own test rows). No uniqueness constraint on email:
@@ -451,10 +451,10 @@ export const facMirrorSyncLog = sqliteTable('fac_mirror_sync_log', {
  * at the API layer (app/api/waitlist/route.ts), not here.
  *
  * `segment` (role) is required at the form/API layer for every signup;
- * `interestLevel` + `orgCount` are required only for the qualifying
- * form on /pricing; `currentMethod` is always optional. All nullable at
- * the DB level so the lighter homepage-band form can omit them. There
- * is deliberately NO willingness-to-pay column — that signal comes from
+ * `interestLevel` + `orgCount` are required for the qualifying form;
+ * `organization` + `currentMethod` are always optional. All nullable at
+ * the DB level (the dashboard CTA sends only segment + email). There is
+ * deliberately NO willingness-to-pay column — that signal comes from
  * the sales conversation, not a radio button.
  */
 export const foundingSignups = sqliteTable('founding_signups', {
