@@ -33,11 +33,27 @@ import { sendOwnerNotification } from '@/lib/send-owner-notification';
 const VALID_SOURCES = ['homepage-cta-band', 'generate-draft-cta', 'pricing-page'] as const;
 
 // recipient vs. pass-through vs. adviser/auditor is the question the
-// whole product strategy hangs on, and the early-access form is the one
+// whole product strategy hangs on, and the founding form is the one
 // moment a visitor is motivated to answer it — see app/waitlist-form.tsx.
 // An unsegmented email list tells you nothing; this is what makes the
 // signal usable.
 const VALID_SEGMENTS = ['recipient', 'passthrough', 'adviser', 'other'] as const;
+
+// Founding-customer qualifying answers — only the pricing-page form
+// (qualifying) sends these; the homepage band omits them and they stay
+// null. Kept in sync with app/waitlist-form.tsx. There is deliberately
+// no willingness-to-pay field: that comes from the sales conversation.
+const VALID_INTEREST = ['pay-now', 'after-demo', 'test-first', 'free-only'] as const;
+const VALID_ORG_COUNT = ['1-5', '6-25', '26-100', '101-500', '500+'] as const;
+const VALID_METHOD = [
+  'spreadsheet',
+  'manual-fac',
+  'internal-system',
+  'email-calendar',
+  'audit-software',
+  'none',
+  'other',
+] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -47,6 +63,9 @@ export async function POST(request: Request) {
     source?: unknown;
     ein?: unknown;
     segment?: unknown;
+    interest?: unknown;
+    orgCount?: unknown;
+    method?: unknown;
     referrer?: unknown;
   };
   try {
@@ -59,6 +78,24 @@ export async function POST(request: Request) {
   const source = typeof body.source === 'string' ? body.source : '';
   const ein = typeof body.ein === 'string' && /^\d{9}$/.test(body.ein) ? body.ein : null;
   const segment = typeof body.segment === 'string' ? body.segment : '';
+  // Optional founding qualifiers — accept only allowlisted values, drop
+  // anything else to null rather than reject the whole signup over an
+  // optional field.
+  const interest =
+    typeof body.interest === 'string' &&
+    VALID_INTEREST.includes(body.interest as (typeof VALID_INTEREST)[number])
+      ? body.interest
+      : null;
+  const orgCount =
+    typeof body.orgCount === 'string' &&
+    VALID_ORG_COUNT.includes(body.orgCount as (typeof VALID_ORG_COUNT)[number])
+      ? body.orgCount
+      : null;
+  const method =
+    typeof body.method === 'string' &&
+    VALID_METHOD.includes(body.method as (typeof VALID_METHOD)[number])
+      ? body.method
+      : null;
   // Free qualitative signal for the owner notification only — not
   // validated against an allowlist like the fields above, since it's
   // never stored or used to make a decision, just reported. See
@@ -84,6 +121,9 @@ export async function POST(request: Request) {
       source,
       ein,
       segment,
+      interestLevel: interest,
+      orgCount,
+      currentMethod: method,
       createdAt: new Date(),
     });
   } catch (error) {
@@ -95,7 +135,16 @@ export async function POST(request: Request) {
   // failure here must never turn into a failed response, since losing a
   // notification is recoverable and losing a signup is not.
   try {
-    await sendOwnerNotification({ email, segment, source, ein, referrer });
+    await sendOwnerNotification({
+      email,
+      segment,
+      source,
+      ein,
+      referrer,
+      interest,
+      orgCount,
+      method,
+    });
   } catch (error) {
     console.error('Owner notification failed (signup already saved):', error);
   }

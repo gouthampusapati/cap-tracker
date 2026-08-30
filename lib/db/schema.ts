@@ -457,5 +457,15 @@ export const waitlistSignups = sqliteTable('waitlist_signups', {
   // existed have none) but required at the form/API layer for every new
   // signup — see app/waitlist-form.tsx and app/api/waitlist/route.ts.
   segment: text('segment'),
+  // Founding-customer qualifying signals — added with the Founding
+  // Customer Program reframe (Sprint 1). All nullable at the DB level
+  // (rows from before, plus the lighter homepage-band form, have none);
+  // the pricing-page form requires interestLevel + orgCount. Values are
+  // validated against fixed allowlists at the API layer, same as
+  // `source`/`segment`. There is deliberately NO willingness-to-pay
+  // field — that signal comes from the sales conversation, not the form.
+  interestLevel: text('interest_level'),
+  orgCount: text('org_count'),
+  currentMethod: text('current_method'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });

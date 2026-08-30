@@ -332,20 +332,21 @@ export default function Home() {
       {/* CTA Footer — the one CTA that's genuinely just general-interest
           capture (a visitor who hasn't self-identified as anything in
           particular — unlike "For Recipients"/"For Pass-Throughs"
-          above, which link straight into the real product). Named as
-          its own product ("Single Audit Watchlist"), not generic
-          "early access to enterprise features" framing — the three
-          alerts plus the monthly exception report are concrete
-          features, not a vague pitch. Still deliberately does NOT
-          mention repeat-finding alerts: that consequence thesis was
-          tested against real data and falsified, so it's not a claim
-          this site makes — reconfirmed (not just inherited) when this
-          copy was rewritten, since the new draft initially included it
-          and that was caught and removed before shipping. The role
-          radio question (in WaitlistForm) is the actual point of this
-          block: recipient vs. pass-through vs. adviser/auditor is the
-          split the whole strategy hangs on, and this is the one moment
-          a visitor is motivated to answer it.
+          above, which link straight into the real product). This is the
+          Founding Customer entry point: the three alerts plus the
+          monthly exception report are concrete features, not a vague
+          pitch, and the copy is honest that we're "onboarding a limited
+          number of founding customers" rather than claiming the product
+          is finished. Still deliberately does NOT advertise
+          repeat-finding alerts: that consequence thesis was tested
+          against real data and falsified, so it's not a claim this site
+          makes — reconfirmed each time this copy is rewritten. This
+          band stays the LIGHT form (role + email only, qualifying=false)
+          — a four-question form on a low-intent closing band would tank
+          completion; the full qualifying form lives on /pricing. The
+          role radio question is still the point of this block:
+          recipient vs. pass-through vs. adviser/auditor is the split the
+          whole strategy hangs on.
 
           Full-bleed, light mist background (bg-surface-alt), not a dark
           box — went back to the actual stripe.com production site
@@ -374,9 +375,9 @@ export default function Home() {
             <img src="/brand/logo-mark.png" alt="" className="h-8 w-8" />
             <span className="text-lg font-semibold text-gray-900">Single Audit Intelligence</span>
           </div>
-          <h2 className="text-2xl font-bold mb-1">Single Audit Watchlist</h2>
+          <h2 className="text-2xl font-bold mb-1">Stop checking. Start monitoring.</h2>
           <p className="text-base font-semibold text-accent mb-3">
-            Continuous monitoring for pass-through entities
+            Continuous monitoring of the Federal Audit Clearinghouse
           </p>
           {/* Left-aligned, not centered — a ragged left edge costs
               nothing on a two-line tagline but makes multi-line body
@@ -393,7 +394,7 @@ export default function Home() {
           <div className="text-left mb-4 space-y-3 max-w-md mx-auto">
             <div>
               <p className="text-gray-600 mb-2">
-                Monitor up to 100 named subrecipients and get alerted when:
+                Keep up to 100 organizations in one watchlist and get alerted when:
               </p>
               <ul className="list-disc list-outside pl-5 text-gray-600 space-y-1">
                 <li>A new FAC audit is accepted</li>
@@ -403,8 +404,15 @@ export default function Home() {
             </div>
             <p className="text-gray-600">Plus: a monthly portfolio exception report.</p>
           </div>
-          <p className="font-semibold text-gray-900 mb-4">
-            Coming soon — join the early-access list
+          <p className="font-semibold text-gray-900 mb-1">
+            We&apos;re onboarding a limited number of founding customers.
+          </p>
+          <p className="text-sm text-gray-600 mb-4">
+            Tell us about your use case — or see{' '}
+            <Link href="/pricing" className="underline font-semibold hover:text-accent">
+              founding pricing
+            </Link>
+            .
           </p>
           <WaitlistForm source="homepage-cta-band" variant="light" className="max-w-md mx-auto" />
         </div>

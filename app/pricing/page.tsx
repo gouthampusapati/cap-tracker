@@ -3,13 +3,14 @@ import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { Footer } from '@/app/footer';
 import { WaitlistForm } from '@/app/waitlist-form';
+import { PricingViewTracker } from './pricing-view-tracker';
 
 const title = 'Pricing';
 const description =
-  'Single Audit Intelligence is free to search: organization findings, portfolio monitoring, the auditor directory, and the compliance guide. The Single Audit Watchlist — continuous subrecipient monitoring with alerts — is in early access.';
+  'Single Audit Intelligence is free to research: organization findings, portfolio view, the auditor directory, and the compliance guide. Continuous monitoring of the Federal Audit Clearinghouse — new-audit, new-finding and deadline alerts — is the paid product, now onboarding founding customers.';
 
 export const metadata: Metadata = {
-  title: `${title} — Free Search + Single Audit Watchlist | Single Audit Intelligence`,
+  title: `${title} — Free Research + Founding Customer Program | Single Audit Intelligence`,
   description,
   alternates: { canonical: `${SITE_URL}/pricing` },
   openGraph: {
@@ -35,6 +36,7 @@ function Check() {
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <PricingViewTracker />
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
@@ -42,8 +44,10 @@ export default function PricingPage() {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mt-3">Pricing</h1>
           <p className="text-gray-600 mt-2 max-w-2xl">
-            Everything you can search on this site today is free and needs no account. The one
-            paid product — the Single Audit Watchlist — is in early access.
+            <strong>Stop checking. Start monitoring.</strong> Everything you can research on this
+            site is free and needs no account. The paid product is continuous monitoring of the
+            Federal Audit Clearinghouse — we&apos;re onboarding a limited number of founding
+            customers now.
           </p>
         </div>
       </div>
@@ -52,10 +56,11 @@ export default function PricingPage() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Free */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900">Search</h2>
+            <h2 className="text-xl font-bold text-gray-900">Research</h2>
             <p className="text-2xl font-bold text-gray-900 mt-2">
               Free <span className="text-sm font-normal text-gray-500">· no account</span>
             </p>
+            <p className="text-sm text-gray-600 mt-2">Look anything up, as often as you want.</p>
             <ul className="mt-4 space-y-2 text-sm text-gray-700">
               {[
                 'Every organization’s audit findings and corrective action plans',
@@ -87,27 +92,28 @@ export default function PricingPage() {
             </div>
           </div>
 
-          {/* Watchlist */}
-          <div className="bg-white border-2 border-blue-300 rounded-lg p-6">
+          {/* Monitoring — Founding Customer Program */}
+          <div id="founding" className="bg-white border-2 border-blue-300 rounded-lg p-6 scroll-mt-6">
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-900">Single Audit Watchlist</h2>
+              <h2 className="text-xl font-bold text-gray-900">Monitoring</h2>
               <span className="text-xs font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
-                Early access
+                Founding Customer Program
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-2">
-              Pricing TBD
+              From $750/mo
               <span className="block text-sm font-normal text-gray-500 mt-1">
-                Early-access users help set it.
+                Founding pilot · billed quarterly · credits toward an annual plan
               </span>
             </p>
             <p className="text-sm text-gray-700 mt-4">
-              Continuous monitoring for pass-through entities. Track up to 100 named
-              subrecipients and get alerted when:
+              Keep the organizations that matter to you in one watchlist — up to 100 named
+              organizations — and let Single Audit Intel watch the Federal Audit Clearinghouse
+              for you. Get alerted when:
             </p>
             <ul className="mt-3 space-y-2 text-sm text-gray-700">
               {[
-                'A new FAC audit is accepted for a subrecipient you monitor',
+                'A new FAC audit is accepted for an organization you monitor',
                 'A new finding appears',
                 'A management-decision deadline is approaching',
               ].map((f) => (
@@ -121,17 +127,18 @@ export default function PricingPage() {
               Plus a monthly portfolio exception report you can hand to leadership.
             </p>
             <div className="mt-6">
-              <p className="font-semibold text-gray-900 mb-3 text-sm">Join the early-access list</p>
-              <WaitlistForm source="pricing-page" variant="light" />
+              <p className="font-semibold text-gray-900 mb-3 text-sm">Request founding access</p>
+              <WaitlistForm source="pricing-page" variant="light" qualifying />
             </div>
           </div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8 text-sm text-blue-900">
-          <strong>Why is the Watchlist not priced yet?</strong> Billing isn&apos;t live. The
-          monitoring backend is being built with early-access users so the alerts and the
-          exception report match what pass-through compliance teams actually need. If that&apos;s
-          you, the list above is the way in — or email{' '}
+          <strong>Why isn&apos;t there a public price list yet?</strong> We&apos;re onboarding a
+          limited number of founding customers to shape the alerts and the exception report
+          around what compliance teams actually need — and to set pricing with real usage behind
+          it. Founding customers get founding rates locked in and a say in the roadmap. If
+          that&apos;s you, the form above is the way in — or email{' '}
           <a
             href="mailto:contact@singleauditintel.com"
             className="underline font-semibold hover:text-blue-700"
@@ -140,6 +147,11 @@ export default function PricingPage() {
           </a>
           .
         </div>
+
+        <p className="text-xs text-gray-500 mt-4">
+          The data itself is free and public — it lives at the Federal Audit Clearinghouse.
+          Researching it here stays free. Remembering it and watching it for you is the product.
+        </p>
       </div>
 
       <Footer />
