@@ -252,15 +252,10 @@ export async function generateMetadata(props: {
       description,
       type: 'website',
       url: canonicalUrl,
-      // Defining an openGraph object here suppresses Next's automatic
-      // file-convention fallback to app/opengraph-image.png for just this
-      // route — without an explicit images entry, org pages shared a
-      // shared link with no image at all and twitter:card silently fell
-      // back to "summary". This is the static-image floor, not a
-      // per-org image; see REVISED_FINAL_PASS.md Task 3 for why a
-      // per-org dynamic image (org name/EIN/findings count) is a
-      // separate, larger follow-up rather than being built here.
-      images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
+      // No `images` here on purpose: this route has its own
+      // opengraph-image.tsx (per-org card — name, EIN, audit/finding
+      // counts, going-concern flag), and Next only auto-attaches that
+      // file-convention image when metadata doesn't set og:image itself.
     },
   };
 }

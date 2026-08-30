@@ -53,7 +53,8 @@ export async function generateMetadata(props: {
       description,
       type: 'website',
       url: canonical,
-      images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
+      // og:image comes from this route's opengraph-image.tsx (per-state
+      // card with the org count) — omitted here so Next attaches it.
     },
   };
 }

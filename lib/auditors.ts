@@ -107,6 +107,54 @@ export async function searchAuditorFirms(opts: AuditorSearchOpts): Promise<Audit
   }
 }
 
+export interface AuditorFirmSummary {
+  ein: string;
+  name: string;
+  city: string | null;
+  state: string | null;
+  auditCount: number;
+  clientCount: number;
+  mostRecentYear: string | null;
+}
+
+/**
+ * One row from the fac_mirror_auditor_firms summary table — the light
+ * lookup (no filings/findings JOIN, unlike getAuditorProfile). Used by
+ * the firm page's dynamic OG image, where the full profile would be
+ * wasteful. Returns null for an unknown EIN.
+ */
+export async function getAuditorFirmSummary(ein: string): Promise<AuditorFirmSummary | null> {
+  if (!/^\d{9}$/.test(ein)) return null;
+  try {
+    const [row] = await db
+      .select({
+        ein: facMirrorAuditorFirms.auditorEin,
+        name: facMirrorAuditorFirms.firmName,
+        city: facMirrorAuditorFirms.city,
+        state: facMirrorAuditorFirms.state,
+        auditCount: facMirrorAuditorFirms.auditCount,
+        clientCount: facMirrorAuditorFirms.clientCount,
+        mostRecentYear: facMirrorAuditorFirms.mostRecentYear,
+      })
+      .from(facMirrorAuditorFirms)
+      .where(eq(facMirrorAuditorFirms.auditorEin, ein))
+      .limit(1);
+    if (!row) return null;
+    return {
+      ein: row.ein,
+      name: row.name || row.ein,
+      city: row.city ?? null,
+      state: row.state ?? null,
+      auditCount: row.auditCount,
+      clientCount: row.clientCount,
+      mostRecentYear: row.mostRecentYear ?? null,
+    };
+  } catch (err) {
+    console.error('[auditors] getAuditorFirmSummary failed:', err);
+    return null;
+  }
+}
+
 /** auditor_eins for the sitemap — most-filed firms first. */
 export async function topAuditorEins(limit = 3000): Promise<string[]> {
   try {
