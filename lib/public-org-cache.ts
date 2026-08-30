@@ -103,20 +103,40 @@ async function upsertCacheRow(ein: string, org: ImportedOrg | null, now: Date): 
     });
 }
 
+// `next build` sets this. During the static prerender of the top-org
+// pages (app/single-audit/[ein]/generateStaticParams) we must never make
+// a live FAC call — the build runs hundreds of these back to back and
+// would blow the shared budget, then prerender "not checked yet" pages.
+// The mirror has every one of those orgs, so build renders serve from it
+// (stale-labeled if past the freshness window); the first runtime
+// revalidation does the proper deadline-aware live check.
+const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build';
+
 export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
-  // Mirror check FIRST — a hit here is 0 FAC calls AND 0 public_org_cache
-  // writes, not just a cache hit. A miss (EIN genuinely not in the
-  // mirror, OR in the mirror but near its next filing deadline) falls
-  // straight through to the existing cache/budget/live-fetch logic
-  // below, completely unchanged. See FAC_API_Improvement_Sprint_Checklist
-  // .md, Sprint 4.
-  const mirrorOrg = await readOrgFromMirror(ein);
-  if (mirrorOrg) {
-    const mirrorSyncedAt = await getMirrorSyncedAt();
-    if (isMirrorFreshFor(mirrorOrg, mirrorSyncedAt)) {
-      return { org: mirrorOrg, syncedAt: mirrorSyncedAt!, fromCache: true, stale: false, unavailable: false };
-    }
+  // Mirror + mirror-sync-time together — a mirror hit is 0 FAC calls AND
+  // 0 public_org_cache writes. These don't depend on each other, and the
+  // sync time was a serial DB round-trip on the critical path of every
+  // cache-miss render; fetch them at once. (getMirrorSyncedAt is also
+  // memoized in-process now — see lib/fac-mirror-read.ts.)
+  const [mirrorOrg, mirrorSyncedAt] = await Promise.all([
+    readOrgFromMirror(ein),
+    getMirrorSyncedAt(),
+  ]);
+  if (mirrorOrg && isMirrorFreshFor(mirrorOrg, mirrorSyncedAt)) {
+    return { org: mirrorOrg, syncedAt: mirrorSyncedAt!, fromCache: true, stale: false, unavailable: false };
   }
+
+  // Serve the mirror copy rather than nothing whenever a live check
+  // isn't possible right now. `stale` distinguishes why:
+  //  - at build time it's `false` — the weekly mirror IS the authoritative
+  //    data we serve, the page just shows "Data as of <sync date>", and
+  //    the first runtime revalidation does the real deadline-aware check;
+  //  - at runtime (FAC budget spent, or a live fetch threw) it's `true` —
+  //    we wanted fresher data and couldn't get it, so the page says so.
+  const mirrorFallback = (stale: boolean): OrgLookupResult | null =>
+    mirrorOrg && mirrorSyncedAt
+      ? { org: mirrorOrg, syncedAt: mirrorSyncedAt, fromCache: true, stale, unavailable: false }
+      : null;
 
   const [cached] = await db
     .select()
@@ -128,6 +148,15 @@ export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
     return { ...fromCacheRow(cached), fromCache: true, stale: false, unavailable: false };
   }
 
+  if (IS_BUILD) {
+    return (
+      mirrorFallback(false) ??
+      (cached
+        ? { ...fromCacheRow(cached), fromCache: true, stale: false, unavailable: false }
+        : { org: null, syncedAt: new Date(), fromCache: false, stale: false, unavailable: true })
+    );
+  }
+
   // Not fresh (missing or expired). Check the shared, site-wide FAC
   // budget *before* attempting a live fetch — this is what actually
   // prevents the "two-thirds of attempts just fail" problem: rather than
@@ -137,25 +166,30 @@ export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
   const budgetOk = await hasFacBudget();
 
   if (!budgetOk) {
+    const fallback = mirrorFallback(true);
+    if (fallback) {
+      console.warn(`FAC budget exhausted, serving mirror copy for ${ein} from ${fallback.syncedAt.toISOString()}`);
+      return fallback;
+    }
     if (cached) {
       console.warn(`FAC budget exhausted, serving stale cache for ${ein} from ${cached.syncedAt.toISOString()}`);
       return { ...fromCacheRow(cached), fromCache: true, stale: true, unavailable: false };
     }
-    // Never checked before, and we can't check now. This is routine
-    // under sustained crawler load (a new EIN discovered faster than
-    // the budget refills), not a bug — a thrown error here (the
-    // previous behavior) turned normal, expected demand into a 500 for
-    // every one of these, which is what actually drove the site's error
-    // rate up. Return a normal result instead; callers render a plain
-    // "come back shortly" state rather than an error page.
+    // Never checked before, not in the mirror, and we can't check now.
+    // This is routine under sustained crawler load (a new EIN discovered
+    // faster than the budget refills), not a bug — a thrown error here
+    // (the previous behavior) turned normal, expected demand into a 500
+    // for every one of these, which is what actually drove the site's
+    // error rate up. Return a normal result instead; callers render a
+    // plain "come back shortly" state rather than an error page.
     console.warn(`FAC budget exhausted, no cache for ${ein} — reporting unavailable, not an error`);
     return { org: null, syncedAt: new Date(), fromCache: false, stale: false, unavailable: true };
   }
 
-  // If FAC fails here and we have an old cached row, serve the stale
-  // data rather than nothing: stale-but-labeled beats a hard failure for
-  // a page whose whole value is being dependable. Only propagate the
-  // error when there's truly nothing to fall back to.
+  // If FAC fails here, serve whatever we can (mirror copy, then stale
+  // cache) rather than nothing: stale-but-labeled beats a hard failure
+  // for a page whose whole value is being dependable. Only propagate the
+  // error when there's truly nothing at all to fall back to.
   try {
     await recordFacFetch();
     const org = await importOrgByEin(ein);
@@ -164,6 +198,11 @@ export async function getPublicOrg(ein: string): Promise<OrgLookupResult> {
 
     return { org, syncedAt: now, fromCache: false, stale: false, unavailable: false };
   } catch (error) {
+    const fallback = mirrorFallback(true);
+    if (fallback) {
+      console.error(`Live fetch failed for ${ein}, serving mirror copy from ${fallback.syncedAt.toISOString()}:`, error);
+      return fallback;
+    }
     if (cached) {
       console.error(`Live fetch failed for ${ein}, serving stale cache from ${cached.syncedAt.toISOString()}:`, error);
       return { ...fromCacheRow(cached), fromCache: true, stale: true, unavailable: false };

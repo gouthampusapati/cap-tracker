@@ -36,15 +36,31 @@ import {
  * scheduled GitHub Actions run). lib/public-org-cache.ts uses this to
  * decide whether the mirror is fresh enough to trust for a given org,
  * same effectiveMaxAgeMs logic Sprint 3 already built — just measured
- * against the mirror's own sync time instead of a per-EIN cache row. */
+ * against the mirror's own sync time instead of a per-EIN cache row.
+ *
+ * In-process memo with a short TTL: this value only changes when the
+ * weekly sync completes, but it's read on every cache-miss org render
+ * (and every /portfolio submission), where it was a full DB round-trip
+ * on the critical path. 60s is short enough that a just-finished sync is
+ * picked up within a minute, and the memo is per-instance so a fresh
+ * serverless instance never serves a stale-forever value. */
+let syncedAtMemo: { value: Date | null; at: number } | null = null;
+const SYNCED_AT_MEMO_MS = 60_000;
+
 export async function getMirrorSyncedAt(): Promise<Date | null> {
+  const now = Date.now();
+  if (syncedAtMemo && now - syncedAtMemo.at < SYNCED_AT_MEMO_MS) {
+    return syncedAtMemo.value;
+  }
   const [row] = await db
     .select({ completedAt: facMirrorSyncLog.completedAt })
     .from(facMirrorSyncLog)
     .where(eq(facMirrorSyncLog.status, 'success'))
     .orderBy(desc(facMirrorSyncLog.completedAt))
     .limit(1);
-  return row?.completedAt ?? null;
+  const value = row?.completedAt ?? null;
+  syncedAtMemo = { value, at: now };
+  return value;
 }
 
 function rowToFacGeneral(row: typeof facMirrorGeneral.$inferSelect): FacGeneral {

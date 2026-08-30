@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { getRelatedIdentifiers } from '@/lib/entity-resolution';
-import { getOrgSummary, stateName } from '@/lib/orgs';
+import { getOrgSummary, getTopOrgEinsByExpenditure, stateName } from '@/lib/orgs';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
 import { ManagementDecisionBlock } from '@/app/management-decision-block';
@@ -20,16 +20,30 @@ import { BackLink, BackButton, RiskAssessmentLink } from './portfolio-links';
 // means ~24x fewer cold re-renders than the old hourly value.
 export const revalidate = 86400;
 
-// Prerender nothing at build (68K org pages — not worth the build time,
-// and most are never visited), but DO opt the route into the ISR /
-// full-route cache: with dynamicParams staying true (the default), the
-// first hit for an EIN renders on demand and every hit after that within
-// `revalidate` is served from cache. Without an explicit
-// generateStaticParams, a dynamic segment like this one is treated as
-// fully dynamic (rendered from scratch every request) and the
-// `revalidate` above is silently ignored.
-export function generateStaticParams() {
-  return [];
+// Prerender the PRERENDER_TOP_ORGS organizations with the largest
+// federal-award expenditure — the ones state indexes sort to the top and
+// the ones a crawler working the sitemap hits first, so they're served
+// static from the edge on the very first visit instead of rendering cold
+// (~1-2s of mirror reads + render). dynamicParams stays true (default):
+// every other EIN (the ~67K long tail) still renders on demand and then
+// ISR-caches per `revalidate` — without SOME generateStaticParams a
+// dynamic segment is treated as fully dynamic and `revalidate` is
+// silently ignored.
+//
+// Held at 500 deliberately: Vercel's build machine is small (2 cores,
+// 8 GB) and each of these is a mirror read + render, so this is a
+// balance between first-visit coverage and build time. getTopOrgEins…
+// also filters out the giant orgs whose pages exceed Vercel's ~19 MB
+// prerender ceiling (see lib/orgs.ts).
+//
+// Build safety: getPublicOrg serves these from the mirror at build time
+// (0 FAC calls — see IS_BUILD in lib/public-org-cache.ts), so hundreds of
+// back-to-back prerenders can't exhaust the shared FAC budget.
+const PRERENDER_TOP_ORGS = 500;
+
+export async function generateStaticParams(): Promise<{ ein: string }[]> {
+  const eins = await getTopOrgEinsByExpenditure(PRERENDER_TOP_ORGS);
+  return eins.map((ein) => ({ ein }));
 }
 
 // Each render does 4 FAC calls (1 sequential + 3 parallel — see
@@ -262,7 +276,19 @@ export default async function SingleAuditPage(props: {
   // are read client-side instead, in ./portfolio-links.tsx, so the page
   // shell stays ISR-cacheable and the trail still works after hydration.
   const params = await props.params;
-  const result = await fetchOrgData(params.ein);
+
+  // fetchOrgData, getRelatedIdentifiers and getOrgSummary are three
+  // independent reads keyed only by the EIN — fire them together instead
+  // of fetchOrgData, then the other two. On a mirror hit (the common
+  // case) this collapses ~3 serial DB phases into 1, which is most of the
+  // cold-render latency. related/summary are wasted only on the rare
+  // not-found / unavailable EIN; both guard their own input and never
+  // throw.
+  const [result, related, orgSummary] = await Promise.all([
+    fetchOrgData(params.ein),
+    getRelatedIdentifiers(params.ein),
+    getOrgSummary(params.ein),
+  ]);
 
   if (result.kind === 'not-found') {
     notFound();
@@ -301,19 +327,12 @@ export default async function SingleAuditPage(props: {
 
   const org = result.org;
 
-  // Sprint 5 — entity resolution off the mirror (0 FAC calls; degrades
-  // to nothing if the additional_eins table isn't synced yet).
+  // Entity resolution (Sprint 5) + the SEO "other orgs in {state}" link,
+  // both fetched above in parallel with the org data itself (0 FAC calls).
   //   parentEins  — this EIN is a component rolled into another entity's
   //                 audit; those are the filings that actually cover it.
   //   siblingEins — other EINs this same audit covers (can be hundreds
   //                 for a big health system — capped in the UI).
-  // Both are independent mirror reads (0 FAC calls) — run them together
-  // so the org state lookup (for the SEO "other orgs in {state}" link)
-  // doesn't add a serial round-trip to a page that already does two.
-  const [related, orgSummary] = await Promise.all([
-    getRelatedIdentifiers(org.ein),
-    getOrgSummary(org.ein),
-  ]);
   const orgStateName = orgSummary?.state ? stateName(orgSummary.state) : null;
   const parentEins = related.primaryEins;
   const siblingEins = related.eins.filter(
