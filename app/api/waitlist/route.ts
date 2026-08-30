@@ -4,10 +4,9 @@ import { foundingSignups } from '@/lib/db/schema';
 import { sendOwnerNotification } from '@/lib/send-owner-notification';
 
 /**
- * Public endpoint backing the one CTA that's genuinely just capturing
- * general interest (see the UI/branding overhaul plan, Phase 1.5).
- * Collects an email + which CTA it came from, nothing else — no
- * account, no session, no redirect.
+ * Public endpoint behind the Founding Customer form (app/waitlist-form.tsx).
+ * Collects the qualifying answers + email, nothing else — no account,
+ * no session, no redirect. Rows land in `founding_signups`.
  *
  * Rate-limited per IP in middleware.ts (lib/rate-limit.ts's
  * isWaitlistRateLimited) — this doesn't touch FAC, so the limit here is
@@ -16,21 +15,17 @@ import { sendOwnerNotification } from '@/lib/send-owner-notification';
 
 // Kept in sync with every <WaitlistForm source="..."> call site — reject
 // anything else rather than let arbitrary strings into the source column.
-// Every CTA that could plausibly identify a real recipient or
-// pass-through org (org page's "Are you this organization?", homepage's
-// "For Recipients"/"For Pass-Throughs") deliberately does NOT use this —
-// those route straight into sign-in or /portfolio, since getting a real
-// early user into the actual product for feedback matters more than
-// filtering for "qualified" intent. See app/single-audit/[ein]/page.tsx
-// and app/page.tsx.
-//
-// 'generate-draft-cta' is a different situation, not an exception to
-// that rule: it's not gatekeeping entry into the product (the visitor
-// is already a signed-in/guest recipient inside their own dashboard),
-// it's capturing demand for one specific feature that doesn't exist yet
-// (AI-drafted CAP narratives — see app/dashboard/page.tsx's "Generate
-// Draft" button) from someone who already has full product access.
-const VALID_SOURCES = ['homepage-cta-band', 'generate-draft-cta', 'pricing-page'] as const;
+//   - 'pricing-page': the qualifying founding form on /pricing. The
+//     homepage closing band no longer runs its own form — it's a button
+//     (app/founding-cta-button.tsx) that routes here, so all founding
+//     capture goes through this one source.
+//   - 'generate-draft-cta': unrelated feature-demand capture from inside
+//     the dashboard (AI-drafted CAP narratives — app/dashboard/page.tsx's
+//     "Generate Draft" button), from someone who already has product
+//     access. Not a founding signal; keeps the generic success copy.
+// Org-page / "For Recipients" / "For Pass-Throughs" CTAs deliberately do
+// NOT use this form — they route into sign-in / /portfolio.
+const VALID_SOURCES = ['generate-draft-cta', 'pricing-page'] as const;
 
 // recipient vs. pass-through vs. adviser/auditor is the question the
 // whole product strategy hangs on, and the founding form is the one

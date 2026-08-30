@@ -175,7 +175,7 @@ export default function PricingPage() {
               Request Founding Access
             </a>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              Founding customer · Limited initial cohort
+              Limited initial cohort · The form isn&apos;t a checkout — it starts a conversation.
             </p>
           </div>
         </div>
@@ -200,9 +200,10 @@ export default function PricingPage() {
         >
           <h2 className="text-lg font-bold text-gray-900">Request Founding Access</h2>
           <p className="text-sm text-gray-600 mt-1">
-            We&apos;ll review your monitoring needs, configure your initial portfolio, and give
-            you a walkthrough of the monitoring service. No commitment for the first
-            conversation.
+            This isn&apos;t a checkout. Tell us what you need to monitor and we&apos;ll set up a
+            short call: we&apos;ll review your needs, walk you through the monitoring service, and
+            &mdash; if it&apos;s a fit &mdash; get your founding subscription started. No payment
+            or commitment to book the call.
           </p>
           <div className="mt-5 max-w-xl">
             <WaitlistForm source="pricing-page" variant="light" qualifying />

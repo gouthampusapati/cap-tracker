@@ -102,7 +102,7 @@ export function WaitlistForm({
   defaultEmail = '',
   qualifying = false,
 }: {
-  source: 'homepage-cta-band' | 'generate-draft-cta' | 'pricing-page';
+  source: 'generate-draft-cta' | 'pricing-page';
   ein?: string;
   ctaLabel?: string;
   className?: string;
