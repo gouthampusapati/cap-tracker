@@ -4,6 +4,8 @@ import type { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { Footer } from '@/app/footer';
 import { getAuditorProfile, stateName } from '@/lib/auditors';
+import { JsonLd } from '@/app/json-ld';
+import { breadcrumbList } from '@/lib/structured-data';
 import { AuditorClientsTable } from './auditor-clients-table';
 
 export const revalidate = 86400;
@@ -71,12 +73,15 @@ export default async function AuditorProfilePage(props: {
   }
   if (phone) jsonLd.telephone = phone;
 
+  const breadcrumb = breadcrumbList([
+    { name: 'Single Audit Intelligence', url: SITE_URL },
+    { name: 'Single Audit Firms', url: `${SITE_URL}/auditors` },
+    { name: firm.name, url: canonical },
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={[jsonLd, breadcrumb]} />
 
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">

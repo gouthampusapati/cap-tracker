@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 
-const allow = ['/', '/single-audit/', '/auditors', '/guide', '/portfolio', '/faq', '/pricing', '/about'];
+const allow = ['/', '/single-audit/', '/auditors', '/guide', '/glossary', '/portfolio', '/faq', '/pricing', '/about'];
 const disallow = ['/api/', '/auth/', '/dashboard/', '/admin/', '/.next/'];
 
 // A sitemap crawler discovering a brand-new (never-cached) EIN every ~5s
