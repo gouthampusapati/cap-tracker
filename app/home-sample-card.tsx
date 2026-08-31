@@ -1,3 +1,5 @@
+import { HeroDeadlineLine } from './hero-deadline-line';
+
 /**
  * Hero preview card — a lightweight, static recreation of what an
  * organization page shows, so a first-time visitor sees the payoff of
@@ -12,6 +14,10 @@
  * (app/single-audit/[ein]/finding-card.tsx and page.tsx's risk strip)
  * so the colours a visitor learns here match what they see after a
  * search.
+ *
+ * The one non-frozen figure is the management-decision countdown
+ * (HeroDeadlineLine) — a rolling "N days from today" so it never ages
+ * into a past date.
  */
 export function HomeSampleCard() {
   return (
@@ -44,17 +50,15 @@ export function HomeSampleCard() {
       </p>
 
       {/* Management-decision countdown — the amber "due-soon" treatment
-          from app/management-decision-block.tsx. Figures are frozen (this
-          whole card is an "Example"), the same way a screenshot would
-          be. */}
+          from app/management-decision-block.tsx. The date rolls forward
+          with today's date (HeroDeadlineLine) so the countdown stays
+          plausible; everything else on the card is frozen, like a
+          screenshot. */}
       <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3">
         <p className="text-caption font-semibold uppercase tracking-wide text-amber-900/80">
           Management decision deadline
         </p>
-        <p className="mt-1 text-small leading-relaxed text-amber-900">
-          Due <strong>October 15, 2026</strong> — 47 days from today. Under 2 CFR 200.521(d),
-          the pass-through entity that funded this organization must act by then.
-        </p>
+        <HeroDeadlineLine />
       </div>
 
       <p className="mt-4 text-caption text-gray-400">
