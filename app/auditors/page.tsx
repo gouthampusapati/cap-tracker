@@ -6,9 +6,9 @@ import { searchAuditorFirms, US_STATES, stateName } from '@/lib/auditors';
 import { AuditorSearchForm } from './auditor-search-form';
 import { AuditorResultsTable } from './auditor-results-table';
 
-// Mirror-only reads, 0 FAC calls. Daily revalidation is plenty — the
-// mirror itself only refreshes weekly.
-export const revalidate = 86400;
+// Reads searchParams (the ?q= / ?state= search), so this route is
+// always server-rendered on demand — `revalidate` wouldn't apply.
+// Mirror-only reads, 0 FAC calls, so a cold render is cheap.
 
 const BASE_TITLE = 'Single Audit Firms — CPA Firm Directory';
 const BASE_DESC =

@@ -8,8 +8,19 @@ import { JsonLd } from '@/app/json-ld';
 import { breadcrumbList } from '@/lib/structured-data';
 import { AuditorClientsTable } from './auditor-clients-table';
 
-export const revalidate = 86400;
+export const revalidate = 604800; // 7 days — tracks the weekly mirror sync
 export const maxDuration = 30;
+
+// Opt this dynamic segment into the full-route ISR cache. Without SOME
+// generateStaticParams, Next renders it from scratch on every request
+// and ignores `revalidate` above — meaning ~8.3K firm pages re-render
+// (React + metadata) on every crawler hit. Prerender none at build
+// (the profile query is heavy and unstable_cache already persists it);
+// the first hit per EIN fills the route cache for the week. No
+// searchParams here, so the shell is fully cacheable.
+export function generateStaticParams() {
+  return [];
+}
 
 function formatPhone(raw: string | null): string | null {
   if (!raw) return null;
@@ -38,7 +49,16 @@ export async function generateMetadata(props: {
     title,
     description,
     alternates: { canonical },
-    openGraph: { title, description, type: 'website', url: canonical },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: canonical,
+      // The per-firm dynamic OG image was removed (Vercel compute cost);
+      // point at the static site image explicitly — an inherited
+      // file-convention image isn't merged into a custom openGraph block.
+      images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
+    },
   };
 }
 

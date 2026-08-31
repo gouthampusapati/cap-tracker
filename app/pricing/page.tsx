@@ -18,6 +18,7 @@ export const metadata: Metadata = {
     description,
     type: 'website',
     url: `${SITE_URL}/pricing`,
+    images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
   },
 };
 

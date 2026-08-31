@@ -16,9 +16,11 @@ import { BackLink, BackButton, RiskAssessmentLink } from './portfolio-links';
 
 // The bulk mirror only refreshes weekly, and getPublicOrg does its own
 // filing-deadline-aware live check for the orgs where freshness actually
-// matters (lib/org-cache-ttl.ts) — so a daily page cache is plenty, and
-// means ~24x fewer cold re-renders than the old hourly value.
-export const revalidate = 86400;
+// matters (lib/org-cache-ttl.ts) — so the page cache is tied to the
+// mirror cadence (7 days). This is the bulk of the sitemap (~68K URLs);
+// at a daily revalidate, crawler traffic rewrote every one of them
+// ~weekly for no data change, which blew Vercel's ISR-write budget.
+export const revalidate = 604800;
 
 // Prerender the PRERENDER_TOP_ORGS organizations with the largest
 // federal-award expenditure — the ones state indexes sort to the top and
@@ -252,10 +254,13 @@ export async function generateMetadata(props: {
       description,
       type: 'website',
       url: canonicalUrl,
-      // No `images` here on purpose: this route has its own
-      // opengraph-image.tsx (per-org card — name, EIN, audit/finding
-      // counts, going-concern flag), and Next only auto-attaches that
-      // file-convention image when metadata doesn't set og:image itself.
+      // The per-org dynamic opengraph-image.tsx route was removed (68K
+      // on-demand Satori/resvg renders/month blew Vercel's Fluid Active
+      // CPU + ISR-write budget for near-zero social value on the long
+      // tail). Point at the static site image explicitly — an inherited
+      // (parent-segment) file-convention image is NOT merged into a
+      // route's own openGraph block, only a same-segment one is.
+      images: [{ url: `${SITE_URL}/opengraph-image.png`, width: 1200, height: 630 }],
     },
   };
 }

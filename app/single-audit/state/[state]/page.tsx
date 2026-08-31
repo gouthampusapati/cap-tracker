@@ -9,7 +9,7 @@ import { getStateOrgIndex, US_STATES, stateName } from '@/lib/orgs';
 
 // The mirror refreshes weekly; a day-old state index is fine. Prerendered
 // for every state via generateStaticParams below.
-export const revalidate = 86400;
+export const revalidate = 604800; // 7 days — tracks the weekly mirror sync
 export const dynamicParams = false;
 
 const MAX_ROWS = 250;

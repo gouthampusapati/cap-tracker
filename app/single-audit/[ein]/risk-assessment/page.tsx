@@ -12,9 +12,10 @@ import { BackLinks } from './back-links';
 
 // federal_awards is fetched live (not mirrored — see
 // lib/fac-api.ts:getFederalAwardsForReports). ISR caches the rendered
-// page for an hour per EIN, so a popular org costs at most one live FAC
-// fetch per hour and zero DB writes.
-export const revalidate = 3600;
+// page per EIN; SEFA/federal-award data changes at most weekly (mirror
+// cadence), so a 24h cache is plenty and ~24x fewer background
+// re-renders / ISR writes than the old hourly value.
+export const revalidate = 86400;
 
 // Prerender nothing at build, but opt into the ISR / full-route cache:
 // without an explicit generateStaticParams a dynamic segment is rendered
