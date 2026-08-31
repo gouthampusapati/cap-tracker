@@ -107,54 +107,6 @@ export async function searchAuditorFirms(opts: AuditorSearchOpts): Promise<Audit
   }
 }
 
-export interface AuditorFirmSummary {
-  ein: string;
-  name: string;
-  city: string | null;
-  state: string | null;
-  auditCount: number;
-  clientCount: number;
-  mostRecentYear: string | null;
-}
-
-/**
- * One row from the fac_mirror_auditor_firms summary table — the light
- * lookup (no filings/findings JOIN, unlike getAuditorProfile). Used by
- * the firm page's dynamic OG image, where the full profile would be
- * wasteful. Returns null for an unknown EIN.
- */
-export async function getAuditorFirmSummary(ein: string): Promise<AuditorFirmSummary | null> {
-  if (!/^\d{9}$/.test(ein)) return null;
-  try {
-    const [row] = await db
-      .select({
-        ein: facMirrorAuditorFirms.auditorEin,
-        name: facMirrorAuditorFirms.firmName,
-        city: facMirrorAuditorFirms.city,
-        state: facMirrorAuditorFirms.state,
-        auditCount: facMirrorAuditorFirms.auditCount,
-        clientCount: facMirrorAuditorFirms.clientCount,
-        mostRecentYear: facMirrorAuditorFirms.mostRecentYear,
-      })
-      .from(facMirrorAuditorFirms)
-      .where(eq(facMirrorAuditorFirms.auditorEin, ein))
-      .limit(1);
-    if (!row) return null;
-    return {
-      ein: row.ein,
-      name: row.name || row.ein,
-      city: row.city ?? null,
-      state: row.state ?? null,
-      auditCount: row.auditCount,
-      clientCount: row.clientCount,
-      mostRecentYear: row.mostRecentYear ?? null,
-    };
-  } catch (err) {
-    console.error('[auditors] getAuditorFirmSummary failed:', err);
-    return null;
-  }
-}
-
 /** auditor_eins for the sitemap — most-filed firms first. */
 export async function topAuditorEins(limit = 3000): Promise<string[]> {
   try {
@@ -175,13 +127,13 @@ export async function topAuditorEins(limit = 3000): Promise<string[]> {
  *  - unstable_cache: the profile query for a big firm is slow (~1.5s to
  *    pull every filing + ~3s for the findings JOIN — CliftonLarsonAllen
  *    has ~14k filings) and the page is dynamic, so persist the built
- *    profile in the Next data cache, revalidated daily (mirror is
- *    weekly).
+ *    profile in the Next data cache, revalidated weekly (matches the
+ *    mirror cadence).
  *  - cache(): request-level dedup so generateMetadata + the page render
  *    still share a single lookup within one request.
  */
 const cachedAuditorProfile = unstable_cache(_getAuditorProfile, ['auditor-profile-v2'], {
-  revalidate: 86400,
+  revalidate: 604800, // 7 days — the mirror this reads only refreshes weekly
   tags: ['auditor-directory'],
 });
 

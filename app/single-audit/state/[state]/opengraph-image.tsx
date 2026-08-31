@@ -1,12 +1,22 @@
 import { ImageResponse } from 'next/og';
-import { getStateOrgIndex, stateName } from '@/lib/orgs';
+import { getStateOrgIndex, stateName, US_STATES } from '@/lib/orgs';
 import { OgCard, OG_SIZE, OG_CONTENT_TYPE, loadOgFonts, type OgStat } from '@/lib/og';
 
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 export const alt = 'Single Audit organizations by state — Single Audit Intelligence';
 
-export const revalidate = 86400;
+// All 56 state/territory OG images are built at deploy and never
+// regenerate — a fixed, tiny set, unlike the per-org and per-auditor OG
+// routes (removed: 68K + 8K Satori/resvg rasterizations on demand were
+// the bulk of Vercel's Fluid Active CPU and ISR-write usage). Those
+// pages fall back to the static app/opengraph-image.png.
+export const dynamicParams = false;
+export const revalidate = false;
+
+export function generateStaticParams() {
+  return Object.keys(US_STATES).map((code) => ({ state: code.toLowerCase() }));
+}
 
 export default async function Image({ params }: { params: Promise<{ state: string }> }) {
   const { state: raw } = await params;

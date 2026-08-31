@@ -7,8 +7,8 @@ import { breadcrumbList, webSite } from '@/lib/structured-data';
 import EinSearchForm from '@/app/ein-search-form';
 import { getStateOrgCounts, getGoingConcernOrgs, US_STATES, stateName } from '@/lib/orgs';
 
-// Mirror-backed, refreshes weekly.
-export const revalidate = 86400;
+// Mirror-backed, refreshes weekly — cache tracks that cadence.
+export const revalidate = 604800;
 
 const title = 'Single Audit Lookup — Search Any Federal Award Recipient';
 const description =
