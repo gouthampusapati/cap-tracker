@@ -5,6 +5,7 @@ import EinSearchForm from './ein-search-form';
 import { FoundingCtaButton } from './founding-cta-button';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
+import { HomePortfolioMockup } from './home-portfolio-mockup';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 import { JsonLd } from './json-ld';
@@ -74,8 +75,8 @@ export default function Home() {
                 Look up any organization&apos;s Single Audit findings
               </h1>
               <p className="text-lg text-gray-600 mb-2 max-w-xl mx-auto lg:mx-0 font-light">
-                Search the Federal Audit Clearinghouse. See audit findings and corrective action
-                plans for any organization that receives federal awards.
+                Search the Federal Audit Clearinghouse free — or let us monitor your whole
+                portfolio and surface only the organizations that changed.
               </p>
               {/* Independence statement — above the fold on purpose. The
                   visual language here is institutional and the subject is
@@ -133,6 +134,20 @@ export default function Home() {
                     Grinnell Housing Authority
                   </Link>
                 </div>
+              </div>
+
+              {/* Bridge into the monitoring story below the fold. A plain
+                  same-page anchor (native smooth-less jump, scroll-mt on
+                  the target) — deliberately a ghost text link, not a
+                  filled button, so it doesn't compete with the Search
+                  button or the portfolio outline button above. */}
+              <div className="mt-6">
+                <a
+                  href="#how-monitoring-works"
+                  className="text-small font-semibold text-accent hover:underline"
+                >
+                  See how monitoring works →
+                </a>
               </div>
             </div>
 
@@ -198,6 +213,11 @@ export default function Home() {
           </p>
         </div>
       </div>
+
+      {/* Portfolio monitoring mockup — the primary product visual, and
+          the target of the hero's "See how monitoring works →" link.
+          Static / illustrative (invented org names, labelled). */}
+      <HomePortfolioMockup />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Info sections. Both audience framings kept as explanation, but
