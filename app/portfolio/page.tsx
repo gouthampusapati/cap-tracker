@@ -6,6 +6,7 @@ import { Footer } from '@/app/footer';
 import PortfolioForm from './portfolio-form';
 import PortfolioTable from './portfolio-table';
 import { MonitorPortfolioCta } from './monitor-portfolio-cta';
+import { PortfolioIntro } from './portfolio-intro';
 
 // A full batch (PORTFOLIO_MAX_EINS EINs, ~6 at a time) is well past the
 // single-org page's already-bumped 30s — this needs the Hobby-plan
@@ -59,6 +60,8 @@ export default async function PortfolioPage(props: {
         <div className="bg-white p-6 rounded-lg border border-gray-200 mb-8">
           <PortfolioForm initialValue={capped.join('\n')} />
         </div>
+
+        {capped.length === 0 && invalid.length === 0 && <PortfolioIntro />}
 
         {invalid.length > 0 && (
           <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 text-sm text-amber-900">
