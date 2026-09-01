@@ -5,6 +5,7 @@ import EinSearchForm from './ein-search-form';
 import { FoundingCtaButton } from './founding-cta-button';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
+import { HomePortfolioMockup } from './home-portfolio-mockup';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 import { JsonLd } from './json-ld';
@@ -59,59 +60,72 @@ export default function Home() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:px-8">
           {/* ~1.618 : 1 column split (golden ratio) — the left column
-              carries the headline, search, and three supporting actions,
-              so it earns the larger share; the preview card is a
-              supporting visual. items-start so the card top-aligns with
-              the headline rather than floating centred against the much
-              taller left column. */}
-          <div className="lg:grid lg:grid-cols-[1.618fr_1fr] lg:gap-12 lg:items-start">
-            {/* Left column — the search and everything that frames it.
-                Centered on mobile/tablet (search is the single focal
-                point there); left-aligned once the preview card sits
-                beside it. */}
+              carries the headline, search, and supporting actions, so it
+              earns the larger share; the preview card is a supporting
+              visual. items-center so the card sits against the vertical
+              midpoint of the taller left column rather than top-aligning
+              and leaving a block of dead space beneath it. */}
+          <div className="lg:grid lg:grid-cols-[1.618fr_1fr] lg:gap-12 lg:items-center">
+            {/* Left column, in four deliberate tiers with widening gaps
+                (identity → primary action → the two paths → examples), so
+                the eye is led down instead of meeting six evenly-spaced
+                blocks of equal weight. Centered on mobile/tablet (search
+                is the single focal point there); left-aligned once the
+                preview card sits beside it. */}
             <div className="text-center lg:text-left">
-              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-balance text-gray-900 mb-4">
+              {/* Tier 1 — identity + the dual-path promise */}
+              <h1 className="text-h1 sm:text-display font-medium tracking-tight text-balance text-gray-900 mb-3">
                 Look up any organization&apos;s Single Audit findings
               </h1>
-              <p className="text-lg text-gray-600 mb-2 max-w-xl mx-auto lg:mx-0 font-light">
-                Search the Federal Audit Clearinghouse. See audit findings and corrective action
-                plans for any organization that receives federal awards.
+              <p className="text-lg text-gray-600 mb-2 max-w-2xl mx-auto lg:mx-0 font-light">
+                Search the Federal Audit Clearinghouse free — or let us monitor your whole
+                portfolio and surface only the organizations that changed.
               </p>
               {/* Independence statement — above the fold on purpose. The
                   visual language here is institutional and the subject is
                   federal; say plainly what this is so nobody has to infer
                   it. */}
-              <p className="text-caption text-gray-500 mb-8">
+              <p className="text-caption text-gray-500">
                 Independent tool built on public Federal Audit Clearinghouse data. Not affiliated
                 with GSA, OMB, or any federal agency.
               </p>
 
-              {/* Search Box */}
-              <EinSearchForm />
-
-              {/* Portfolio promotion — a real second action in the hero,
-                  not a footnote under the search box. The genuinely
-                  differentiated, working, no-login feature deserves more
-                  than an inline text mention; outline style keeps it
-                  visually secondary to the primary Search button above
-                  without burying it. */}
-              <div className="mt-6 flex flex-col items-center lg:items-start gap-1.5">
-                <p className="text-small text-gray-600">Checking more than one organization?</p>
-                <Link
-                  href="/portfolio"
-                  className="inline-block border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2 rounded-lg transition-colors"
-                >
-                  Try the portfolio view — free, no account →
-                </Link>
+              {/* Tier 2 — the primary action, given the most air */}
+              <div className="mt-9">
+                <EinSearchForm />
               </div>
 
-              {/* Example links — clickable chips, not plain text links +
-                  <br>, per the redesign brief's Components section. Just
-                  the org name (no EIN) so the three fit one row in the
-                  hero's left column; the link still carries the EIN. One
-                  chip (PROPEL Nonprofits) is a GOING CONCERN record on
-                  purpose, so the chips reinforce the preview card. */}
-              <div className="mt-6">
+              {/* Tier 3 — the two paths from the promise line, as matched
+                  peers: research-at-scale (a real, working, no-login
+                  tool) and monitoring (the paid product, scrolls to the
+                  mockup below). The monitoring button is a step lighter
+                  so it doesn't imply parity with the free portfolio tool,
+                  but it's a first-class action here, not a trailing text
+                  link. Side by side on wide screens, stacked below. */}
+              <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
+                <Link
+                  href="/portfolio"
+                  className="inline-block text-center border-2 border-accent text-accent hover:bg-accent hover:text-white font-semibold px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  Try the portfolio view — free →
+                </Link>
+                <a
+                  href="#how-monitoring-works"
+                  className="inline-block text-center border-2 border-gray-300 text-gray-700 hover:border-accent hover:text-accent font-semibold px-5 py-2.5 rounded-lg transition-colors"
+                >
+                  See how monitoring works →
+                </a>
+              </div>
+              <p className="mt-2 text-caption text-gray-500">
+                The portfolio view is free and needs no account.
+              </p>
+
+              {/* Tier 4 — examples, the tertiary tail. Clickable chips,
+                  not plain links + <br>. Just the org name (no EIN) so
+                  the three fit one row; the link still carries the EIN.
+                  PROPEL Nonprofits is a GOING CONCERN record on purpose,
+                  so the chips reinforce the preview card. */}
+              <div className="mt-8">
                 <p className="text-caption text-gray-500 mb-2">Try these examples</p>
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-1.5">
                   <Link
@@ -138,14 +152,13 @@ export default function Home() {
 
             {/* Right column — a static recreation of an org page card, so
                 the payoff of searching is visible before a visitor
-                commits to typing an EIN (redesign brief, Section 1). */}
-            {/* Dialled back — the card lost its shadow (in
-                home-sample-card.tsx) and is held at 80% opacity beside
-                the search, so it reads as a supporting illustration
-                rather than something competing with the search box for
-                the first click. Full strength on mobile, where it's the
-                stand-alone "here's the payoff" below the search. */}
-            <div className="mt-12 lg:mt-2 lg:opacity-80">
+                commits to typing an EIN (redesign brief, Section 1).
+                Dialled back — no shadow (in home-sample-card.tsx), 80%
+                opacity beside the search, so it reads as a supporting
+                illustration rather than competing with the search box
+                for the first click. Full strength on mobile, where it's
+                the stand-alone "here's the payoff" below the search. */}
+            <div className="mt-12 lg:mt-0 lg:opacity-80">
               <HomeSampleCard />
             </div>
           </div>
@@ -198,6 +211,11 @@ export default function Home() {
           </p>
         </div>
       </div>
+
+      {/* Portfolio monitoring mockup — the primary product visual, and
+          the target of the hero's "See how monitoring works →" link.
+          Static / illustrative (invented org names, labelled). */}
+      <HomePortfolioMockup />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Info sections. Both audience framings kept as explanation, but

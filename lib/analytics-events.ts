@@ -47,6 +47,15 @@ export const EVENT_MONITOR_CTA_CLICK = 'monitor_cta_click';
  * separately from homepage-band conversions, which are lower intent. */
 export const EVENT_PRICING_VIEW = 'pricing_view';
 
+/** Fired once per homepage view, when the portfolio monitoring mockup
+ * (app/home-portfolio-mockup.tsx) first scrolls into view. The mockup is
+ * the homepage's primary product visual; this is the read on how many
+ * visitors actually scroll past the hero/stat bar to the monitoring
+ * story. Paired with EVENT_MONITOR_CTA_CLICK it gives the mockup-seen →
+ * founding-CTA-click rate for the homepage. No EIN or org, per the
+ * ground rule above. */
+export const EVENT_HOME_MOCKUP_VIEW = 'home_mockup_view';
+
 export function bucketEinCount(count: number): string {
   if (count <= 1) return '1';
   if (count <= 5) return '2-5';
