@@ -6,6 +6,7 @@ import { FoundingCtaButton } from './founding-cta-button';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomePortfolioMockup } from './home-portfolio-mockup';
+import { HomeFacVsMonitoring } from './home-fac-vs-monitoring';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 import { JsonLd } from './json-ld';
@@ -216,6 +217,12 @@ export default function Home() {
           the target of the hero's "See how monitoring works →" link.
           Static / illustrative (invented org names, labelled). */}
       <HomePortfolioMockup />
+
+      {/* Why FAC alone isn't enough — the manual loop vs. the monitored
+          one, then a Free-research-vs-Founding-monitoring capability
+          table. Static; the paid column is framed as the Founding
+          Customer Program, not "live today". */}
+      <HomeFacVsMonitoring />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Info sections. Both audience framings kept as explanation, but
