@@ -1,10 +1,11 @@
 import { HomeMockupViewTracker } from './home-mockup-view-tracker';
 
 /**
- * Portfolio monitoring mockup — the homepage's single most important
- * product visual. It shows what the monitoring product produces: a whole
- * portfolio collapsed to the handful of organizations that actually
- * changed this month.
+ * Portfolio-intelligence mockup — the homepage's single most important
+ * product visual. It shows what the product produces: a whole portfolio
+ * collapsed to the handful of organizations that actually changed this
+ * month. ("portfolio intelligence" is the product noun; "monitor" stays
+ * a verb — see app/home-fac-vs-monitoring.tsx.)
  *
  * Honesty constraint (validation plan, Core Rule #1): the monitoring
  * backend does not exist yet. So this is explicitly labelled
@@ -57,7 +58,7 @@ export function HomePortfolioMockup() {
       <HomeMockupViewTracker />
 
       <h2 className="text-h3 sm:text-h2 font-medium tracking-tight text-gray-900">
-        See how portfolio monitoring works
+        See how monitoring works
       </h2>
       <p className="mt-3 text-lg text-gray-600 font-light max-w-2xl">
         Add your organizations once. We watch the Federal Audit Clearinghouse for you and surface

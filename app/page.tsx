@@ -6,6 +6,7 @@ import { FoundingCtaButton } from './founding-cta-button';
 import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomePortfolioMockup } from './home-portfolio-mockup';
+import { HomeFacVsMonitoring } from './home-fac-vs-monitoring';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 import { JsonLd } from './json-ld';
@@ -217,6 +218,12 @@ export default function Home() {
           Static / illustrative (invented org names, labelled). */}
       <HomePortfolioMockup />
 
+      {/* Why FAC alone isn't enough — the manual loop vs. the monitored
+          one, then a Free-research-vs-Founding-monitoring capability
+          table. Static; the paid column is framed as the Founding
+          Customer Program, not "live today". */}
+      <HomeFacVsMonitoring />
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Info sections. Both audience framings kept as explanation, but
             now point at working features — straight into the real
@@ -249,7 +256,7 @@ export default function Home() {
             </svg>
             <h2 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h2>
             <p className="text-gray-600 mb-4">
-              Track your Single Audit findings across years. Monitor repeat-finding risk. Stay
+              Track your Single Audit findings across years. Watch for repeat-finding risk. Stay
               on top of corrective action plans.
             </p>
             <Link
@@ -277,14 +284,14 @@ export default function Home() {
             </svg>
             <h2 className="text-lg font-bold text-gray-900 mb-3">For Pass-Throughs</h2>
             <p className="text-gray-600 mb-4">
-              Monitor your subrecipients' audit findings and filing records. Verify audit
-              history.
+              Check your whole subrecipient list at once — audit findings, filing records,
+              management-decision deadlines. Verify audit history.
             </p>
             <Link
               href="/portfolio"
               className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
-              Start monitoring →
+              Open the portfolio view →
             </Link>
           </div>
 
