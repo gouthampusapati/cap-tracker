@@ -8,12 +8,15 @@ import Link from 'next/link';
  *     what the product would do), not a shipped feature, so it's honest
  *     ahead of the monitoring backend existing.
  *
- * §C: a capability table — deliberately framed as "Free research vs
- *     Founding monitoring" with the paid column headed "Founding Customer
- *     Program", NOT "what's live today". Every ✓ in the monitoring column
- *     reads as "what founding customers get / help shape", matching the
- *     /pricing framing (validation plan, Core Rule #1: don't claim the
- *     monitoring product is ready).
+ * §C: a capability table — "Free research vs the Founding Program", with
+ *     the paid column headed "Founding Customer Program", NOT "what's
+ *     live today". Every ✓ in that column reads as "what founding
+ *     customers get / help shape", matching the /pricing framing
+ *     (validation plan, Core Rule #1: don't claim the product is ready).
+ *
+ * Naming: the paid product's noun is "portfolio intelligence" (it ties
+ * to "Single Audit Intelligence" and covers monitoring + triage + the
+ * report). "monitor" / "monitoring" is only ever used as a verb.
  *
  * Static server component, no runtime cost — homepage stays `○` (Static).
  */
@@ -103,8 +106,8 @@ export function HomeFacVsMonitoring() {
             Federal audit data <span className="text-muted">&rarr;</span> portfolio intelligence
           </h2>
           <p className="mt-3 max-w-2xl text-lg font-light text-gray-600">
-            The Federal Audit Clearinghouse gives you the data. Single Audit Intelligence watches
-            it for you.
+            The Federal Audit Clearinghouse gives you the data. Portfolio intelligence turns it
+            into a short list of what actually needs your attention.
           </p>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2">
@@ -151,7 +154,7 @@ export function HomeFacVsMonitoring() {
         {/* §C — capability table, framed as Free vs Founding */}
         <div>
           <h2 className="text-h3 sm:text-h2 font-medium tracking-tight text-gray-900">
-            Free research vs Founding monitoring
+            Free research vs the Founding Program
           </h2>
 
           <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white">
@@ -186,8 +189,8 @@ export function HomeFacVsMonitoring() {
           </div>
 
           <p className="mt-3 text-caption text-gray-500">
-            The Founding Customer Program column is what founding customers get as we build the
-            monitoring service with them —{' '}
+            The Founding Customer Program column is what founding customers get as we build it out
+            with them —{' '}
             <Link href="/pricing" className="underline font-semibold hover:text-accent">
               see founding pricing
             </Link>

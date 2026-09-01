@@ -256,7 +256,7 @@ export default function Home() {
             </svg>
             <h2 className="text-lg font-bold text-gray-900 mb-3">For Recipients</h2>
             <p className="text-gray-600 mb-4">
-              Track your Single Audit findings across years. Monitor repeat-finding risk. Stay
+              Track your Single Audit findings across years. Watch for repeat-finding risk. Stay
               on top of corrective action plans.
             </p>
             <Link
@@ -284,14 +284,14 @@ export default function Home() {
             </svg>
             <h2 className="text-lg font-bold text-gray-900 mb-3">For Pass-Throughs</h2>
             <p className="text-gray-600 mb-4">
-              Monitor your subrecipients' audit findings and filing records. Verify audit
-              history.
+              Check your whole subrecipient list at once — audit findings, filing records,
+              management-decision deadlines. Verify audit history.
             </p>
             <Link
               href="/portfolio"
               className="mt-auto self-start bg-accent hover:opacity-90 text-white font-semibold px-4 py-2 rounded"
             >
-              Start monitoring →
+              Open the portfolio view →
             </Link>
           </div>
 
