@@ -7,6 +7,7 @@ import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomePortfolioMockup } from './home-portfolio-mockup';
 import { HomeFacVsMonitoring } from './home-fac-vs-monitoring';
+import { HomeRiskFraming } from './home-risk-framing';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 import { JsonLd } from './json-ld';
@@ -353,6 +354,11 @@ export default function Home() {
 
         <HomeFeatureGrid />
       </div>
+
+      {/* Short risk beat — the last thing a scroller reads before the
+          Founding Customer ask below. Stays inside monitor / surface /
+          prioritise; no penalty or compliance-guarantee claims. */}
+      <HomeRiskFraming />
 
       {/* CTA Footer — the Founding Customer entry point for a visitor
           who's scrolled the whole homepage without self-identifying
