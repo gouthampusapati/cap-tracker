@@ -100,7 +100,7 @@ export function HomeFacVsMonitoring() {
         {/* §B — the manual loop vs. the monitored one */}
         <div>
           <h2 className="text-h3 sm:text-h2 font-medium tracking-tight text-gray-900">
-            FAC is a database. Your portfolio needs monitoring.
+            Federal audit data <span className="text-muted">&rarr;</span> portfolio intelligence
           </h2>
           <p className="mt-3 max-w-2xl text-lg font-light text-gray-600">
             The Federal Audit Clearinghouse gives you the data. Single Audit Intelligence watches
