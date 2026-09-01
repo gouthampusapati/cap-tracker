@@ -7,7 +7,7 @@ import { PricingViewTracker } from './pricing-view-tracker';
 
 const title = 'Pricing';
 const description =
-  'Single Audit Intelligence is free to research: organization findings, portfolio view, the auditor directory, and the compliance guide. Continuous monitoring of the Federal Audit Clearinghouse — new-audit, new-finding and management-decision-deadline alerts across a portfolio of up to 100 organizations — is the paid product: founding customers pay $3,600 for the first year (renewing at a locked $6,000/year), and a limited initial cohort is onboarding now.';
+  'Single Audit Intelligence is free to research: organization findings, portfolio view, the auditor directory, and the compliance guide. Portfolio intelligence — continuous monitoring of the Federal Audit Clearinghouse, with new-audit, new-finding and management-decision-deadline alerts across up to 100 organizations — is the paid product: founding customers pay $3,600 for the first year (renewing at a locked $6,000/year), and a limited initial cohort is onboarding now.';
 
 export const metadata: Metadata = {
   title: `${title} — Free Research + Founding Customer Program | Single Audit Intelligence`,
@@ -47,7 +47,7 @@ const INCLUDED: { label: string; body: string }[] = [
   },
   {
     label: 'Continuous monitoring',
-    body: "Single Audit Intel checks the Federal Audit Clearinghouse for relevant changes so your team doesn't have to keep searching it.",
+    body: "Single Audit Intelligence checks the Federal Audit Clearinghouse for relevant changes so your team doesn't have to keep searching it.",
   },
   {
     label: 'Actionable alerts',
@@ -59,7 +59,7 @@ const INCLUDED: { label: string; body: string }[] = [
   },
   {
     label: 'Founding customer onboarding',
-    body: 'We help configure your initial monitoring portfolio and make sure the service fits your workflow.',
+    body: 'We help configure your initial portfolio and make sure the service fits your workflow.',
   },
 ];
 
@@ -75,17 +75,18 @@ export default function PricingPage() {
           <h1 className="text-3xl font-bold text-gray-900 mt-3">Pricing</h1>
           <p className="text-gray-600 mt-2 max-w-2xl">
             <strong>Free to research. Paid to monitor.</strong> Everything you can look up on this
-            site is free and needs no account. The paid product is continuous monitoring of the
-            Federal Audit Clearinghouse across a portfolio of organizations. We&apos;re onboarding
-            a limited initial cohort of founding customers now.
+            site is free and needs no account. <strong>Portfolio intelligence</strong> —
+            continuous monitoring of the Federal Audit Clearinghouse across your organizations — is
+            the paid product. We&apos;re onboarding a limited initial cohort of founding customers
+            now.
           </p>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-2 gap-6 items-start">
+        <div className="grid md:grid-cols-2 gap-6 items-stretch">
           {/* Free — Research */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex flex-col bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-xl font-bold text-gray-900">Research</h2>
             <p className="text-2xl font-bold text-gray-900 mt-2">
               Free <span className="text-sm font-normal text-gray-500">· no account</span>
@@ -106,26 +107,34 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <div className="mt-6 flex gap-3">
-              <Link
-                href="/portfolio"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded text-sm"
-              >
-                Open the portfolio
-              </Link>
-              <Link
-                href="/auditors"
-                className="inline-block border border-gray-300 hover:border-gray-400 text-gray-700 font-semibold px-4 py-2 rounded text-sm"
-              >
-                Auditor directory
-              </Link>
+            <div className="mt-auto pt-8">
+              <p className="text-xs text-gray-500 mb-3">
+                Free forever — no account, nothing to install.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/portfolio"
+                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded text-sm"
+                >
+                  Open the portfolio
+                </Link>
+                <Link
+                  href="/auditors"
+                  className="inline-block border border-gray-300 hover:border-gray-400 text-gray-700 font-semibold px-4 py-2.5 rounded text-sm"
+                >
+                  Auditor directory
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* Paid — Monitoring / Founding Customer Program */}
-          <div id="founding" className="bg-white border-2 border-blue-300 rounded-lg p-6 scroll-mt-6">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-gray-900">Monitoring</h2>
+          {/* Paid — Portfolio intelligence / Founding Customer Program */}
+          <div
+            id="founding"
+            className="flex flex-col bg-white border-2 border-blue-300 rounded-lg p-6 scroll-mt-6"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-900">Portfolio intelligence</h2>
               <span className="text-[11px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
                 Founding Customer Program
               </span>
@@ -152,8 +161,8 @@ export default function PricingPage() {
             </p>
 
             <p className="text-sm font-semibold text-gray-900 mt-5">
-              Single Audit Intel watches the Federal Audit Clearinghouse for you — so your team
-              doesn&apos;t have to keep checking it manually.
+              Single Audit Intelligence watches the Federal Audit Clearinghouse for you — so your
+              team doesn&apos;t have to keep checking it manually.
             </p>
             <p className="text-sm font-semibold text-gray-700 mt-4">Get alerted when:</p>
             <ul className="mt-2 space-y-2 text-sm text-gray-700">
@@ -166,18 +175,24 @@ export default function PricingPage() {
             </ul>
 
             <p className="mt-5 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-900">
-              The data is public. The monitoring is the service.
+              The data is public. The intelligence is the service.
             </p>
 
-            <a
-              href="#founding-form"
-              className="mt-5 block w-full text-center bg-accent hover:opacity-90 text-white font-semibold px-4 py-2.5 rounded-md text-sm"
-            >
-              Request Founding Access
-            </a>
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Limited initial cohort · The form isn&apos;t a checkout — it starts a conversation.
-            </p>
+            {/* Action block — pinned to the bottom of the card so its CTA
+                lines up with the Research card's (both cards are equal
+                height via items-stretch, and both blocks lead with a
+                one-line caption above the button). */}
+            <div className="mt-auto pt-6">
+              <p className="text-xs text-gray-500 mb-3 text-center">
+                The form isn&apos;t a checkout — it starts a conversation.
+              </p>
+              <a
+                href="#founding-form"
+                className="block w-full text-center bg-accent hover:opacity-90 text-white font-semibold px-4 py-2.5 rounded-md text-sm"
+              >
+                Request Founding Access
+              </a>
+            </div>
           </div>
         </div>
 
@@ -202,9 +217,9 @@ export default function PricingPage() {
           <h2 className="text-lg font-bold text-gray-900">Request Founding Access</h2>
           <p className="text-sm text-gray-600 mt-1">
             This isn&apos;t a checkout. Tell us what you need to monitor and we&apos;ll set up a
-            short call: we&apos;ll review your needs, walk you through the monitoring service, and
-            &mdash; if it&apos;s a fit &mdash; get your founding subscription started. No payment
-            or commitment to book the call.
+            short call: we&apos;ll review your needs, walk you through how it works, and &mdash; if
+            it&apos;s a fit &mdash; get your founding subscription started. No payment or
+            commitment to book the call.
           </p>
           <div className="mt-5 max-w-xl">
             <WaitlistForm source="pricing-page" variant="light" qualifying />
