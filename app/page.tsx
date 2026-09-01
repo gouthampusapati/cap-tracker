@@ -323,35 +323,56 @@ export default function Home() {
           </div>
         </div>
 
-        {/* What is a Single Audit? */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 sm:p-10 my-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">What is a Single Audit?</h2>
-          <p className="text-gray-700 mb-4">
-            A non-Federal entity that expends $1,000,000 or more during the non-Federal entity&apos;s
-            fiscal year in Federal awards must have a single or program-specific audit conducted
-            for that year in accordance with the provisions of this part.
-          </p>
-          <p className="text-gray-700 mb-4">
-            When auditors find a problem, they report it as a "finding." The organization must
-            respond with a Corrective Action Plan (CAP). If the problem shows up again in the
-            next year's audit, it becomes a "repeat finding" — a risk flag for federal agencies.
-          </p>
-          <p className="text-gray-700">
-            All Single Audit data is public domain and lives in the{' '}
-            <a
-              href="https://www.fac.gov"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-semibold text-blue-600 hover:text-blue-800"
-            >
-              Federal Audit Clearinghouse
-            </a>
-            . This site adds the structure raw FAC search doesn&apos;t: risk badges, deadline
-            tracking, and views across organizations and firms.
-          </p>
-        </div>
-
         <HomeFeatureGrid />
+
+        {/* "What is a Single Audit?" — a heavy definition paragraph in
+            the middle of the page interrupts product discovery, so it's
+            collapsed by default and sits at the end. Native <details>:
+            no JS, and the text stays in the DOM for search + anyone who
+            actually wants the primer. */}
+        <details className="group mt-16 rounded-xl border border-gray-200 bg-white">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 [&::-webkit-details-marker]:hidden">
+            <h2 className="text-lg font-semibold text-gray-900">What is a Single Audit?</h2>
+            <svg
+              className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.3 7.3a1 1 0 011.4 0L10 10.6l3.3-3.3a1 1 0 111.4 1.4l-4 4a1 1 0 01-1.4 0l-4-4a1 1 0 010-1.4z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </summary>
+          <div className="space-y-4 border-t border-gray-200 px-6 pb-6 pt-4 text-gray-700">
+            <p>
+              A non-Federal entity that expends $1,000,000 or more during the non-Federal
+              entity&apos;s fiscal year in Federal awards must have a single or program-specific
+              audit conducted for that year in accordance with the provisions of this part.
+            </p>
+            <p>
+              When auditors find a problem, they report it as a &ldquo;finding.&rdquo; The
+              organization must respond with a Corrective Action Plan (CAP). If the problem shows
+              up again in the next year&apos;s audit, it becomes a &ldquo;repeat finding&rdquo; — a
+              risk flag for federal agencies.
+            </p>
+            <p>
+              All Single Audit data is public domain and lives in the{' '}
+              <a
+                href="https://www.fac.gov"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-semibold text-blue-600 hover:text-blue-800"
+              >
+                Federal Audit Clearinghouse
+              </a>
+              . This site adds the structure raw FAC search doesn&apos;t: risk badges, deadline
+              tracking, and views across organizations and firms.
+            </p>
+          </div>
+        </details>
       </div>
 
       {/* CTA Footer — the Founding Customer entry point for a visitor
