@@ -432,6 +432,33 @@ export const facMirrorAdditionalUeis = sqliteTable(
 );
 
 /**
+ * Derived — one row per pass-through ENTITY, keyed by its normalized
+ * name (FAC's passthrough.csv gives pass-throughs a free-text name only,
+ * no EIN). Carries how many audited subrecipients name it as their
+ * pass-through: a floor on that entity's subrecipient-portfolio size,
+ * used as "signal 2" of cold-outreach pass-through targeting.
+ *
+ * Built by scripts/build-passthrough-summary.mjs (a SEPARATE weekly job,
+ * not sync-fac-mirror.mjs — passthrough.csv is ~530MB / ~4.9M rows and
+ * is never mirrored raw, only streamed + aggregated). Blue-green swap,
+ * raw DDL — NOT drizzle-kit push. Join to it with the shared matcher in
+ * scripts/lib/passthrough-name.mjs, never a bare name equality.
+ */
+export const facMirrorPassthroughSummary = sqliteTable(
+  'fac_mirror_passthrough_summary',
+  {
+    normName: text('norm_name').primaryKey(),
+    sampleName: text('sample_name'),
+    subrecipientCountRecent: integer('subrecipient_count_recent').notNull().default(0),
+    subrecipientCountAll: integer('subrecipient_count_all').notNull().default(0),
+    subawardRows: integer('subaward_rows').notNull().default(0),
+  },
+  (t) => ({
+    recentIdx: index('fac_mirror_passthrough_summary_recent_idx').on(t.subrecipientCountRecent),
+  })
+);
+
+/**
  * One row per sync attempt (not per table) — lets the app and a human
  * both tell how fresh the mirror actually is, and makes a failed sync
  * visible instead of silently leaving stale data in place indefinitely.
