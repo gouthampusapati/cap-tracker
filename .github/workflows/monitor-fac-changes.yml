@@ -1,0 +1,48 @@
+name: Monitor FAC Changes
+
+# Continuous-monitoring job for the paid watchlist product
+# (scripts/monitor-fac-changes.mjs). Diffs each watched org's current
+# state in the local FAC mirror against monitor_state and emails each
+# customer a digest of what changed.
+#
+# Schedule: Mondays 13:00 UTC — AFTER sync-fac-mirror (09:17) and
+# build-passthrough-summary (11:23), so it reads a freshly-synced mirror.
+# Writes are tiny (one monitor_state row per watched EIN per week + a
+# handful of monitor_alert rows), well inside Turso's free tier.
+on:
+  schedule:
+    - cron: '0 13 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitor-fac-changes
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Diff watchlist + send digests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm install --ignore-scripts
+      - name: Run monitor job
+        run: node scripts/monitor-fac-changes.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXT_PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_URL }}
+          # Digests no-op (with a log line) if these aren't set.
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          # On-failure alert to the owner.
+          WAITLIST_NOTIFY_EMAIL: ${{ secrets.WAITLIST_NOTIFY_EMAIL }}
