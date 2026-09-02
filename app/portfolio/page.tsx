@@ -43,6 +43,7 @@ export default async function PortfolioPage(props: {
   const rows = capped.length > 0 ? defaultSort(await fetchPortfolio(capped)) : [];
   const notFoundCount = rows.filter((r) => r.status === 'not-found').length;
   const errorCount = rows.filter((r) => r.status === 'error').length;
+  const resolvedCount = rows.filter((r) => r.coveringEin).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -92,6 +93,15 @@ export default async function PortfolioPage(props: {
                 {errorCount} of {rows.length} EIN{errorCount === 1 ? '' : 's'} couldn't be
                 checked right now — the FAC may be rate-limited or briefly unavailable. That's
                 not the same as "not found"; try again shortly for those rows.
+              </p>
+            )}
+            {resolvedCount > 0 && (
+              <p className="text-sm text-gray-600 mb-4">
+                {resolvedCount} of {rows.length} EIN{resolvedCount === 1 ? ' has' : 's have'} no
+                Single Audit of their own but {resolvedCount === 1 ? 'is' : 'are'} covered by a
+                parent entity's audit (a subsidiary, division, or agency rolled into a
+                system-wide filing) — those rows show the covering filing, marked{' '}
+                <span className="font-semibold text-blue-700">filed under</span>.
               </p>
             )}
             <PortfolioTable initialRows={rows} />

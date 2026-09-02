@@ -89,6 +89,14 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
                 <>
                   <td className="px-4 py-3 font-medium text-gray-900">
                     {row.orgName}
+                    {row.coveringEin && (
+                      <span
+                        title={`EIN ${row.ein} has no Single Audit of its own — it's covered by the audit filed under EIN ${row.coveringEin}. The figures shown are that filing's.`}
+                        className="ml-2 inline-block text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 align-middle cursor-help"
+                      >
+                        filed under {row.coveringEin}
+                      </span>
+                    )}
                     {row.stale && (
                       <span
                         title={
@@ -128,7 +136,7 @@ export default function PortfolioTable({ initialRows }: { initialRows: Portfolio
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`/single-audit/${row.ein}?from=portfolio&eins=${encodeURIComponent(portfolioEins)}`}
+                      href={`/single-audit/${row.coveringEin ?? row.ein}?from=portfolio&eins=${encodeURIComponent(portfolioEins)}`}
                       className="text-blue-600 hover:text-blue-800 font-semibold whitespace-nowrap"
                     >
                       View →

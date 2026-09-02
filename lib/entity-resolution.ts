@@ -12,9 +12,10 @@ import {
  * auditee_ein to send it to — the most recent one by fiscal-year end. A
  * component EIN almost always rolls into a single parent entity, but if
  * it moved between entities over the years, the latest filing wins.
- * Returns null when there's nothing to redirect to (no candidates, or
- * the only candidate is the EIN itself). Pure — the DB read lives in
- * resolveCoveringFilingEin below so this stays unit-testable.
+ * Returns null when there's nothing to redirect to (no candidates, the
+ * only candidate is the EIN itself, or the EIN is a known junk
+ * placeholder). Pure — the DB read lives in resolveCoveringFilingEins
+ * below so this stays unit-testable.
  */
 export function pickCoveringFilingEin(
   candidates: { parentEin: string | null; fyEnd: string | null }[],
@@ -50,10 +51,26 @@ export function pickCoveringFilingEin(
  * should render its own page, not redirect.
  */
 export async function resolveCoveringFilingEin(ein: string): Promise<string | null> {
-  if (!/^\d{9}$/.test(ein)) return null;
+  return (await resolveCoveringFilingEins([ein])).get(ein) ?? null;
+}
+
+/**
+ * Batched sibling of resolveCoveringFilingEin — one query for a whole
+ * list of EINs, for /portfolio (where a paste of subrecipient EINs can
+ * contain several components). Returns a Map from component EIN to the
+ * covering filing's EIN; an EIN that isn't a known component (or has its
+ * own filing, which callers must check first) is simply absent.
+ */
+export async function resolveCoveringFilingEins(
+  eins: string[]
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const valid = [...new Set(eins.filter((e) => /^\d{9}$/.test(e)))];
+  if (valid.length === 0) return out;
   try {
     const rows = await db
       .select({
+        componentEin: facMirrorAdditionalEins.additionalEin,
         parentEin: facMirrorGeneral.auditeeEin,
         fyEnd: facMirrorGeneral.fyEndDate,
       })
@@ -62,14 +79,26 @@ export async function resolveCoveringFilingEin(ein: string): Promise<string | nu
         facMirrorGeneral,
         eq(facMirrorGeneral.reportId, facMirrorAdditionalEins.reportId)
       )
-      .where(eq(facMirrorAdditionalEins.additionalEin, ein));
-    return pickCoveringFilingEin(rows, ein);
+      .where(inArray(facMirrorAdditionalEins.additionalEin, valid));
+
+    const byComponent = new Map<string, { parentEin: string | null; fyEnd: string | null }[]>();
+    for (const r of rows) {
+      const list = byComponent.get(r.componentEin);
+      if (list) list.push({ parentEin: r.parentEin, fyEnd: r.fyEnd });
+      else byComponent.set(r.componentEin, [{ parentEin: r.parentEin, fyEnd: r.fyEnd }]);
+    }
+    for (const [componentEin, candidates] of byComponent) {
+      const best = pickCoveringFilingEin(candidates, componentEin);
+      if (best) out.set(componentEin, best);
+    }
+    return out;
   } catch (err) {
     // Mirror tables may not exist yet (first deploy before the Sprint 5
     // sync). A failure here must never break the calling page — it just
-    // means "no redirect", and the caller falls through to its 404.
-    console.error('[entity-resolution] resolveCoveringFilingEin failed (non-fatal):', err);
-    return null;
+    // means "no redirect / no resolution", and callers fall through to
+    // their own not-found handling.
+    console.error('[entity-resolution] resolveCoveringFilingEins failed (non-fatal):', err);
+    return out;
   }
 }
 

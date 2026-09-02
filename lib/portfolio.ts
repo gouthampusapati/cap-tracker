@@ -1,5 +1,6 @@
 import 'server-only';
-import { getPublicOrgsBatch } from '@/lib/public-org-cache';
+import { getPublicOrgsBatch, type OrgLookupResult } from '@/lib/public-org-cache';
+import { resolveCoveringFilingEins } from '@/lib/entity-resolution';
 import { computeManagementDecisionDeadline, soonestDeadline } from '@/lib/management-decision';
 import type { ImportedOrg } from '@/lib/fac-api';
 
@@ -27,6 +28,13 @@ export interface PortfolioRow {
   materialWeaknesses: number;
   managementDecisionDays: number | null; // null = no deadline to show
   managementDecisionLabel: string | null; // e.g. "34 days" / "124 days overdue" / null
+  // Set when the entered EIN has no Single Audit of its own but is a
+  // component rolled into a parent entity's audit (a hospital in a health
+  // system, an agency under a state). Every other field on the row is
+  // that covering filing's — status stays 'found' because the data is
+  // real, just filed under `coveringEin`. The row's "View →" link and
+  // any drill-down should target `coveringEin`.
+  coveringEin: string | null;
   syncedAt: Date | null;
   // Data older than the normal 24h freshness window, served because the
   // shared FAC budget was exhausted (or a refresh failed) instead of
@@ -34,7 +42,13 @@ export interface PortfolioRow {
   stale: boolean;
 }
 
-function toRow(ein: string, org: ImportedOrg | null, syncedAt: Date, stale: boolean): PortfolioRow {
+function toRow(
+  ein: string,
+  org: ImportedOrg | null,
+  syncedAt: Date,
+  stale: boolean,
+  coveringEin: string | null = null
+): PortfolioRow {
   if (!org) {
     return {
       ein,
@@ -46,6 +60,7 @@ function toRow(ein: string, org: ImportedOrg | null, syncedAt: Date, stale: bool
       materialWeaknesses: 0,
       managementDecisionDays: null,
       managementDecisionLabel: null,
+      coveringEin: null,
       syncedAt,
       stale,
     };
@@ -69,6 +84,7 @@ function toRow(ein: string, org: ImportedOrg | null, syncedAt: Date, stale: bool
         ? `${Math.abs(deadline.daysFromToday)}d overdue`
         : `${deadline.daysFromToday}d`
       : null,
+    coveringEin,
     syncedAt,
     stale,
   };
@@ -85,6 +101,7 @@ function errorRow(ein: string): PortfolioRow {
     materialWeaknesses: 0,
     managementDecisionDays: null,
     managementDecisionLabel: null,
+    coveringEin: null,
     syncedAt: null,
     stale: false,
   };
@@ -105,16 +122,47 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
 
   try {
     const lookups = await getPublicOrgsBatch(eins);
+
+    // EINs that came back with no org — whether "not found" or "budget
+    // exhausted, never checked". Some are genuinely unaudited; some are
+    // components rolled into a parent entity's Single Audit. Resolving
+    // the latter to the covering filing is a mirror-only read (0 FAC
+    // calls), so it's worth trying even for the budget-exhausted rows —
+    // a big parent entity is almost always already in the mirror. The
+    // same gap the org page fixed with a redirect, which a table row
+    // can't do.
+    const missed = eins.filter((ein) => {
+      const r = lookups.get(ein);
+      return !!r && !r.org;
+    });
+    const coveringByEin =
+      missed.length > 0 ? await resolveCoveringFilingEins(missed) : new Map<string, string>();
+    const coveringEins = [...new Set(coveringByEin.values())].filter((e) => !lookups.get(e)?.org);
+    const coveringLookups: Map<string, OrgLookupResult> =
+      coveringEins.length > 0 ? await getPublicOrgsBatch(coveringEins) : new Map();
+
+    const coveringResult = (parentEin: string) =>
+      lookups.get(parentEin)?.org ? lookups.get(parentEin) : coveringLookups.get(parentEin);
+
     return eins.map((ein) => {
       const result = lookups.get(ein);
       if (!result) return errorRow(ein);
-      // Same distinction as the org page: "never checked, budget
-      // exhausted" is not "not found" — reuse the 'error' row status,
-      // which the table already renders as "couldn't be checked right
-      // now" rather than implying the org has no findings.
+      if (result.org) return toRow(ein, result.org, result.syncedAt, result.stale);
+
+      const parentEin = coveringByEin.get(ein);
+      if (parentEin) {
+        const cov = coveringResult(parentEin);
+        if (cov?.org) {
+          return toRow(ein, cov.org, cov.syncedAt, cov.stale, parentEin);
+        }
+      }
+      // No covering filing. Preserve the org page's distinction: "never
+      // checked, budget exhausted" (unavailable) is not "not found" —
+      // the table renders 'error' as "couldn't be checked right now"
+      // rather than implying the org has no findings.
       return result.unavailable
         ? errorRow(ein)
-        : toRow(ein, result.org, result.syncedAt, result.stale);
+        : toRow(ein, null, result.syncedAt, result.stale);
     });
   } catch (error) {
     console.error('Portfolio batch fetch failed:', error);
