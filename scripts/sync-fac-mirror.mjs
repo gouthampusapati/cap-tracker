@@ -13,8 +13,10 @@
  *
  * Sprint C widens the `general` mirror with auditor location/contact
  * columns (auditor_city/state/zip/address/phone/contact_name/email) for
- * the /auditors directory — same row count, so no change to the sync's
- * write volume.
+ * the /auditors directory. 2026-09-01 adds the AUDITEE contact columns
+ * (auditee_contact_name/title/email/phone) for outbound outreach. Both
+ * are extra columns off the SAME general.csv row — same row count, no
+ * change to the sync's write volume, still zero FAC API calls.
  *
  * Run standalone via Node (a GitHub Actions scheduled workflow, not
  * part of the Next.js app) — NOT via drizzle-kit push. Needs
@@ -27,12 +29,14 @@
  * diff logic, and the live tables are never in a half-populated state
  * (see FAC_API_Improvement Sprint 4 plan's "cracks found" section).
  *
- * Column sets mirrored are a SUBSET of each CSV's real columns — only
+ * Column sets mirrored are a SUBSET of each CSV's real columns — mostly
  * what lib/fac-api.ts's FacGeneral/FacFinding/FacFindingText/FacCap
- * interfaces read. This file's CREATE TABLE DDL must stay
- * column-for-column identical to lib/db/schema.ts's fac-mirror Drizzle
- * declarations (the read side) — there's no single source of truth
- * for that today, just this comment on both ends.
+ * interfaces read, plus a few carried purely for internal use (the
+ * auditee/auditor contact columns feed outreach, not the app's org
+ * pages). This file's CREATE TABLE DDL must stay column-for-column
+ * identical to lib/db/schema.ts's fac-mirror Drizzle declarations (the
+ * read side) — there's no single source of truth for that today, just
+ * this comment on both ends.
  *
  * A truncated/corrupted CSV row fails LOUDLY (parser throws, sync
  * aborts, `_new` tables dropped, live tables untouched, a `failed` row
@@ -98,6 +102,13 @@ const TABLES = [
       auditee_name: 'auditee_name',
       auditee_city: 'auditee_city',
       auditee_state: 'auditee_state',
+      // Auditee contact — for outbound outreach. Verified present in
+      // general.csv's header 2026-09-01. Keep in lockstep with
+      // lib/db/schema.ts facMirrorGeneral.
+      auditee_contact_name: 'auditee_contact_name',
+      auditee_contact_title: 'auditee_contact_title',
+      auditee_email: 'auditee_email',
+      auditee_phone: 'auditee_phone',
       audit_year: 'audit_year',
       fy_end_date: 'fy_end_date',
       fy_start_date: 'fy_start_date',
@@ -127,6 +138,10 @@ const TABLES = [
       auditee_name TEXT,
       auditee_city TEXT,
       auditee_state TEXT,
+      auditee_contact_name TEXT,
+      auditee_contact_title TEXT,
+      auditee_email TEXT,
+      auditee_phone TEXT,
       audit_year TEXT,
       fy_end_date TEXT,
       fy_start_date TEXT,

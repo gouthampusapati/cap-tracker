@@ -63,7 +63,35 @@ export async function getMirrorSyncedAt(): Promise<Date | null> {
   return value;
 }
 
-function rowToFacGeneral(row: typeof facMirrorGeneral.$inferSelect): FacGeneral {
+// The exact fac_mirror_general columns the org-page read path needs.
+// Selected explicitly (not `db.select()`) so columns added to the table
+// for other purposes — e.g. the auditee/auditor contact fields carried
+// for outbound outreach — don't have to exist yet for a build-time
+// prerender query to succeed. Keep in sync with rowToFacGeneral below.
+const GENERAL_COLUMNS = {
+  reportId: facMirrorGeneral.reportId,
+  auditeeEin: facMirrorGeneral.auditeeEin,
+  auditeeUei: facMirrorGeneral.auditeeUei,
+  auditeeName: facMirrorGeneral.auditeeName,
+  auditYear: facMirrorGeneral.auditYear,
+  fyEndDate: facMirrorGeneral.fyEndDate,
+  fyStartDate: facMirrorGeneral.fyStartDate,
+  totalAmountExpended: facMirrorGeneral.totalAmountExpended,
+  entityType: facMirrorGeneral.entityType,
+  isLowRiskAuditee: facMirrorGeneral.isLowRiskAuditee,
+  isGoingConcernIncluded: facMirrorGeneral.isGoingConcernIncluded,
+  isMaterialNoncomplianceDisclosed: facMirrorGeneral.isMaterialNoncomplianceDisclosed,
+  gaapResults: facMirrorGeneral.gaapResults,
+  auditorFirmName: facMirrorGeneral.auditorFirmName,
+  auditorEin: facMirrorGeneral.auditorEin,
+  cognizantAgency: facMirrorGeneral.cognizantAgency,
+  oversightAgency: facMirrorGeneral.oversightAgency,
+  facAcceptedDate: facMirrorGeneral.facAcceptedDate,
+} as const;
+
+type GeneralRow = Pick<typeof facMirrorGeneral.$inferSelect, keyof typeof GENERAL_COLUMNS>;
+
+function rowToFacGeneral(row: GeneralRow): FacGeneral {
   return {
     report_id: row.reportId,
     auditee_ein: row.auditeeEin,
@@ -133,7 +161,7 @@ function rowToFacCap(row: typeof facMirrorCorrectiveActionPlans.$inferSelect): F
  */
 export async function readOrgFromMirror(ein: string): Promise<ImportedOrg | null> {
   const generalRows = await db
-    .select()
+    .select(GENERAL_COLUMNS)
     .from(facMirrorGeneral)
     .where(eq(facMirrorGeneral.auditeeEin, ein));
 
@@ -176,7 +204,7 @@ export async function readOrgsFromMirror(eins: string[]): Promise<Map<string, Im
   if (eins.length === 0) return result;
 
   const generalRows = await db
-    .select()
+    .select(GENERAL_COLUMNS)
     .from(facMirrorGeneral)
     .where(inArray(facMirrorGeneral.auditeeEin, eins));
 
