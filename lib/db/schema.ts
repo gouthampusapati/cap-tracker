@@ -235,6 +235,15 @@ export const facMirrorGeneral = sqliteTable(
     // index). Feeds fac_mirror_org_summary; also shown on the org page.
     auditeeCity: text('auditee_city'),
     auditeeState: text('auditee_state'),
+    // Auditee contact — the audited org's own contact person, for
+    // outbound outreach. Public record (FAC dissemination). Same "keep
+    // in lockstep with scripts/sync-fac-mirror.mjs's CREATE DDL + CSV
+    // column map" rule as every fac_mirror_* column; verified against
+    // general.csv's live header 2026-09-01.
+    auditeeContactName: text('auditee_contact_name'),
+    auditeeContactTitle: text('auditee_contact_title'),
+    auditeeEmail: text('auditee_email'),
+    auditeePhone: text('auditee_phone'),
     auditYear: text('audit_year'),
     fyEndDate: text('fy_end_date'),
     fyStartDate: text('fy_start_date'),
