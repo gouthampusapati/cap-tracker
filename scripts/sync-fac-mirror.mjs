@@ -49,6 +49,7 @@
 import { createClient } from '@libsql/client';
 import { parse } from 'csv-parse';
 import { Readable } from 'node:stream';
+import { createReadStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
@@ -56,6 +57,11 @@ import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { isRetriableDownloadError } from './lib/retriable-download.mjs';
+
+// TEST-ONLY: read the CSVs from a local directory instead of FAC. Set by
+// test/mirror-sync-equivalence.test.ts so the sync can run end-to-end
+// against a committed fixture with no network. Never set in CI/prod.
+const FAC_CSV_DIR = process.env.FAC_CSV_DIR || null;
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
@@ -586,7 +592,7 @@ async function buildOrgSummaryTable(generalNew, findingsNew, summaryNew, idxSuff
  * try/catch so a stats hiccup never fails the actual mirror sync.
  */
 async function writeSiteStats() {
-  if (TEST_MAX_ROWS_PER_TABLE !== null) {
+  if (TEST_MAX_ROWS_PER_TABLE !== null || FAC_CSV_DIR) {
     log('site-stats: skipped (test run — counts would be truncated)');
     return;
   }
@@ -636,14 +642,18 @@ function toEpochSeconds(date) {
  * here and loadTable() can retry.
  */
 async function loadTableOnce(spec, newTableName) {
-  const url = `${FAC_CSV_BASE}/${spec.csvFile}`;
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    const err = new Error(`FAC bulk download for ${spec.csvFile} returned HTTP ${res.status}`);
-    err.httpStatus = res.status;
-    throw err;
-  }
+  // Local fixture dir (tests) vs a real FAC download.
+  const source = FAC_CSV_DIR
+    ? createReadStream(join(FAC_CSV_DIR, spec.csvFile))
+    : await (async () => {
+        const res = await fetch(`${FAC_CSV_BASE}/${spec.csvFile}`);
+        if (!res.ok) {
+          const err = new Error(`FAC bulk download for ${spec.csvFile} returned HTTP ${res.status}`);
+          err.httpStatus = res.status;
+          throw err;
+        }
+        return Readable.fromWeb(res.body);
+      })();
 
   const csvCols = Object.keys(spec.columns);
   const dbCols = Object.values(spec.columns);
@@ -666,7 +676,7 @@ async function loadTableOnce(spec, newTableName) {
 
   try {
     await pipeline(
-      Readable.fromWeb(res.body),
+      source,
       // relax_column_count deliberately left at its default (false) — a
       // header/data mismatch (FAC changing a column set out from under
       // us) should abort the sync loudly, not silently misalign columns.
