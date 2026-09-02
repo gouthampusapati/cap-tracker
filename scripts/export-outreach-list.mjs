@@ -13,12 +13,16 @@
  *      (findings_count, going-concern, total_expended, audit_count).
  *   4. Flags multi-EIN orgs (appear in fac_mirror_additional_eins) —
  *      complex entities, disproportionately pass-throughs.
- *   5. Flags CONFIRMED pass-throughs: any org whose audit history carries
- *      a subrecipient-monitoring finding (compliance requirement "M",
- *      2 CFR 200.332). An auditor only tests §200.332 when the entity
- *      sub-grants federal money, so an M-finding is proof the org is a
- *      pass-through — and a documented monitoring weakness on top.
- *      `--passthrough` restricts the whole export to just these orgs.
+ *   5. Flags CONFIRMED pass-throughs by two independent signals:
+ *      (a) a subrecipient-monitoring finding (compliance requirement "M",
+ *          2 CFR 200.332) anywhere in the org's audit history — an auditor
+ *          only tests §200.332 when the entity sub-grants federal money;
+ *      (b) the org is named as the pass-through by >= 1 audited
+ *          subrecipient in fac_mirror_passthrough_summary (built by
+ *          scripts/build-passthrough-summary.mjs from FAC's passthrough.csv).
+ *      Signal (b) also gives subrecipient_count — a floor on portfolio size.
+ *      `--passthrough` restricts the export to orgs with either signal;
+ *      `--min-subrecipients N` requires a named-subrecipient count >= N.
  *   6. Suppresses anyone already in founding_signups.
  *   7. Dedupes shared emails (a fiscal agent listed for several orgs),
  *      keeping the highest-scoring org.
@@ -34,19 +38,22 @@
  *   node --env-file=.env.local scripts/export-outreach-list.mjs
  *   # confirmed pass-throughs only (the tightest ICP):
  *   node --env-file=.env.local scripts/export-outreach-list.mjs --passthrough
+ *   # pass-throughs with >= 10 audited subrecipients:
+ *   node --env-file=.env.local scripts/export-outreach-list.mjs --min-subrecipients 10
  *   node --env-file=.env.local scripts/export-outreach-list.mjs \
  *     --min-year 2023 --entity-types non-profit,higher-ed \
  *     --min-findings 1 --title "finance|cfo|controller|treasurer|director" \
  *     --limit 20000 --out ./outreach-nonprofits.csv
  *
- * Every row carries is_passthrough / subrecipient_monitoring_findings
- * columns regardless of the flag, so you can also just sort on them.
+ * Every row carries is_passthrough / subrecipient_monitoring_findings /
+ * subrecipient_count regardless of the flags, so you can also just sort.
  *
  * Needs DATABASE_URL + TURSO_AUTH_TOKEN in the environment.
  */
 
 import { createClient } from '@libsql/client';
 import { writeFile } from 'node:fs/promises';
+import { buildPassthroughIndex, matchPassthroughName } from './lib/passthrough-name.mjs';
 
 // ---- args -----------------------------------------------------------------
 
@@ -73,6 +80,7 @@ const ENTITY_TYPES = (a['entity-types'] ?? 'non-profit,local,higher-ed')
   .map((s) => s.trim())
   .filter(Boolean);
 const MIN_FINDINGS = Number(a['min-findings'] ?? 0);
+const MIN_SUBRECIPIENTS = Number(a['min-subrecipients'] ?? 0);
 const TITLE_RE = a['title'] ? new RegExp(a['title'], 'i') : null;
 const LIMIT = a['limit'] ? Number(a['limit']) : Infinity;
 const OUT_PATH = a['out'] ?? './outreach-list.csv';
@@ -117,7 +125,15 @@ function titleCase(s) {
 
 // Rough "how much would continuous monitoring help this org" score.
 // Heuristic — re-sort in your sending tool if you disagree with it.
-function painScore({ findingsCount, goingConcern, totalExpended, auditCount, multiEin, subMonFindings }) {
+function painScore({
+  findingsCount,
+  goingConcern,
+  totalExpended,
+  auditCount,
+  multiEin,
+  subMonFindings,
+  subrecipientCount,
+}) {
   let s = Math.min(findingsCount, 20) * 3;
   if (goingConcern) s += 40;
   const exp = totalExpended || 0;
@@ -126,6 +142,8 @@ function painScore({ findingsCount, goingConcern, totalExpended, auditCount, mul
   // confirmed pass-through with a documented subrecipient-monitoring
   // weakness — the sharpest buying signal in the dataset.
   if (subMonFindings > 0) s += 25 + Math.min(subMonFindings, 15) * 2;
+  // more subrecipients to monitor = more value from the product.
+  s += Math.min(subrecipientCount, 40);
   s += Math.min(auditCount, 8);
   return s;
 }
@@ -159,7 +177,8 @@ async function pageAll(sql, args = []) {
   log(
     `filters: audit_year >= ${MIN_YEAR} · entity_type in (${ENTITY_TYPES.join(', ')}) · ` +
       `min findings ${MIN_FINDINGS}${TITLE_RE ? ` · title ~ /${TITLE_RE.source}/i` : ''}` +
-      `${PASSTHROUGH_ONLY ? ' · confirmed pass-throughs only' : ''}`
+      `${PASSTHROUGH_ONLY ? ' · confirmed pass-throughs only' : ''}` +
+      `${MIN_SUBRECIPIENTS > 0 ? ` · >= ${MIN_SUBRECIPIENTS} named subrecipients` : ''}`
   );
 
   const etPlaceholders = ENTITY_TYPES.map(() => '?').join(', ');
@@ -225,6 +244,23 @@ async function pageAll(sql, args = []) {
   }
   log(`${subMonByEin.size} orgs carry a subrecipient-monitoring (pass-through) finding`);
 
+  // 5b. subrecipient portfolio size — fac_mirror_passthrough_summary, one
+  //     row per pass-through name with how many audited subrecipients name
+  //     it (built weekly by scripts/build-passthrough-summary.mjs). Matched
+  //     to each org by name via the shared matcher. Absent until that job
+  //     has run once — degrade gracefully.
+  let ptIndex = { byNorm: new Map() };
+  try {
+    const ptRows = (await db.execute(
+      `SELECT norm_name, sample_name, subrecipient_count_recent, subrecipient_count_all, subaward_rows
+         FROM fac_mirror_passthrough_summary`
+    )).rows;
+    ptIndex = buildPassthroughIndex(ptRows);
+    log(`${ptRows.length} pass-through names loaded for subrecipient-count matching`);
+  } catch (err) {
+    log(`fac_mirror_passthrough_summary not available (${err.message?.split('\n')[0]}) — subrecipient_count will be blank`);
+  }
+
   // 6. suppression — founding_signups emails
   const suppressed = new Set(
     (await db.execute(`SELECT email FROM founding_signups`)).rows
@@ -241,6 +277,7 @@ async function pageAll(sql, args = []) {
     title: 0,
     noSummary: 0,
     notPassthrough: 0,
+    minSubrecipients: 0,
     sharedEmail: 0,
   };
   const byEmail = new Map();
@@ -272,10 +309,25 @@ async function pageAll(sql, args = []) {
 
     const subMon = subMonByEin.get(r.auditee_ein);
     const subMonFindings = subMon ? subMon.findings : 0;
-    if (PASSTHROUGH_ONLY && !subMon) {
+
+    const ptm = matchPassthroughName(r.auditee_name, ptIndex);
+    const subrecipientCount = ptm ? Number(ptm.row.subrecipient_count_recent ?? 0) : 0;
+    const subrecipientCountAll = ptm ? Number(ptm.row.subrecipient_count_all ?? 0) : 0;
+
+    // confirmed pass-through by EITHER signal: an M-finding, or named as
+    // pass-through by at least one audited subrecipient.
+    const isPassthrough = Boolean(subMon) || Boolean(ptm);
+    if (PASSTHROUGH_ONLY && !isPassthrough) {
       drop.notPassthrough++;
       continue;
     }
+    if (subrecipientCount < MIN_SUBRECIPIENTS) {
+      drop.minSubrecipients++;
+      continue;
+    }
+
+    const evidence =
+      subMon && ptm ? 'finding+named' : subMon ? 'M-finding' : ptm ? 'named-by-subs' : '';
 
     const multiEin = reportsWithExtras.has(r.report_id) || einsAsAdditional.has(r.auditee_ein);
     const goingConcern = Number(s.is_going_concern ?? 0) === 1;
@@ -298,9 +350,13 @@ async function pageAll(sql, args = []) {
       is_going_concern: goingConcern ? 1 : 0,
       total_expended_usd: Math.round(totalExpended),
       multi_ein: multiEin ? 1 : 0,
-      is_passthrough: subMon ? 1 : 0,
+      is_passthrough: isPassthrough ? 1 : 0,
+      passthrough_evidence: evidence,
       subrecipient_monitoring_findings: subMonFindings,
       subrecipient_finding_years: subMon ? [...subMon.years].sort().join(';') : '',
+      subrecipient_count: ptm ? subrecipientCount : '',
+      subrecipient_count_all_years: ptm ? subrecipientCountAll : '',
+      passthrough_name_matched: ptm ? `${ptm.row.sample_name} (${ptm.matchType})` : '',
       pain_score: painScore({
         findingsCount,
         goingConcern,
@@ -308,6 +364,7 @@ async function pageAll(sql, args = []) {
         auditCount,
         multiEin,
         subMonFindings,
+        subrecipientCount,
       }),
     };
 
@@ -335,9 +392,11 @@ async function pageAll(sql, args = []) {
   log(`dropped:  ${drop.badEmail} bad email · ${drop.suppressed} suppressed · ` +
       `${drop.minFindings} < min findings · ${drop.title} title mismatch · ` +
       `${drop.noSummary} no summary row · ${drop.notPassthrough} not a confirmed pass-through · ` +
-      `${drop.sharedEmail} shared email`);
+      `${drop.minSubrecipients} < min subrecipients · ${drop.sharedEmail} shared email`);
   log(`by entity_type: ${Object.entries(et).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
-  log(`confirmed pass-through: ${rows.filter((r) => r.is_passthrough).length} · ` +
+  log(`confirmed pass-through: ${rows.filter((r) => r.is_passthrough).length} ` +
+      `(M-finding ${rows.filter((r) => r.subrecipient_monitoring_findings > 0).length} · ` +
+      `named-by-subs ${rows.filter((r) => r.subrecipient_count !== '').length}) · ` +
       `multi-EIN: ${rows.filter((r) => r.multi_ein).length} · ` +
       `going-concern: ${rows.filter((r) => r.is_going_concern).length}`);
   log('');
@@ -345,7 +404,8 @@ async function pageAll(sql, args = []) {
   for (const r of rows.slice(0, 10)) {
     log(`  ${String(r.pain_score).padStart(3)}  ${r.org_name} (${r.state}) — ` +
         `${r.findings_count}f${r.is_going_concern ? ' GC' : ''}` +
-        `${r.is_passthrough ? ` PTE:${r.subrecipient_monitoring_findings}` : ''}` +
+        `${r.subrecipient_monitoring_findings > 0 ? ` M:${r.subrecipient_monitoring_findings}` : ''}` +
+        `${r.subrecipient_count !== '' ? ` subs:${r.subrecipient_count}` : ''}` +
         `${r.multi_ein ? ' multi-EIN' : ''} — ${r.email}`);
   }
   log('');

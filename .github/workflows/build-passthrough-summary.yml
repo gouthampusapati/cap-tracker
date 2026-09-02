@@ -1,0 +1,51 @@
+name: Build FAC Pass-through Summary
+
+# Builds fac_mirror_passthrough_summary (scripts/build-passthrough-summary.mjs)
+# — "signal 2" of cold-outreach pass-through targeting: how many audited
+# subrecipients name each pass-through entity.
+#
+# SEPARATE from Sync FAC Bulk Mirror on purpose: the source
+# passthrough.csv is ~530MB / ~4.9M rows and is streamed + aggregated,
+# never stored raw (would blow Turso's free-tier write cap). Only the
+# ~110K-row summary is written, so this adds ~110K writes/week (~0.5M/mo)
+# — well inside the cap alongside the main sync's ~6.4M/mo.
+#
+# Scheduled ~2h after the Monday mirror sync (09:17 UTC) so it reads a
+# fresh fac_mirror_general for the report_id -> auditee_ein map.
+
+on:
+  schedule:
+    - cron: '23 11 * * 1' # 11:23 UTC Monday
+  workflow_dispatch: {}
+
+concurrency:
+  group: build-passthrough-summary
+  cancel-in-progress: false # never cancel mid-swap
+
+jobs:
+  build:
+    name: Build passthrough summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 45 # download-dominated; ~5min aggregate + insert
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build summary
+        run: node scripts/build-passthrough-summary.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          WAITLIST_NOTIFY_EMAIL: ${{ secrets.WAITLIST_NOTIFY_EMAIL }}
