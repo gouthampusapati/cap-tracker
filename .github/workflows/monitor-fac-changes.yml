@@ -40,7 +40,10 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          # For the watchlist / unsubscribe links in the digest. Falls
+          # back to the production host if neither is set.
           NEXT_PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_URL }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           # Digests no-op (with a log line) if these aren't set.
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
