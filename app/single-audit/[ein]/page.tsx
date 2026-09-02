@@ -1,9 +1,9 @@
 import { cache, Suspense } from 'react';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { getPublicOrg } from '@/lib/public-org-cache';
-import { getRelatedIdentifiers } from '@/lib/entity-resolution';
+import { getRelatedIdentifiers, resolveCoveringFilingEin } from '@/lib/entity-resolution';
 import { getOrgSummary, getTopOrgEinsByExpenditure, stateName } from '@/lib/orgs';
 import { agencyPrefixLabel, entityTypeLabel, isYesNo, parseGaapResults } from '@/lib/fac-api';
 import { SITE_URL } from '@/lib/site-url';
@@ -289,6 +289,20 @@ export default async function SingleAuditPage(props: {
     getRelatedIdentifiers(params.ein),
     getOrgSummary(params.ein),
   ]);
+
+  if (result.kind !== 'ok') {
+    // No Single Audit is filed under this EIN — but FAC's additional_eins
+    // may show it as a component of a parent entity's audit (a hospital
+    // in a health system, an agency under a state, a subsidiary). Those
+    // ~14K EINs used to dead-end here as "Organization Not Found" / "Not
+    // checked yet" AND burned a live FAC lookup each time; send them to
+    // the covering filing instead. Only the non-'ok' path pays for this
+    // extra mirror read, so a normal org page is unaffected.
+    const coveringEin = await resolveCoveringFilingEin(params.ein);
+    if (coveringEin) {
+      permanentRedirect(`/single-audit/${coveringEin}`);
+    }
+  }
 
   if (result.kind === 'not-found') {
     notFound();

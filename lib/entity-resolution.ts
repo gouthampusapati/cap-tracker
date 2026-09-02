@@ -8,6 +8,72 @@ import {
 } from '@/lib/db/schema';
 
 /**
+ * Given the covering filings a component EIN appears on, the primary
+ * auditee_ein to send it to — the most recent one by fiscal-year end. A
+ * component EIN almost always rolls into a single parent entity, but if
+ * it moved between entities over the years, the latest filing wins.
+ * Returns null when there's nothing to redirect to (no candidates, or
+ * the only candidate is the EIN itself). Pure — the DB read lives in
+ * resolveCoveringFilingEin below so this stays unit-testable.
+ */
+export function pickCoveringFilingEin(
+  candidates: { parentEin: string | null; fyEnd: string | null }[],
+  componentEin: string
+): string | null {
+  // FAC filings carry well-known junk in additional_eins — placeholder
+  // strings a filer typed where a real EIN was unknown (all-zeros,
+  // all-nines, 123456789, a single repeated digit). Redirecting those to
+  // whatever unrelated filing happened to contain the typo is worse than
+  // just 404ing, so refuse to resolve them.
+  if (
+    !/^\d{9}$/.test(componentEin) ||
+    /^(\d)\1{8}$/.test(componentEin) ||
+    componentEin === '123456789'
+  ) {
+    return null;
+  }
+  const ranked = candidates
+    .filter((c): c is { parentEin: string; fyEnd: string | null } => !!c.parentEin && c.parentEin !== componentEin)
+    .sort((a, b) => (b.fyEnd ?? '').localeCompare(a.fyEnd ?? ''));
+  return ranked[0]?.parentEin ?? null;
+}
+
+/**
+ * For an EIN with no Single Audit filed under it, the EIN of the audit
+ * that covers it — i.e. a filing that lists this EIN in FAC's
+ * additional_eins. Used by /single-audit/[ein] to redirect a "component"
+ * EIN (a subsidiary/division rolled into a parent entity's audit) to the
+ * covering filing instead of 404ing it. Zero FAC calls — mirror only.
+ *
+ * Callers MUST check for this EIN's own record first: an EIN that files
+ * its own audit AND appears as an additional EIN on a parent's audit
+ * should render its own page, not redirect.
+ */
+export async function resolveCoveringFilingEin(ein: string): Promise<string | null> {
+  if (!/^\d{9}$/.test(ein)) return null;
+  try {
+    const rows = await db
+      .select({
+        parentEin: facMirrorGeneral.auditeeEin,
+        fyEnd: facMirrorGeneral.fyEndDate,
+      })
+      .from(facMirrorAdditionalEins)
+      .innerJoin(
+        facMirrorGeneral,
+        eq(facMirrorGeneral.reportId, facMirrorAdditionalEins.reportId)
+      )
+      .where(eq(facMirrorAdditionalEins.additionalEin, ein));
+    return pickCoveringFilingEin(rows, ein);
+  } catch (err) {
+    // Mirror tables may not exist yet (first deploy before the Sprint 5
+    // sync). A failure here must never break the calling page — it just
+    // means "no redirect", and the caller falls through to its 404.
+    console.error('[entity-resolution] resolveCoveringFilingEin failed (non-fatal):', err);
+    return null;
+  }
+}
+
+/**
  * Entity resolution off the local bulk mirror (Sprint 5) — zero FAC
  * calls. A single audit can be filed under more than one EIN/UEI; the
  * extras live in fac_mirror_additional_eins / _ueis keyed on report_id,
