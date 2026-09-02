@@ -49,10 +49,13 @@
 import { createClient } from '@libsql/client';
 import { parse } from 'csv-parse';
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { isRetriableDownloadError } from './lib/retriable-download.mjs';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
@@ -73,6 +76,14 @@ const FAC_CSV_BASE = 'https://app.fac.gov/dissemination/public-data/gsa/full';
 // tuned further than that single measurement; if a real full run turns
 // out slow, this is the first knob to try, not the CSV-parsing side.
 const BATCH_SIZE = 500;
+
+// FAC's bulk CSVs are large (general.csv alone is hundreds of MB) and
+// their CDN occasionally drops a long transfer mid-stream. loadTable()
+// retries a failed/truncated download this many times, with exponential
+// backoff from this base, re-creating the empty `_new` table first. A
+// non-transient error (schema drift, HTTP 4xx) is never retried.
+const DOWNLOAD_MAX_ATTEMPTS = 4;
+const DOWNLOAD_RETRY_BASE_MS = 5_000;
 
 // TEST-ONLY: caps rows loaded per table, for a fast end-to-end smoke
 // test against real data without waiting out a full multi-hour run.
@@ -616,14 +627,22 @@ function toEpochSeconds(date) {
  * with a real Error (aborting the whole sync) on any parse failure,
  * including a truncated/malformed download — see the file header
  * comment on why that's the deliberate behavior, not a bug to relax.
+ *
+ * Uses stream.pipeline() (NOT readable.pipe()): pipe() does not forward
+ * an error on the *source* stream to the destination, so when FAC's CDN
+ * dropped a long download mid-transfer the socket 'error' went unhandled
+ * and crashed the whole process (and could, on a clean early EOF, look
+ * like a silent truncation). pipeline() propagates it, so it rejects
+ * here and loadTable() can retry.
  */
-async function loadTable(spec, newTableName) {
+async function loadTableOnce(spec, newTableName) {
   const url = `${FAC_CSV_BASE}/${spec.csvFile}`;
-  log(`downloading ${spec.csvFile} -> ${newTableName}`);
 
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`FAC bulk download for ${spec.csvFile} returned HTTP ${res.status}`);
+    const err = new Error(`FAC bulk download for ${spec.csvFile} returned HTTP ${res.status}`);
+    err.httpStatus = res.status;
+    throw err;
   }
 
   const csvCols = Object.keys(spec.columns);
@@ -631,16 +650,10 @@ async function loadTable(spec, newTableName) {
   const placeholders = dbCols.map(() => '?').join(', ');
   const insertSql = `INSERT INTO ${newTableName} (${dbCols.join(', ')}) VALUES (${placeholders})`;
 
-  const nodeStream = Readable.fromWeb(res.body);
-  // relax_column_count deliberately left at its default (false) — a
-  // header/data mismatch (FAC changing a column set out from under us)
-  // should abort the sync loudly, not silently misalign columns. See
-  // the FAC_API_Improvement Sprint 4 plan's "schema drift" crack.
-  const parser = nodeStream.pipe(parse({ columns: true }));
-
   let rowCount = 0;
   let batch = [];
   let headerChecked = false;
+  let stoppedEarlyForTest = false;
 
   const flush = async () => {
     if (batch.length === 0) return;
@@ -651,35 +664,89 @@ async function loadTable(spec, newTableName) {
     batch = [];
   };
 
-  for await (const record of parser) {
-    if (!headerChecked) {
-      const missing = csvCols.filter((c) => !(c in record));
-      if (missing.length > 0) {
-        throw new Error(
-          `${spec.csvFile}: expected column(s) missing from CSV header: ${missing.join(', ')} — FAC may have changed their export schema. Aborting rather than guessing.`
-        );
+  try {
+    await pipeline(
+      Readable.fromWeb(res.body),
+      // relax_column_count deliberately left at its default (false) — a
+      // header/data mismatch (FAC changing a column set out from under
+      // us) should abort the sync loudly, not silently misalign columns.
+      // See the FAC_API_Improvement Sprint 4 plan's "schema drift" crack.
+      parse({ columns: true }),
+      async function (records) {
+        for await (const record of records) {
+          if (!headerChecked) {
+            const missing = csvCols.filter((c) => !(c in record));
+            if (missing.length > 0) {
+              throw new Error(
+                `${spec.csvFile}: expected column(s) missing from CSV header: ${missing.join(', ')} — FAC may have changed their export schema. Aborting rather than guessing.`
+              );
+            }
+            headerChecked = true;
+          }
+
+          batch.push(csvCols.map((c) => record[c] ?? null));
+          rowCount++;
+
+          if (batch.length >= BATCH_SIZE) {
+            await flush();
+            if (rowCount % 50_000 === 0) log(`  ${spec.csvFile}: ${rowCount} rows so far`);
+          }
+
+          if (TEST_MAX_ROWS_PER_TABLE !== null && rowCount >= TEST_MAX_ROWS_PER_TABLE) {
+            log(`  ${spec.csvFile}: TEST MODE — stopping early at ${rowCount} rows (SYNC_TEST_MAX_ROWS_PER_TABLE set)`);
+            stoppedEarlyForTest = true;
+            break;
+          }
+        }
+        await flush();
       }
-      headerChecked = true;
-    }
-
-    batch.push(csvCols.map((c) => record[c] ?? null));
-    rowCount++;
-
-    if (batch.length >= BATCH_SIZE) {
-      await flush();
-      if (rowCount % 50_000 === 0) log(`  ${spec.csvFile}: ${rowCount} rows so far`);
-    }
-
-    if (TEST_MAX_ROWS_PER_TABLE !== null && rowCount >= TEST_MAX_ROWS_PER_TABLE) {
-      log(`  ${spec.csvFile}: TEST MODE — stopping early at ${rowCount} rows (SYNC_TEST_MAX_ROWS_PER_TABLE set)`);
-      parser.destroy();
-      break;
+    );
+  } catch (err) {
+    // Deliberate TEST-MODE early stop: breaking out of the consumer makes
+    // pipeline tear down the still-flowing download, which surfaces as an
+    // abort / premature-close (the exact code varies by Node version).
+    // Not a real failure — everything we meant to load is already
+    // committed. Any genuine mid-stream download error happens with
+    // stoppedEarlyForTest still false and propagates normally.
+    const abortLike =
+      err?.code === 'ERR_STREAM_PREMATURE_CLOSE' ||
+      err?.code === 'ABORT_ERR' ||
+      err?.name === 'AbortError';
+    if (!(stoppedEarlyForTest && abortLike)) {
+      throw err;
     }
   }
-  await flush();
 
   log(`${spec.csvFile}: ${rowCount} rows loaded into ${newTableName}`);
   return rowCount;
+}
+
+/**
+ * loadTableOnce with bounded retries for a dropped or truncated
+ * download. A retriable failure re-creates the (now partially filled)
+ * `_new` table empty and tries again with exponential backoff; a
+ * schema-drift or HTTP-4xx error is not retriable and aborts the sync
+ * immediately, exactly as before.
+ */
+async function loadTable(spec, newTableName) {
+  log(`downloading ${spec.csvFile} -> ${newTableName}`);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await loadTableOnce(spec, newTableName);
+    } catch (err) {
+      if (attempt >= DOWNLOAD_MAX_ATTEMPTS || !isRetriableDownloadError(err)) throw err;
+      const backoffMs = DOWNLOAD_RETRY_BASE_MS * 2 ** (attempt - 1);
+      const message = err instanceof Error ? err.message : String(err);
+      log(
+        `  ${spec.csvFile}: download failed on attempt ${attempt}/${DOWNLOAD_MAX_ATTEMPTS} (${message}) — retrying in ${backoffMs}ms`
+      );
+      await sleep(backoffMs);
+      // The failed attempt may have inserted a partial prefix of the
+      // file — start the retry from a clean, empty table.
+      await client.execute(`DROP TABLE IF EXISTS ${newTableName}`);
+      await client.execute(spec.ddl(newTableName));
+    }
+  }
 }
 
 async function main() {
