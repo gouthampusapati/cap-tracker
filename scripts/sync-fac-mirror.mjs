@@ -746,15 +746,18 @@ async function loadTableFromFile(spec, tableName, csvDir, digestByReport) {
 async function downloadAllCsvs() {
   if (FAC_CSV_DIR) return { dir: FAC_CSV_DIR, cleanup: async () => {} };
   const dir = await mkdtemp(join(tmpdir(), 'fac-sync-'));
-  for (const spec of TABLES) {
-    const dest = join(dir, spec.csvFile);
-    log(`downloading ${spec.csvFile}`);
-    const bytes = await downloadWithResume(`${FAC_CSV_BASE}/${spec.csvFile}`, dest, {
-      attempts: DOWNLOAD_MAX_ATTEMPTS,
-      log,
-    });
-    log(`  ${spec.csvFile}: ${(bytes / 1e6).toFixed(1)} MB`);
-  }
+  log(`downloading ${TABLES.length} CSVs -> ${dir}`);
+  // In parallel — the 6 files are independent and total ~700 MB; six
+  // concurrent curls finish in about the time of the largest one.
+  await Promise.all(
+    TABLES.map(async (spec) => {
+      const bytes = await downloadWithResume(`${FAC_CSV_BASE}/${spec.csvFile}`, join(dir, spec.csvFile), {
+        attempts: DOWNLOAD_MAX_ATTEMPTS,
+        log,
+      });
+      log(`  ${spec.csvFile}: ${(bytes / 1e6).toFixed(1)} MB`);
+    })
+  );
   return { dir, cleanup: () => rm(dir, { recursive: true, force: true }).catch(() => {}) };
 }
 

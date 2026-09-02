@@ -45,7 +45,7 @@ jobs:
   sync:
     name: Sync mirror tables
     runs-on: ubuntu-latest
-    timeout-minutes: 90 # measured ~17.5 min for a real full run; generous margin for FAC being slow, not a sign this normally takes that long
+    timeout-minutes: 120 # incremental runs are minutes; a full reload is ~20 min + a ~700 MB parallel download — generous margin for FAC's CDN being slow
 
     steps:
       - name: Checkout code
