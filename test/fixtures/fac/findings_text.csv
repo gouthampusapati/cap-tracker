@@ -1,0 +1,252 @@
+report_id,auditee_uei,audit_year,fac_accepted_date,finding_ref_number,contains_chart_or_table,finding_text
+2018-06-GSAFAC-0001000000,UEI000000000,2018,2019-03-01,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000000. lorem lorem lorem lorem
+2018-06-GSAFAC-0001000000,UEI000000000,2018,2019-03-01,2018-003,N,Finding 2018-003 narrative for 2018-06-GSAFAC-0001000000. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000001,UEI000000001,2019,2020-03-02,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000001. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000001,UEI000000001,2019,2020-03-02,2019-002,N,Finding 2019-002 narrative for 2019-06-GSAFAC-0001000001. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000002,UEI000000002,2020,2021-03-03,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000002. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000005,UEI000000005,2023,2024-03-06,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000005. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000005,UEI000000005,2023,2024-03-06,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000005. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000005,UEI000000005,2023,2024-03-06,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000005. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000009,UEI000000009,2019,2020-03-10,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000009. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000009,UEI000000009,2019,2020-03-10,2019-002,N,Finding 2019-002 narrative for 2019-06-GSAFAC-0001000009. lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000009,UEI000000009,2019,2020-03-10,2019-003,N,Finding 2019-003 narrative for 2019-06-GSAFAC-0001000009. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000010,UEI000000010,2020,2021-03-11,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000010. lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000010,UEI000000010,2020,2021-03-11,2020-002,N,Finding 2020-002 narrative for 2020-06-GSAFAC-0001000010. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000010,UEI000000010,2020,2021-03-11,2020-003,N,Finding 2020-003 narrative for 2020-06-GSAFAC-0001000010. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000011,UEI000000011,2021,2022-03-12,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000011. lorem lorem lorem lorem
+2021-06-GSAFAC-0001000011,UEI000000011,2021,2022-03-12,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000011. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000011,UEI000000011,2021,2022-03-12,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000011. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000011,UEI000000011,2021,2022-03-12,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000011. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000011,UEI000000011,2021,2022-03-12,2021-005,N,Finding 2021-005 narrative for 2021-06-GSAFAC-0001000011. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000012,UEI000000012,2022,2023-03-13,2022-001,N,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000012. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000012,UEI000000012,2022,2023-03-13,2022-002,N,Finding 2022-002 narrative for 2022-06-GSAFAC-0001000012. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000014,UEI000000014,2024,2025-03-15,2024-001,N,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000014. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000014,UEI000000014,2024,2025-03-15,2024-002,N,Finding 2024-002 narrative for 2024-06-GSAFAC-0001000014. lorem lorem lorem lorem
+2024-06-GSAFAC-0001000014,UEI000000014,2024,2025-03-15,2024-003,N,Finding 2024-003 narrative for 2024-06-GSAFAC-0001000014. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000015,UEI000000015,2025,2026-03-16,2025-001,Y,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000015. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000015,UEI000000015,2025,2026-03-16,2025-003,Y,Finding 2025-003 narrative for 2025-06-GSAFAC-0001000015. lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000015,UEI000000015,2025,2026-03-16,2025-004,N,Finding 2025-004 narrative for 2025-06-GSAFAC-0001000015. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000016,UEI000000016,2018,2019-03-17,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000016. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000016,UEI000000016,2018,2019-03-17,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000016. lorem lorem lorem
+2018-06-GSAFAC-0001000016,UEI000000016,2018,2019-03-17,2018-003,N,Finding 2018-003 narrative for 2018-06-GSAFAC-0001000016. lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000016,UEI000000016,2018,2019-03-17,2018-004,N,Finding 2018-004 narrative for 2018-06-GSAFAC-0001000016. lorem lorem lorem
+2018-06-GSAFAC-0001000016,UEI000000016,2018,2019-03-17,2018-005,Y,Finding 2018-005 narrative for 2018-06-GSAFAC-0001000016. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000017,UEI000000017,2019,2020-03-18,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000017. lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000017,UEI000000017,2019,2020-03-18,2019-002,N,Finding 2019-002 narrative for 2019-06-GSAFAC-0001000017. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000019,UEI000000019,2021,2022-03-20,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000019. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000019,UEI000000019,2021,2022-03-20,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000019. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000019,UEI000000019,2021,2022-03-20,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000019. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000019,UEI000000019,2021,2022-03-20,2021-005,Y,Finding 2021-005 narrative for 2021-06-GSAFAC-0001000019. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000019,UEI000000019,2021,2022-03-20,2021-006,N,Finding 2021-006 narrative for 2021-06-GSAFAC-0001000019. lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000021,UEI000000021,2023,2024-03-22,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000021. lorem lorem lorem
+2023-06-GSAFAC-0001000021,UEI000000021,2023,2024-03-22,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000021. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000021,UEI000000021,2023,2024-03-22,2023-003,Y,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000021. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000021,UEI000000021,2023,2024-03-22,2023-004,N,Finding 2023-004 narrative for 2023-06-GSAFAC-0001000021. lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000021,UEI000000021,2023,2024-03-22,2023-005,N,Finding 2023-005 narrative for 2023-06-GSAFAC-0001000021. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000021,UEI000000021,2023,2024-03-22,2023-006,N,Finding 2023-006 narrative for 2023-06-GSAFAC-0001000021. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000022,UEI000000022,2024,2025-03-23,2024-001,Y,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000022. lorem lorem lorem lorem
+2024-06-GSAFAC-0001000022,UEI000000022,2024,2025-03-23,2024-002,N,Finding 2024-002 narrative for 2024-06-GSAFAC-0001000022. lorem lorem lorem lorem
+2024-06-GSAFAC-0001000022,UEI000000022,2024,2025-03-23,2024-004,N,Finding 2024-004 narrative for 2024-06-GSAFAC-0001000022. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000022,UEI000000022,2024,2025-03-23,2024-005,N,Finding 2024-005 narrative for 2024-06-GSAFAC-0001000022. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000023,UEI000000023,2025,2026-03-24,2025-001,N,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000023. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000023,UEI000000023,2025,2026-03-24,2025-002,N,Finding 2025-002 narrative for 2025-06-GSAFAC-0001000023. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000023,UEI000000023,2025,2026-03-24,2025-003,N,Finding 2025-003 narrative for 2025-06-GSAFAC-0001000023. lorem lorem lorem lorem
+2025-06-GSAFAC-0001000023,UEI000000023,2025,2026-03-24,2025-005,N,Finding 2025-005 narrative for 2025-06-GSAFAC-0001000023. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000026,UEI000000026,2020,2021-03-27,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000026. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000026,UEI000000026,2020,2021-03-27,2020-002,N,Finding 2020-002 narrative for 2020-06-GSAFAC-0001000026. lorem lorem lorem
+2020-06-GSAFAC-0001000026,UEI000000026,2020,2021-03-27,2020-003,N,Finding 2020-003 narrative for 2020-06-GSAFAC-0001000026. lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000027,UEI000000027,2021,2022-03-28,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000027. lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000027,UEI000000027,2021,2022-03-28,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000027. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000027,UEI000000027,2021,2022-03-28,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000027. lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000027,UEI000000027,2021,2022-03-28,2021-005,N,Finding 2021-005 narrative for 2021-06-GSAFAC-0001000027. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000028,UEI000000028,2022,2023-03-01,2022-001,N,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000028. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000029,UEI000000029,2023,2024-03-02,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000029. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000029,UEI000000029,2023,2024-03-02,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000029. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000030,UEI000000030,2024,2025-03-03,2024-001,N,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000030. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000030,UEI000000030,2024,2025-03-03,2024-002,Y,Finding 2024-002 narrative for 2024-06-GSAFAC-0001000030. lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000030,UEI000000030,2024,2025-03-03,2024-003,N,Finding 2024-003 narrative for 2024-06-GSAFAC-0001000030. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000031,UEI000000031,2025,2026-03-04,2025-001,Y,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000031. lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000031,UEI000000031,2025,2026-03-04,2025-002,N,Finding 2025-002 narrative for 2025-06-GSAFAC-0001000031. lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000031,UEI000000031,2025,2026-03-04,2025-003,N,Finding 2025-003 narrative for 2025-06-GSAFAC-0001000031. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000031,UEI000000031,2025,2026-03-04,2025-005,N,Finding 2025-005 narrative for 2025-06-GSAFAC-0001000031. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000031,UEI000000031,2025,2026-03-04,2025-006,N,Finding 2025-006 narrative for 2025-06-GSAFAC-0001000031. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000032,UEI000000032,2018,2019-03-05,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000032. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000032,UEI000000032,2018,2019-03-05,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000032. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000032,UEI000000032,2018,2019-03-05,2018-003,Y,Finding 2018-003 narrative for 2018-06-GSAFAC-0001000032. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000032,UEI000000032,2018,2019-03-05,2018-004,N,Finding 2018-004 narrative for 2018-06-GSAFAC-0001000032. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000033,UEI000000033,2019,2020-03-06,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000033. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000033,UEI000000033,2019,2020-03-06,2019-002,N,Finding 2019-002 narrative for 2019-06-GSAFAC-0001000033. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000033,UEI000000033,2019,2020-03-06,2019-003,N,Finding 2019-003 narrative for 2019-06-GSAFAC-0001000033. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000033,UEI000000033,2019,2020-03-06,2019-004,N,Finding 2019-004 narrative for 2019-06-GSAFAC-0001000033. lorem lorem lorem lorem
+2020-06-GSAFAC-0001000034,UEI000000034,2020,2021-03-07,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000034. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000035,UEI000000035,2021,2022-03-08,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000035. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000035,UEI000000035,2021,2022-03-08,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000035. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000036,UEI000000036,2022,2023-03-09,2022-001,N,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000036. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000036,UEI000000036,2022,2023-03-09,2022-002,Y,Finding 2022-002 narrative for 2022-06-GSAFAC-0001000036. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000036,UEI000000036,2022,2023-03-09,2022-003,N,Finding 2022-003 narrative for 2022-06-GSAFAC-0001000036. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000036,UEI000000036,2022,2023-03-09,2022-004,N,Finding 2022-004 narrative for 2022-06-GSAFAC-0001000036. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000036,UEI000000036,2022,2023-03-09,2022-005,N,Finding 2022-005 narrative for 2022-06-GSAFAC-0001000036. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000036,UEI000000036,2022,2023-03-09,2022-006,N,Finding 2022-006 narrative for 2022-06-GSAFAC-0001000036. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000037,UEI000000037,2023,2024-03-10,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000037. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000037,UEI000000037,2023,2024-03-10,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000037. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000037,UEI000000037,2023,2024-03-10,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000037. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000037,UEI000000037,2023,2024-03-10,2023-004,N,Finding 2023-004 narrative for 2023-06-GSAFAC-0001000037. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000037,UEI000000037,2023,2024-03-10,2023-005,N,Finding 2023-005 narrative for 2023-06-GSAFAC-0001000037. lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000037,UEI000000037,2023,2024-03-10,2023-006,N,Finding 2023-006 narrative for 2023-06-GSAFAC-0001000037. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000039,UEI000000039,2025,2026-03-12,2025-002,N,Finding 2025-002 narrative for 2025-06-GSAFAC-0001000039. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000039,UEI000000039,2025,2026-03-12,2025-003,Y,Finding 2025-003 narrative for 2025-06-GSAFAC-0001000039. lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000039,UEI000000039,2025,2026-03-12,2025-004,N,Finding 2025-004 narrative for 2025-06-GSAFAC-0001000039. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000039,UEI000000039,2025,2026-03-12,2025-005,N,Finding 2025-005 narrative for 2025-06-GSAFAC-0001000039. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000039,UEI000000039,2025,2026-03-12,2025-006,N,Finding 2025-006 narrative for 2025-06-GSAFAC-0001000039. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000040,UEI000000040,2018,2019-03-13,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000040. lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000040,UEI000000040,2018,2019-03-13,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000040. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000040,UEI000000040,2018,2019-03-13,2018-003,N,Finding 2018-003 narrative for 2018-06-GSAFAC-0001000040. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000042,UEI000000042,2020,2021-03-15,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000042. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000042,UEI000000042,2020,2021-03-15,2020-002,N,Finding 2020-002 narrative for 2020-06-GSAFAC-0001000042. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000044,UEI000000044,2022,2023-03-17,2022-001,N,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000044. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000044,UEI000000044,2022,2023-03-17,2022-004,N,Finding 2022-004 narrative for 2022-06-GSAFAC-0001000044. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000044,UEI000000044,2022,2023-03-17,2022-005,N,Finding 2022-005 narrative for 2022-06-GSAFAC-0001000044. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000047,UEI000000047,2025,2026-03-20,2025-001,N,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000047. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000047,UEI000000047,2025,2026-03-20,2025-002,N,Finding 2025-002 narrative for 2025-06-GSAFAC-0001000047. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000048,UEI000000048,2018,2019-03-21,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000048. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000048,UEI000000048,2018,2019-03-21,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000048. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000050,UEI000000050,2020,2021-03-23,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000050. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000050,UEI000000050,2020,2021-03-23,2020-002,N,Finding 2020-002 narrative for 2020-06-GSAFAC-0001000050. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000050,UEI000000050,2020,2021-03-23,2020-003,N,Finding 2020-003 narrative for 2020-06-GSAFAC-0001000050. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000050,UEI000000050,2020,2021-03-23,2020-004,N,Finding 2020-004 narrative for 2020-06-GSAFAC-0001000050. lorem lorem lorem lorem
+2020-06-GSAFAC-0001000050,UEI000000050,2020,2021-03-23,2020-005,N,Finding 2020-005 narrative for 2020-06-GSAFAC-0001000050. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000050,UEI000000050,2020,2021-03-23,2020-006,Y,Finding 2020-006 narrative for 2020-06-GSAFAC-0001000050. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000051,UEI000000051,2021,2022-03-24,2021-001,Y,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000051. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000051,UEI000000051,2021,2022-03-24,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000051. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000051,UEI000000051,2021,2022-03-24,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000051. lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000051,UEI000000051,2021,2022-03-24,2021-005,N,Finding 2021-005 narrative for 2021-06-GSAFAC-0001000051. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000052,UEI000000052,2022,2023-03-25,2022-001,Y,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000052. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000052,UEI000000052,2022,2023-03-25,2022-002,N,Finding 2022-002 narrative for 2022-06-GSAFAC-0001000052. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000052,UEI000000052,2022,2023-03-25,2022-003,N,Finding 2022-003 narrative for 2022-06-GSAFAC-0001000052. lorem lorem lorem
+2022-06-GSAFAC-0001000052,UEI000000052,2022,2023-03-25,2022-005,N,Finding 2022-005 narrative for 2022-06-GSAFAC-0001000052. lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000052,UEI000000052,2022,2023-03-25,2022-006,Y,Finding 2022-006 narrative for 2022-06-GSAFAC-0001000052. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000053,UEI000000053,2023,2024-03-26,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000053. lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000053,UEI000000053,2023,2024-03-26,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000053. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000053,UEI000000053,2023,2024-03-26,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000053. lorem lorem lorem lorem
+2023-06-GSAFAC-0001000053,UEI000000053,2023,2024-03-26,2023-004,N,Finding 2023-004 narrative for 2023-06-GSAFAC-0001000053. lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000053,UEI000000053,2023,2024-03-26,2023-005,N,Finding 2023-005 narrative for 2023-06-GSAFAC-0001000053. lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000053,UEI000000053,2023,2024-03-26,2023-006,N,Finding 2023-006 narrative for 2023-06-GSAFAC-0001000053. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000055,UEI000000055,2025,2026-03-28,2025-001,N,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000055. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000056,UEI000000056,2018,2019-03-01,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000056. lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000056,UEI000000056,2018,2019-03-01,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000056. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000056,UEI000000056,2018,2019-03-01,2018-003,N,Finding 2018-003 narrative for 2018-06-GSAFAC-0001000056. lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000056,UEI000000056,2018,2019-03-01,2018-004,N,Finding 2018-004 narrative for 2018-06-GSAFAC-0001000056. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000056,UEI000000056,2018,2019-03-01,2018-005,N,Finding 2018-005 narrative for 2018-06-GSAFAC-0001000056. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000056,UEI000000056,2018,2019-03-01,2018-006,N,Finding 2018-006 narrative for 2018-06-GSAFAC-0001000056. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000059,UEI000000059,2021,2022-03-04,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000059. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000059,UEI000000059,2021,2022-03-04,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000059. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000059,UEI000000059,2021,2022-03-04,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000059. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000059,UEI000000059,2021,2022-03-04,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000059. lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000060,UEI000000060,2022,2023-03-05,2022-001,N,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000060. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000060,UEI000000060,2022,2023-03-05,2022-002,N,Finding 2022-002 narrative for 2022-06-GSAFAC-0001000060. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000060,UEI000000060,2022,2023-03-05,2022-003,N,Finding 2022-003 narrative for 2022-06-GSAFAC-0001000060. lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000060,UEI000000060,2022,2023-03-05,2022-004,N,Finding 2022-004 narrative for 2022-06-GSAFAC-0001000060. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000061,UEI000000061,2023,2024-03-06,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000061. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000061,UEI000000061,2023,2024-03-06,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000061. lorem lorem lorem lorem
+2023-06-GSAFAC-0001000061,UEI000000061,2023,2024-03-06,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000061. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000061,UEI000000061,2023,2024-03-06,2023-005,N,Finding 2023-005 narrative for 2023-06-GSAFAC-0001000061. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000062,UEI000000062,2024,2025-03-07,2024-001,Y,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000062. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000065,UEI000000065,2019,2020-03-10,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000065. lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000067,UEI000000067,2021,2022-03-12,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000067. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000067,UEI000000067,2021,2022-03-12,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000067. lorem lorem lorem lorem
+2021-06-GSAFAC-0001000067,UEI000000067,2021,2022-03-12,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000067. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000067,UEI000000067,2021,2022-03-12,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000067. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000069,UEI000000069,2023,2024-03-14,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000069. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000069,UEI000000069,2023,2024-03-14,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000069. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000069,UEI000000069,2023,2024-03-14,2023-005,N,Finding 2023-005 narrative for 2023-06-GSAFAC-0001000069. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000070,UEI000000070,2024,2025-03-15,2024-001,N,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000070. lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000070,UEI000000070,2024,2025-03-15,2024-002,N,Finding 2024-002 narrative for 2024-06-GSAFAC-0001000070. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000070,UEI000000070,2024,2025-03-15,2024-003,Y,Finding 2024-003 narrative for 2024-06-GSAFAC-0001000070. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000070,UEI000000070,2024,2025-03-15,2024-004,N,Finding 2024-004 narrative for 2024-06-GSAFAC-0001000070. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000070,UEI000000070,2024,2025-03-15,2024-005,N,Finding 2024-005 narrative for 2024-06-GSAFAC-0001000070. lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000073,UEI000000073,2019,2020-03-18,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000073. lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000073,UEI000000073,2019,2020-03-18,2019-002,N,Finding 2019-002 narrative for 2019-06-GSAFAC-0001000073. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000073,UEI000000073,2019,2020-03-18,2019-004,N,Finding 2019-004 narrative for 2019-06-GSAFAC-0001000073. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000073,UEI000000073,2019,2020-03-18,2019-005,N,Finding 2019-005 narrative for 2019-06-GSAFAC-0001000073. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000073,UEI000000073,2019,2020-03-18,2019-006,N,Finding 2019-006 narrative for 2019-06-GSAFAC-0001000073. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000075,UEI000000075,2021,2022-03-20,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000075. lorem lorem lorem lorem
+2022-06-GSAFAC-0001000076,UEI000000076,2022,2023-03-21,2022-002,N,Finding 2022-002 narrative for 2022-06-GSAFAC-0001000076. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000077,UEI000000077,2023,2024-03-22,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000077. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000077,UEI000000077,2023,2024-03-22,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000077. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000077,UEI000000077,2023,2024-03-22,2023-003,Y,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000077. lorem lorem lorem lorem
+2018-06-GSAFAC-0001000080,UEI000000080,2018,2019-03-25,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000080. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000080,UEI000000080,2018,2019-03-25,2018-003,N,Finding 2018-003 narrative for 2018-06-GSAFAC-0001000080. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000080,UEI000000080,2018,2019-03-25,2018-004,N,Finding 2018-004 narrative for 2018-06-GSAFAC-0001000080. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000081,UEI000000081,2019,2020-03-26,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000081. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000081,UEI000000081,2019,2020-03-26,2019-002,N,Finding 2019-002 narrative for 2019-06-GSAFAC-0001000081. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000082,UEI000000082,2020,2021-03-27,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000082. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000082,UEI000000082,2020,2021-03-27,2020-002,N,Finding 2020-002 narrative for 2020-06-GSAFAC-0001000082. lorem lorem lorem
+2020-06-GSAFAC-0001000082,UEI000000082,2020,2021-03-27,2020-003,N,Finding 2020-003 narrative for 2020-06-GSAFAC-0001000082. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000082,UEI000000082,2020,2021-03-27,2020-004,N,Finding 2020-004 narrative for 2020-06-GSAFAC-0001000082. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000082,UEI000000082,2020,2021-03-27,2020-005,Y,Finding 2020-005 narrative for 2020-06-GSAFAC-0001000082. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000083,UEI000000083,2021,2022-03-28,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000083. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000083,UEI000000083,2021,2022-03-28,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000083. lorem lorem lorem lorem
+2023-06-GSAFAC-0001000085,UEI000000085,2023,2024-03-02,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000085. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000085,UEI000000085,2023,2024-03-02,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000085. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000085,UEI000000085,2023,2024-03-02,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000085. lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000085,UEI000000085,2023,2024-03-02,2023-004,N,Finding 2023-004 narrative for 2023-06-GSAFAC-0001000085. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000085,UEI000000085,2023,2024-03-02,2023-005,N,Finding 2023-005 narrative for 2023-06-GSAFAC-0001000085. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000087,UEI000000087,2025,2026-03-04,2025-001,Y,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000087. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000087,UEI000000087,2025,2026-03-04,2025-002,Y,Finding 2025-002 narrative for 2025-06-GSAFAC-0001000087. lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000087,UEI000000087,2025,2026-03-04,2025-003,N,Finding 2025-003 narrative for 2025-06-GSAFAC-0001000087. lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000087,UEI000000087,2025,2026-03-04,2025-004,N,Finding 2025-004 narrative for 2025-06-GSAFAC-0001000087. lorem lorem lorem lorem
+2018-06-GSAFAC-0001000088,UEI000000088,2018,2019-03-05,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000088. lorem lorem lorem
+2021-06-GSAFAC-0001000091,UEI000000091,2021,2022-03-08,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000091. lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000091,UEI000000091,2021,2022-03-08,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000091. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000091,UEI000000091,2021,2022-03-08,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000091. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000091,UEI000000091,2021,2022-03-08,2021-004,N,Finding 2021-004 narrative for 2021-06-GSAFAC-0001000091. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000092,UEI000000092,2022,2023-03-09,2022-001,Y,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000092. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000093,UEI000000093,2023,2024-03-10,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000093. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000098,UEI000000098,2020,2021-03-15,2020-001,N,Finding 2020-001 narrative for 2020-06-GSAFAC-0001000098. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000098,UEI000000098,2020,2021-03-15,2020-003,N,Finding 2020-003 narrative for 2020-06-GSAFAC-0001000098. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000098,UEI000000098,2020,2021-03-15,2020-004,N,Finding 2020-004 narrative for 2020-06-GSAFAC-0001000098. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000100,UEI000000100,2022,2023-03-17,2022-001,N,Finding 2022-001 narrative for 2022-06-GSAFAC-0001000100. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000100,UEI000000100,2022,2023-03-17,2022-002,N,Finding 2022-002 narrative for 2022-06-GSAFAC-0001000100. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000100,UEI000000100,2022,2023-03-17,2022-003,Y,Finding 2022-003 narrative for 2022-06-GSAFAC-0001000100. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000100,UEI000000100,2022,2023-03-17,2022-004,N,Finding 2022-004 narrative for 2022-06-GSAFAC-0001000100. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000100,UEI000000100,2022,2023-03-17,2022-005,Y,Finding 2022-005 narrative for 2022-06-GSAFAC-0001000100. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2022-06-GSAFAC-0001000100,UEI000000100,2022,2023-03-17,2022-006,N,Finding 2022-006 narrative for 2022-06-GSAFAC-0001000100. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000101,UEI000000101,2023,2024-03-18,2023-001,Y,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000101. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000101,UEI000000101,2023,2024-03-18,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000101. lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000101,UEI000000101,2023,2024-03-18,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000101. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000103,UEI000000103,2025,2026-03-20,2025-001,N,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000103. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000103,UEI000000103,2025,2026-03-20,2025-002,N,Finding 2025-002 narrative for 2025-06-GSAFAC-0001000103. lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000103,UEI000000103,2025,2026-03-20,2025-003,Y,Finding 2025-003 narrative for 2025-06-GSAFAC-0001000103. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000103,UEI000000103,2025,2026-03-20,2025-004,N,Finding 2025-004 narrative for 2025-06-GSAFAC-0001000103. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2025-06-GSAFAC-0001000103,UEI000000103,2025,2026-03-20,2025-005,N,Finding 2025-005 narrative for 2025-06-GSAFAC-0001000103. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000104,UEI000000104,2018,2019-03-21,2018-001,N,Finding 2018-001 narrative for 2018-06-GSAFAC-0001000104. lorem lorem lorem lorem lorem lorem
+2018-06-GSAFAC-0001000104,UEI000000104,2018,2019-03-21,2018-002,N,Finding 2018-002 narrative for 2018-06-GSAFAC-0001000104. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000107,UEI000000107,2021,2022-03-24,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000107. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000107,UEI000000107,2021,2022-03-24,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000107. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000107,UEI000000107,2021,2022-03-24,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000107. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000109,UEI000000109,2023,2024-03-26,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000109. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000109,UEI000000109,2023,2024-03-26,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000109. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000109,UEI000000109,2023,2024-03-26,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000109. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000109,UEI000000109,2023,2024-03-26,2023-004,Y,Finding 2023-004 narrative for 2023-06-GSAFAC-0001000109. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000110,UEI000000110,2024,2025-03-27,2024-001,N,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000110. lorem lorem lorem
+2024-06-GSAFAC-0001000110,UEI000000110,2024,2025-03-27,2024-002,N,Finding 2024-002 narrative for 2024-06-GSAFAC-0001000110. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000110,UEI000000110,2024,2025-03-27,2024-003,N,Finding 2024-003 narrative for 2024-06-GSAFAC-0001000110. lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000110,UEI000000110,2024,2025-03-27,2024-004,N,Finding 2024-004 narrative for 2024-06-GSAFAC-0001000110. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000110,UEI000000110,2024,2025-03-27,2024-005,N,Finding 2024-005 narrative for 2024-06-GSAFAC-0001000110. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000110,UEI000000110,2024,2025-03-27,2024-006,N,Finding 2024-006 narrative for 2024-06-GSAFAC-0001000110. lorem lorem lorem lorem
+2025-06-GSAFAC-0001000111,UEI000000111,2025,2026-03-28,2025-001,N,Finding 2025-001 narrative for 2025-06-GSAFAC-0001000111. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2019-06-GSAFAC-0001000113,UEI000000113,2019,2020-03-02,2019-001,N,Finding 2019-001 narrative for 2019-06-GSAFAC-0001000113. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000114,UEI000000114,2020,2021-03-03,2020-002,N,Finding 2020-002 narrative for 2020-06-GSAFAC-0001000114. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000114,UEI000000114,2020,2021-03-03,2020-003,N,Finding 2020-003 narrative for 2020-06-GSAFAC-0001000114. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2020-06-GSAFAC-0001000114,UEI000000114,2020,2021-03-03,2020-005,Y,Finding 2020-005 narrative for 2020-06-GSAFAC-0001000114. lorem lorem lorem lorem
+2020-06-GSAFAC-0001000114,UEI000000114,2020,2021-03-03,2020-006,N,Finding 2020-006 narrative for 2020-06-GSAFAC-0001000114. lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000115,UEI000000115,2021,2022-03-04,2021-001,N,Finding 2021-001 narrative for 2021-06-GSAFAC-0001000115. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000115,UEI000000115,2021,2022-03-04,2021-002,N,Finding 2021-002 narrative for 2021-06-GSAFAC-0001000115. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000115,UEI000000115,2021,2022-03-04,2021-003,N,Finding 2021-003 narrative for 2021-06-GSAFAC-0001000115. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2021-06-GSAFAC-0001000115,UEI000000115,2021,2022-03-04,2021-005,N,Finding 2021-005 narrative for 2021-06-GSAFAC-0001000115. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000117,UEI000000117,2023,2024-03-06,2023-001,N,Finding 2023-001 narrative for 2023-06-GSAFAC-0001000117. lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000117,UEI000000117,2023,2024-03-06,2023-002,N,Finding 2023-002 narrative for 2023-06-GSAFAC-0001000117. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2023-06-GSAFAC-0001000117,UEI000000117,2023,2024-03-06,2023-003,N,Finding 2023-003 narrative for 2023-06-GSAFAC-0001000117. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000118,UEI000000118,2024,2025-03-07,2024-001,N,Finding 2024-001 narrative for 2024-06-GSAFAC-0001000118. lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000118,UEI000000118,2024,2025-03-07,2024-002,N,Finding 2024-002 narrative for 2024-06-GSAFAC-0001000118. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
+2024-06-GSAFAC-0001000118,UEI000000118,2024,2025-03-07,2024-003,N,Finding 2024-003 narrative for 2024-06-GSAFAC-0001000118. lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem lorem
