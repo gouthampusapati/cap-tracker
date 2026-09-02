@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, real, primaryKey, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
@@ -520,4 +520,91 @@ export const foundingSignups = sqliteTable('founding_signups', {
   orgCount: text('org_count'),
   currentMethod: text('current_method'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+/* ---------------------------------------------------------------------- *
+ * Continuous monitoring — the paid "Stop checking. Start monitoring."
+ * product (Founding Customer Validation Plan). A customer saves EINs to
+ * a watchlist; scripts/monitor-fac-changes.mjs runs weekly (after the
+ * FAC mirror sync), diffs each watched org's current mirror state
+ * against the last-seen snapshot we persist here, and emails a digest.
+ *
+ * These are app-owned tables (plain additive DDL, migrated by
+ * scripts/create-monitor-tables.mjs) — NOT the fac_mirror_* blue-green
+ * path. Timestamps are SECONDS-since-epoch (Drizzle `mode: 'timestamp'`).
+ * ---------------------------------------------------------------------- */
+
+/** One row per (user, monitored org). userId is users.id. */
+export const watchlist = sqliteTable(
+  'watchlist',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    ein: text('ein').notNull(),
+    // Snapshot of the org name when it was added — for the digest and
+    // the /watchlist UI without a join. Refreshed by the monitor job.
+    label: text('label'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  },
+  (t) => ({
+    userEinIdx: uniqueIndex('watchlist_user_ein_idx').on(t.userId, t.ein),
+    einIdx: index('watchlist_ein_idx').on(t.ein),
+  })
+);
+
+/**
+ * Last-seen FAC state per watched EIN — NOT per user (the FAC record is
+ * the same for everyone watching that org). The mirror keeps no history
+ * (blue-green swap drops `_old` weekly), so a change is only detectable
+ * against a snapshot we persist ourselves. A watched EIN with no row
+ * here yet is baselined on the next monitor run (recorded, no alerts) —
+ * monitoring is "tell me what changes from now on".
+ */
+export const monitorState = sqliteTable('monitor_state', {
+  ein: text('ein').primaryKey(),
+  orgName: text('org_name'),
+  latestReportId: text('latest_report_id'),
+  latestAuditYear: text('latest_audit_year'),
+  latestFacAcceptedDate: text('latest_fac_accepted_date'),
+  // JSON string[] of "<reportId>::<referenceNumber>" for every finding
+  // seen, and the subset flagged as a repeat finding.
+  findingRefs: text('finding_refs'),
+  repeatFindingRefs: text('repeat_finding_refs'),
+  // The soonest management-decision deadline (YYYY-MM-DD) across the
+  // org's reports, and the deadline label we last sent a `deadline`
+  // alert for — so a deadline entering the 30-day window alerts once.
+  soonestMdDeadline: text('soonest_md_deadline'),
+  mdDeadlineAlerted: text('md_deadline_alerted'),
+  checkedAt: integer('checked_at', { mode: 'timestamp' }).notNull(),
+});
+
+/**
+ * One row per (user, org, change). Written by the monitor job, cleared
+ * of "unsent" status by the digest phase. `payloadJson` carries whatever
+ * the digest and the /watchlist feed need to render the line without a
+ * FAC read (org name, audit year, finding ref/description, deadline).
+ */
+export const monitorAlert = sqliteTable(
+  'monitor_alert',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    ein: text('ein').notNull(),
+    // 'new_audit' | 'new_finding' | 'repeat_finding' | 'deadline'
+    type: text('type').notNull(),
+    payloadJson: text('payload_json').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+    digestSentAt: integer('digest_sent_at', { mode: 'timestamp' }),
+  },
+  (t) => ({
+    userUnsentIdx: index('monitor_alert_user_unsent_idx').on(t.userId, t.digestSentAt),
+  })
+);
+
+/** Per-user monitor preferences. Currently just the digest opt-out that
+ * backs the email unsubscribe link (app/api/monitor/unsubscribe). */
+export const monitorPrefs = sqliteTable('monitor_prefs', {
+  userId: text('user_id').primaryKey(),
+  digestOptOut: integer('digest_opt_out', { mode: 'boolean' }).notNull().default(false),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
