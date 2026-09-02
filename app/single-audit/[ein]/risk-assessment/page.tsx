@@ -12,10 +12,11 @@ import { BackLinks } from './back-links';
 
 // federal_awards is fetched live (not mirrored — see
 // lib/fac-api.ts:getFederalAwardsForReports). ISR caches the rendered
-// page per EIN; SEFA/federal-award data changes at most weekly (mirror
-// cadence), so a 24h cache is plenty and ~24x fewer background
-// re-renders / ISR writes than the old hourly value.
-export const revalidate = 86400;
+// page per EIN; SEFA/federal-award data changes at most weekly (the FAC
+// bulk-export cadence), so match the org page's 7-day window — ~7x fewer
+// live award fetches than the old 24h value, which was re-fetching every
+// distinct EIN daily and keeping lib/fac-budget.ts pinned.
+export const revalidate = 604800;
 
 // Prerender nothing at build, but opt into the ISR / full-route cache:
 // without an explicit generateStaticParams a dynamic segment is rendered
@@ -83,23 +84,13 @@ export default async function RiskAssessmentPage(props: {
   if (result.kind === 'not-found') notFound();
 
   if (result.kind === 'unavailable') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <h1 className="text-xl font-bold text-gray-900 mb-3">Federal awards not loaded</h1>
-          <p className="text-gray-600 mb-6">
-            The shared Federal Audit Clearinghouse request budget is fully used for this hour, so
-            the award-level detail couldn&apos;t be fetched right now. Check back in a little while.
-          </p>
-          <Link
-            href={`/single-audit/${ein}`}
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg"
-          >
-            Back to audit history
-          </Link>
-        </div>
-      </div>
-    );
+    // Throw rather than render a fallback: `revalidate` would otherwise
+    // cache this "not loaded" state for a week, so a single budget blip
+    // would leave the page broken long after the budget recovered. A
+    // thrown error is not ISR-cached — Next re-renders on the next
+    // request — and ./error.tsx shows a retry-able message. With the
+    // two-key budget in lib/fac-budget.ts this branch is now rare.
+    throw new Error('FEDERAL_AWARDS_UNAVAILABLE');
   }
 
   const { data } = result;
