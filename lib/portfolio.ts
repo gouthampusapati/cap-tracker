@@ -1,5 +1,6 @@
 import 'server-only';
-import { getPublicOrgsBatch, type OrgLookupResult } from '@/lib/public-org-cache';
+import { getPublicOrgsBatch } from '@/lib/public-org-cache';
+import { readOrgsFromMirror, getMirrorSyncedAt } from '@/lib/fac-mirror-read';
 import { resolveCoveringFilingEins } from '@/lib/entity-resolution';
 import { computeManagementDecisionDeadline, soonestDeadline } from '@/lib/management-decision';
 import type { ImportedOrg } from '@/lib/fac-api';
@@ -116,6 +117,13 @@ function errorRow(ein: string): PortfolioRow {
  * bounded-concurrency worker pool this replaced existed specifically to
  * throttle N independent per-EIN live fetches running in parallel —
  * moot now that a cold portfolio is one shared live fetch, not N.
+ *
+ * Component-EIN resolution: a pasted EIN with no filing of its own may
+ * be a component of a parent entity's Single Audit. Those get resolved
+ * to the covering filing and shown with the parent's data (marked
+ * `coveringEin`). The resolution query and the covering-filing read are
+ * BOTH mirror-only — this step adds zero FAC calls and zero cache
+ * writes on top of the single batched lookup above.
  */
 export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
   if (eins.length === 0) return [];
@@ -137,12 +145,31 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
     });
     const coveringByEin =
       missed.length > 0 ? await resolveCoveringFilingEins(missed) : new Map<string, string>();
-    const coveringEins = [...new Set(coveringByEin.values())].filter((e) => !lookups.get(e)?.org);
-    const coveringLookups: Map<string, OrgLookupResult> =
-      coveringEins.length > 0 ? await getPublicOrgsBatch(coveringEins) : new Map();
 
-    const coveringResult = (parentEin: string) =>
-      lookups.get(parentEin)?.org ? lookups.get(parentEin) : coveringLookups.get(parentEin);
+    // Covering filings we still need data for (not already fetched above
+    // as an entered EIN). Read these from the MIRROR ONLY — never a live
+    // FAC call: this is a secondary "also filed under" row, the mirror's
+    // weekly freshness is fine for it, and the parent's own page does
+    // the deadline-aware live check when the user clicks through. This
+    // keeps /portfolio's FAC-call and cache-write cost identical to
+    // before this resolution step existed.
+    const needMirror = [...new Set(coveringByEin.values())].filter((e) => !lookups.get(e)?.org);
+    const [mirrorCovering, mirrorSyncedAt] =
+      needMirror.length > 0
+        ? await Promise.all([readOrgsFromMirror(needMirror), getMirrorSyncedAt()])
+        : [new Map<string, ImportedOrg>(), null];
+
+    const coveringRow = (ein: string, parentEin: string): PortfolioRow | null => {
+      const fromBatch = lookups.get(parentEin);
+      if (fromBatch?.org) {
+        return toRow(ein, fromBatch.org, fromBatch.syncedAt, fromBatch.stale, parentEin);
+      }
+      const fromMirror = mirrorCovering.get(parentEin);
+      if (fromMirror && mirrorSyncedAt) {
+        return toRow(ein, fromMirror, mirrorSyncedAt, false, parentEin);
+      }
+      return null;
+    };
 
     return eins.map((ein) => {
       const result = lookups.get(ein);
@@ -151,10 +178,8 @@ export async function fetchPortfolio(eins: string[]): Promise<PortfolioRow[]> {
 
       const parentEin = coveringByEin.get(ein);
       if (parentEin) {
-        const cov = coveringResult(parentEin);
-        if (cov?.org) {
-          return toRow(ein, cov.org, cov.syncedAt, cov.stale, parentEin);
-        }
+        const row = coveringRow(ein, parentEin);
+        if (row) return row;
       }
       // No covering filing. Preserve the org page's distinction: "never
       // checked, budget exhausted" (unavailable) is not "not found" —
