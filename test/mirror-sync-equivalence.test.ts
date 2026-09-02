@@ -233,6 +233,9 @@ describe('mirror sync — incremental ≡ full', () => {
     const i = runSync(incr, week2, []);
     expect(f.ok, f.out).toBe(true);
     expect(i.ok, i.out).toBe(true);
+    // the incremental run must actually have taken the incremental path
+    expect(i.out).toMatch(/incremental diff: \d+ changed/);
+    expect(i.out).not.toMatch(/FULL reload/);
 
     expect(dump(incr)).toEqual(dump(full));
     rmSync(week2, { recursive: true, force: true });
