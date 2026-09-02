@@ -268,6 +268,10 @@ export const facMirrorGeneral = sqliteTable(
     cognizantAgency: text('cognizant_agency'),
     oversightAgency: text('oversight_agency'),
     facAcceptedDate: text('fac_accepted_date'),
+    // Per-report content digest maintained by scripts/sync-fac-mirror.mjs
+    // for its incremental diff — not read by the app. Kept here so the
+    // Drizzle schema stays column-for-column with the sync's raw DDL.
+    contentHash: text('content_hash'),
   },
   (t) => ({
     einIdx: index('fac_mirror_general_ein_idx').on(t.auditeeEin),

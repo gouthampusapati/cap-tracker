@@ -50,6 +50,8 @@ import { createClient } from '@libsql/client';
 import { parse } from 'csv-parse';
 import { Readable } from 'node:stream';
 import { createReadStream } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { pipeline } from 'node:stream/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { randomUUID } from 'node:crypto';
@@ -57,6 +59,9 @@ import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { isRetriableDownloadError } from './lib/retriable-download.mjs';
+import { downloadWithResume } from './lib/download-csv.mjs';
+import { hashRow, taggedRowHash, xorHex, ZERO_DIGEST } from './lib/row-hash.mjs';
+import { diffReports, assertDiffSane, deltaByKey } from './lib/mirror-diff.mjs';
 
 // TEST-ONLY: read the CSVs from a local directory instead of FAC. Set by
 // test/mirror-sync-equivalence.test.ts so the sync can run end-to-end
@@ -179,7 +184,13 @@ const TABLES = [
       auditor_email TEXT,
       cognizant_agency TEXT,
       oversight_agency TEXT,
-      fac_accepted_date TEXT
+      fac_accepted_date TEXT,
+      -- Per-report content digest (row-hash of this general row XOR'd
+      -- with the hashes of all the report's child rows). The incremental
+      -- sync compares this week's digest to the stored one to decide
+      -- which reports to touch. NULL only on rows written by an older
+      -- full reload — the next incremental run treats those as changed.
+      content_hash TEXT
     )`,
     indexes: (name, idxSuffix) => [
       `CREATE INDEX ein_idx_${idxSuffix} ON ${name} (auditee_ein)`,
