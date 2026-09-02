@@ -10,21 +10,24 @@ name: Sync FAC Bulk Mirror
 # the original checklist's guess) — the observed refresh was ~5 days
 # before the check.
 #
-# Weekly (was Mon/Thu). Each sync writes ~1.48M rows (413K general +
-# 674K findings + 150K findings_text + 144K corrective_action_plans +
-# ~72K additional_eins + ~27K additional_ueis — the last two added in
-# Sprint 5); twice a week is ~12.7M rows/month, over Turso's free-tier
-# 10M writes/month cap (plan confirmed free tier 2026-08). Weekly is
-# ~6.4M/month — comfortably under — and still comfortably inside the
-# observed ~5-day FAC refresh cadence. Orgs within ±60 days of their
-# filing deadline already bypass the mirror for a live check
-# (lib/org-cache-ttl.ts), so a few extra days of mirror staleness for
-# everyone else costs nothing that matters. Revisit if the plan changes
-# or more cadence data points land.
+# Weekly. The sync is now INCREMENTAL (scripts/sync-fac-mirror.mjs) —
+# it diffs this week's CSVs against the per-report content_hash on
+# fac_mirror_general and writes only the ~500–900 reports that changed
+# (~40–60K row-writes/week vs the old ~1.48M full reload). Well inside
+# Turso's free-tier 10M/month. The first run on a mirror without a
+# content_hash column auto-falls-back to a one-time full reload.
+#
+# Set `full: true` on a manual run for a from-scratch rebuild (schema
+# change, recovery, or a periodic integrity refresh).
 on:
   schedule:
     - cron: '17 9 * * 1' # 09:17 UTC Monday
-  workflow_dispatch: {} # manual trigger, e.g. for a first-run or a retry
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 'Full reload instead of incremental diff'
+        type: boolean
+        default: false
 
 permissions:
   # write (was read) so the post-sync step can commit the refreshed
@@ -58,7 +61,7 @@ jobs:
         run: npm install --ignore-scripts
 
       - name: Run sync
-        run: node scripts/sync-fac-mirror.mjs
+        run: node scripts/sync-fac-mirror.mjs ${{ (github.event_name == 'workflow_dispatch' && inputs.full) && '--full' || '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}

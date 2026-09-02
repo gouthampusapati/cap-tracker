@@ -479,6 +479,18 @@ export const facMirrorSyncLog = sqliteTable('fac_mirror_sync_log', {
 });
 
 /**
+ * Small key/value store for the mirror sync's own bookkeeping — created
+ * and written only by scripts/sync-fac-mirror.mjs, not read by the app.
+ * Currently just `column_fingerprint` (a hash of the mirrored column
+ * set): if it changes, the incremental diff can't trust an old
+ * content_hash and the next run does a full reload instead.
+ */
+export const facMirrorMeta = sqliteTable('fac_mirror_meta', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+});
+
+/**
  * Founding Customer Program signups — the qualifying form on /pricing
  * (app/waitlist-form.tsx), plus the dashboard's "Generate Draft"
  * feature-demand CTA (a different intent, disambiguated by `source`).
