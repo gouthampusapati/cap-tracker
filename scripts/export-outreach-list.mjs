@@ -13,10 +13,16 @@
  *      (findings_count, going-concern, total_expended, audit_count).
  *   4. Flags multi-EIN orgs (appear in fac_mirror_additional_eins) —
  *      complex entities, disproportionately pass-throughs.
- *   5. Suppresses anyone already in founding_signups.
- *   6. Dedupes shared emails (a fiscal agent listed for several orgs),
+ *   5. Flags CONFIRMED pass-throughs: any org whose audit history carries
+ *      a subrecipient-monitoring finding (compliance requirement "M",
+ *      2 CFR 200.332). An auditor only tests §200.332 when the entity
+ *      sub-grants federal money, so an M-finding is proof the org is a
+ *      pass-through — and a documented monitoring weakness on top.
+ *      `--passthrough` restricts the whole export to just these orgs.
+ *   6. Suppresses anyone already in founding_signups.
+ *   7. Dedupes shared emails (a fiscal agent listed for several orgs),
  *      keeping the highest-scoring org.
- *   7. Scores each org by likely monitoring pain and writes a CSV,
+ *   8. Scores each org by likely monitoring pain and writes a CSV,
  *      highest score first.
  *
  * The CSV is a starting point, NOT a send list — every address still
@@ -26,10 +32,15 @@
  *
  * Usage:
  *   node --env-file=.env.local scripts/export-outreach-list.mjs
+ *   # confirmed pass-throughs only (the tightest ICP):
+ *   node --env-file=.env.local scripts/export-outreach-list.mjs --passthrough
  *   node --env-file=.env.local scripts/export-outreach-list.mjs \
  *     --min-year 2023 --entity-types non-profit,higher-ed \
  *     --min-findings 1 --title "finance|cfo|controller|treasurer|director" \
  *     --limit 20000 --out ./outreach-nonprofits.csv
+ *
+ * Every row carries is_passthrough / subrecipient_monitoring_findings
+ * columns regardless of the flag, so you can also just sort on them.
  *
  * Needs DATABASE_URL + TURSO_AUTH_TOKEN in the environment.
  */
@@ -41,15 +52,22 @@ import { writeFile } from 'node:fs/promises';
 
 function parseArgs(argv) {
   const out = {};
-  for (let i = 0; i < argv.length; i += 2) {
-    const k = argv[i]?.replace(/^--/, '');
-    if (k) out[k] = argv[i + 1];
+  for (let i = 0; i < argv.length; i++) {
+    if (!argv[i].startsWith('--')) continue;
+    const k = argv[i].replace(/^--/, '');
+    const next = argv[i + 1];
+    if (next === undefined || next.startsWith('--')) out[k] = true; // bare flag
+    else {
+      out[k] = next;
+      i++;
+    }
   }
   return out;
 }
 const a = parseArgs(process.argv.slice(2));
 
 const MIN_YEAR = a['min-year'] ?? '2022';
+const PASSTHROUGH_ONLY = Boolean(a['passthrough']);
 const ENTITY_TYPES = (a['entity-types'] ?? 'non-profit,local,higher-ed')
   .split(',')
   .map((s) => s.trim())
@@ -99,12 +117,15 @@ function titleCase(s) {
 
 // Rough "how much would continuous monitoring help this org" score.
 // Heuristic — re-sort in your sending tool if you disagree with it.
-function painScore({ findingsCount, goingConcern, totalExpended, auditCount, multiEin }) {
+function painScore({ findingsCount, goingConcern, totalExpended, auditCount, multiEin, subMonFindings }) {
   let s = Math.min(findingsCount, 20) * 3;
   if (goingConcern) s += 40;
   const exp = totalExpended || 0;
   s += exp >= 250e6 ? 20 : exp >= 50e6 ? 15 : exp >= 10e6 ? 10 : exp >= 1e6 ? 5 : 0;
   if (multiEin) s += 15;
+  // confirmed pass-through with a documented subrecipient-monitoring
+  // weakness — the sharpest buying signal in the dataset.
+  if (subMonFindings > 0) s += 25 + Math.min(subMonFindings, 15) * 2;
   s += Math.min(auditCount, 8);
   return s;
 }
@@ -137,7 +158,8 @@ async function pageAll(sql, args = []) {
 (async () => {
   log(
     `filters: audit_year >= ${MIN_YEAR} · entity_type in (${ENTITY_TYPES.join(', ')}) · ` +
-      `min findings ${MIN_FINDINGS}${TITLE_RE ? ` · title ~ /${TITLE_RE.source}/i` : ''}`
+      `min findings ${MIN_FINDINGS}${TITLE_RE ? ` · title ~ /${TITLE_RE.source}/i` : ''}` +
+      `${PASSTHROUGH_ONLY ? ' · confirmed pass-throughs only' : ''}`
   );
 
   const etPlaceholders = ENTITY_TYPES.map(() => '?').join(', ');
@@ -182,7 +204,28 @@ async function pageAll(sql, args = []) {
     if (r.additional_ein) einsAsAdditional.add(r.additional_ein);
   }
 
-  // 5. suppression — founding_signups emails
+  // 5. confirmed pass-throughs — orgs with a subrecipient-monitoring
+  //    ("M") finding anywhere in their audit history. type_requirement is
+  //    a concat of single-letter compliance codes (e.g. "ABM"); "M" is
+  //    only ever §200.332 Subrecipient Monitoring. Joined through general
+  //    so a finding on ANY of the org's filings (not just the winning
+  //    one) counts.
+  const subMonByEin = new Map();
+  for (const r of (await db.execute(
+    `SELECT g.auditee_ein AS ein, f.report_id AS report_id, f.audit_year AS year
+       FROM fac_mirror_findings f
+       JOIN fac_mirror_general g ON g.report_id = f.report_id
+      WHERE f.type_requirement LIKE '%M%'`
+  )).rows) {
+    let e = subMonByEin.get(r.ein);
+    if (!e) subMonByEin.set(r.ein, (e = { findings: 0, reports: new Set(), years: new Set() }));
+    e.findings++;
+    e.reports.add(r.report_id);
+    if (r.year) e.years.add(String(r.year));
+  }
+  log(`${subMonByEin.size} orgs carry a subrecipient-monitoring (pass-through) finding`);
+
+  // 6. suppression — founding_signups emails
   const suppressed = new Set(
     (await db.execute(`SELECT email FROM founding_signups`)).rows
       .map((r) => String(r.email ?? '').trim().toLowerCase())
@@ -190,8 +233,16 @@ async function pageAll(sql, args = []) {
   );
   log(`${suppressed.size} suppressed email(s) from founding_signups`);
 
-  // 6. build rows
-  const drop = { badEmail: 0, suppressed: 0, minFindings: 0, title: 0, noSummary: 0, sharedEmail: 0 };
+  // 7. build rows
+  const drop = {
+    badEmail: 0,
+    suppressed: 0,
+    minFindings: 0,
+    title: 0,
+    noSummary: 0,
+    notPassthrough: 0,
+    sharedEmail: 0,
+  };
   const byEmail = new Map();
 
   for (const r of byEin.values()) {
@@ -219,6 +270,13 @@ async function pageAll(sql, args = []) {
       continue;
     }
 
+    const subMon = subMonByEin.get(r.auditee_ein);
+    const subMonFindings = subMon ? subMon.findings : 0;
+    if (PASSTHROUGH_ONLY && !subMon) {
+      drop.notPassthrough++;
+      continue;
+    }
+
     const multiEin = reportsWithExtras.has(r.report_id) || einsAsAdditional.has(r.auditee_ein);
     const goingConcern = Number(s.is_going_concern ?? 0) === 1;
     const totalExpended = Number(s.total_expended ?? 0);
@@ -240,7 +298,17 @@ async function pageAll(sql, args = []) {
       is_going_concern: goingConcern ? 1 : 0,
       total_expended_usd: Math.round(totalExpended),
       multi_ein: multiEin ? 1 : 0,
-      pain_score: painScore({ findingsCount, goingConcern, totalExpended, auditCount, multiEin }),
+      is_passthrough: subMon ? 1 : 0,
+      subrecipient_monitoring_findings: subMonFindings,
+      subrecipient_finding_years: subMon ? [...subMon.years].sort().join(';') : '',
+      pain_score: painScore({
+        findingsCount,
+        goingConcern,
+        totalExpended,
+        auditCount,
+        multiEin,
+        subMonFindings,
+      }),
     };
 
     // shared-email dedupe — keep the higher-scoring org
@@ -255,7 +323,7 @@ async function pageAll(sql, args = []) {
   let rows = [...byEmail.values()].sort((x, y) => y.pain_score - x.pain_score);
   if (Number.isFinite(LIMIT)) rows = rows.slice(0, LIMIT);
 
-  // 7. write
+  // 8. write
   const cols = Object.keys(rows[0] ?? { ein: '' });
   const csv = [cols.join(','), ...rows.map((r) => cols.map((c) => csvCell(r[c])).join(','))].join('\n');
   await writeFile(OUT_PATH, csv + '\n');
@@ -266,15 +334,19 @@ async function pageAll(sql, args = []) {
   log('');
   log(`dropped:  ${drop.badEmail} bad email · ${drop.suppressed} suppressed · ` +
       `${drop.minFindings} < min findings · ${drop.title} title mismatch · ` +
-      `${drop.noSummary} no summary row · ${drop.sharedEmail} shared email`);
+      `${drop.noSummary} no summary row · ${drop.notPassthrough} not a confirmed pass-through · ` +
+      `${drop.sharedEmail} shared email`);
   log(`by entity_type: ${Object.entries(et).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
-  log(`multi-EIN: ${rows.filter((r) => r.multi_ein).length} · ` +
+  log(`confirmed pass-through: ${rows.filter((r) => r.is_passthrough).length} · ` +
+      `multi-EIN: ${rows.filter((r) => r.multi_ein).length} · ` +
       `going-concern: ${rows.filter((r) => r.is_going_concern).length}`);
   log('');
   log(`top 10 by pain_score:`);
   for (const r of rows.slice(0, 10)) {
     log(`  ${String(r.pain_score).padStart(3)}  ${r.org_name} (${r.state}) — ` +
-        `${r.findings_count}f${r.is_going_concern ? ' GC' : ''}${r.multi_ein ? ' multi-EIN' : ''} — ${r.email}`);
+        `${r.findings_count}f${r.is_going_concern ? ' GC' : ''}` +
+        `${r.is_passthrough ? ` PTE:${r.subrecipient_monitoring_findings}` : ''}` +
+        `${r.multi_ein ? ' multi-EIN' : ''} — ${r.email}`);
   }
   log('');
   log(`✓ wrote ${rows.length} rows -> ${OUT_PATH}`);
