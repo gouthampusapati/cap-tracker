@@ -11,3 +11,8 @@ build/
 *.tsbuildinfo
 .vercel
 .env*
+
+# Cold-outreach export (scripts/export-outreach-list.mjs) — contains
+# scraped-together contact PII; regenerate from the mirror, never commit.
+outreach-list.csv
+outreach-*.csv
