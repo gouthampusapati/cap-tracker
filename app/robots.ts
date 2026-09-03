@@ -7,7 +7,7 @@ const allow = ['/', '/single-audit/', '/auditors', '/guide', '/glossary', '/port
 // live FAC fetch. Crawlers walking it via the org-page link pinned the
 // shared FAC budget (lib/fac-budget.ts) and spiked 5xx. The award detail
 // has little standalone search value; the org page summarises it.
-const disallow = ['/api/', '/auth/', '/dashboard/', '/admin/', '/.next/', '/single-audit/*/risk-assessment', '/watchlist'];
+const disallow = ['/api/', '/auth/', '/dashboard/', '/admin/', '/.next/', '/single-audit/*/risk-assessment'];
 
 // A sitemap crawler discovering a brand-new (never-cached) EIN every ~5s
 // (~720/hr) outran the shared FAC fetch budget (~180/hr, see

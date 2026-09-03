@@ -556,7 +556,7 @@ export const monitorAccess = sqliteTable('monitor_access', {
  * monitor_access — a user with no active grant has no portfolios and
  * sees none of this surface. `monitored` on = the weekly job diffs its
  * EINs and the customer gets a digest; off = it's just an organised
- * list. Lives under /portfolio/watchlist.
+ * list. Rendered as stacked sections on /portfolio.
  */
 export const portfolio = sqliteTable(
   'portfolio',
@@ -638,7 +638,7 @@ export const monitorState = sqliteTable('monitor_state', {
 /**
  * One row per (user, org, change). Written by the monitor job, cleared
  * of "unsent" status by the digest phase. `payloadJson` carries whatever
- * the digest and the /watchlist feed need to render the line without a
+ * the digest and the /portfolio feed need to render the line without a
  * FAC read (org name, audit year, finding ref/description, deadline).
  */
 export const monitorAlert = sqliteTable(

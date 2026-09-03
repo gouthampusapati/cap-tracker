@@ -216,7 +216,7 @@ export async function removeItem(userId: string, id: string, ein: string): Promi
   return true;
 }
 
-/* ---- the monitored view (/portfolio/watchlist) ---- */
+/* ---- the monitored view (portfolio-group sections on /portfolio) ---- */
 
 export interface MonitoredGroup {
   id: string;

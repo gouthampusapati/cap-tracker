@@ -9,7 +9,7 @@ import { SITE_URL } from '@/lib/site-url';
  * (scripts/monitor-fac-changes.mjs). GET is the link in the email body;
  * POST is RFC 8058 List-Unsubscribe-Post one-click. Both just set
  * monitor_prefs.digest_opt_out — the alerts still accrue and are visible
- * on /watchlist, they're only kept out of email.
+ * on /portfolio, they're only kept out of email.
  */
 export const runtime = 'nodejs';
 
@@ -36,7 +36,7 @@ const page = (heading: string, body: string) =>
 <div style="font-family:system-ui,sans-serif;max-width:480px;margin:15vh auto;padding:0 24px;text-align:center">
   <h1 style="font-size:20px">${heading}</h1>
   <p style="color:#555">${body}</p>
-  <p><a href="${SITE_URL}/watchlist" style="color:#2563eb;font-weight:600">Manage your watchlist</a></p>
+  <p><a href="${SITE_URL}/portfolio" style="color:#2563eb;font-weight:600">Manage your portfolio groups</a></p>
 </div>`;
 
 export async function GET(req: NextRequest) {

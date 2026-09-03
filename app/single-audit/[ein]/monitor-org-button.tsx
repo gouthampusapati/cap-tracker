@@ -187,10 +187,10 @@ export function MonitorOrgButton({
           </div>
 
           <Link
-            href="/portfolio/watchlist"
+            href="/portfolio"
             className="block px-2 py-1.5 mt-1 text-xs text-accent font-semibold hover:underline"
           >
-            Manage monitored portfolios →
+            Manage portfolio groups →
           </Link>
         </div>
       )}

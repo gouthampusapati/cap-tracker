@@ -422,7 +422,7 @@ const TYPE_LABEL = {
   deadline: 'Management-decision deadline approaching',
 };
 
-const WATCHLIST_URL = `${SITE_URL}/portfolio/watchlist`;
+const WATCHLIST_URL = `${SITE_URL}/portfolio`;
 
 /** alerts (rows: {type, payload_json}) -> { [groupName]: Map<ein, alerts[]> } */
 function groupAlerts(alerts) {
