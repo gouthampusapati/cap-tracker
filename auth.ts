@@ -4,6 +4,7 @@ import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/lib/db';
 import { users, accounts, verificationTokens } from '@/lib/db/schema';
 import { sendMagicLinkEmail } from '@/lib/send-magic-link-email';
+import { toConfirmUrl } from '@/lib/magic-link-url';
 
 /**
  * Auth.js v5 config, deliberately at the repo root (not lib/) — this is
@@ -71,7 +72,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // window.
       maxAge: 30 * 60,
       async sendVerificationRequest({ identifier, url }) {
-        await sendMagicLinkEmail({ email: identifier, url });
+        // Email a link to the /auth/confirm interstitial, not Auth.js's
+        // direct callback URL — a GET on that redeems the one-time token,
+        // and email scanners issue that GET before the user clicks
+        // (error=Verification). toConfirmUrl moves the params into the
+        // URL fragment so a scanner's GET carries nothing. See
+        // lib/magic-link-url.ts and app/auth/confirm/page.tsx.
+        await sendMagicLinkEmail({ email: identifier, url: toConfirmUrl(url) });
       },
     },
   ],
