@@ -12,11 +12,13 @@ import { BackLinks } from './back-links';
 
 // federal_awards is fetched live (not mirrored — see
 // lib/fac-api.ts:getFederalAwardsForReports). ISR caches the rendered
-// page per EIN; SEFA/federal-award data changes at most weekly (the FAC
-// bulk-export cadence), so match the org page's 7-day window — ~7x fewer
-// live award fetches than the old 24h value, which was re-fetching every
-// distinct EIN daily and keeping lib/fac-budget.ts pinned.
-export const revalidate = 604800;
+// page per EIN. 1h: a page that rendered the "couldn't load" state (FAC
+// budget spent) self-heals within the hour instead of being stuck for a
+// day/week, and Vercel Pro lifted the ISR-write ceiling that made a long
+// window necessary. The route is also disallowed in robots.txt now —
+// it's the one route whose data isn't in the local mirror, and crawler
+// traffic walking it was what pinned lib/fac-budget.ts.
+export const revalidate = 3600;
 
 // Prerender nothing at build, but opt into the ISR / full-route cache:
 // without an explicit generateStaticParams a dynamic segment is rendered
@@ -84,13 +86,29 @@ export default async function RiskAssessmentPage(props: {
   if (result.kind === 'not-found') notFound();
 
   if (result.kind === 'unavailable') {
-    // Throw rather than render a fallback: `revalidate` would otherwise
-    // cache this "not loaded" state for a week, so a single budget blip
-    // would leave the page broken long after the budget recovered. A
-    // thrown error is not ISR-cached — Next re-renders on the next
-    // request — and ./error.tsx shows a retry-able message. With the
-    // two-key budget in lib/fac-budget.ts this branch is now rare.
-    throw new Error('FEDERAL_AWARDS_UNAVAILABLE');
+    // Render a plain 200, not a thrown 500 (which under sustained
+    // crawler load became a runaway error rate — see the same reasoning
+    // on the parent org page's OrgFetchResult). `revalidate` is now 1h
+    // so this state self-heals quickly, and robots.txt keeps crawlers
+    // off this route so a real visitor rarely hits it at all.
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-lg p-8 text-center">
+          <h1 className="text-xl font-bold text-gray-900 mb-3">Federal awards not loaded</h1>
+          <p className="text-gray-600 mb-6">
+            The Federal Audit Clearinghouse is briefly rate-limited, so the award-level detail
+            couldn&apos;t be fetched right now. This doesn&apos;t affect the audit history — check
+            back in a little while.
+          </p>
+          <Link
+            href={`/single-audit/${ein}`}
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg"
+          >
+            Back to audit history
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const { data } = result;

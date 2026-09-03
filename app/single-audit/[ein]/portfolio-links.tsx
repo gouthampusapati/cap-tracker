@@ -65,7 +65,10 @@ export function RiskAssessmentLink({ ein, className }: { ein: string; className?
     ? `/single-audit/${ein}/risk-assessment?from=portfolio&eins=${encodeURIComponent(eins)}`
     : `/single-audit/${ein}/risk-assessment`;
   return (
-    <Link href={href} className={className}>
+    // rel="nofollow": this is the crawl path to /risk-assessment, the one
+    // route not backed by the mirror (every uncached hit = a live FAC
+    // fetch). Also disallowed in robots.txt.
+    <Link href={href} className={className} rel="nofollow">
       View federal awards &amp; risk assessment →
     </Link>
   );

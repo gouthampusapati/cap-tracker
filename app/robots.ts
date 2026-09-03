@@ -2,7 +2,12 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 
 const allow = ['/', '/single-audit/', '/auditors', '/guide', '/glossary', '/portfolio', '/faq', '/pricing', '/about'];
-const disallow = ['/api/', '/auth/', '/dashboard/', '/admin/', '/.next/'];
+// `/single-audit/*/risk-assessment` is the ONE route whose data (SEFA
+// federal_awards) isn't in the local mirror — every uncached hit is a
+// live FAC fetch. Crawlers walking it via the org-page link pinned the
+// shared FAC budget (lib/fac-budget.ts) and spiked 5xx. The award detail
+// has little standalone search value; the org page summarises it.
+const disallow = ['/api/', '/auth/', '/dashboard/', '/admin/', '/.next/', '/single-audit/*/risk-assessment', '/watchlist'];
 
 // A sitemap crawler discovering a brand-new (never-cached) EIN every ~5s
 // (~720/hr) outran the shared FAC fetch budget (~180/hr, see

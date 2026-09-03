@@ -566,6 +566,7 @@ export default async function SingleAuditPage(props: {
                   <Link
                     href={`/single-audit/${org.ein}/risk-assessment`}
                     className="inline-block text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                    rel="nofollow"
                   >
                     View federal awards &amp; risk assessment →
                   </Link>
