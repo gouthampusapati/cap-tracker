@@ -7,6 +7,7 @@ import { getAuditorProfile, stateName } from '@/lib/auditors';
 import { JsonLd } from '@/app/json-ld';
 import { breadcrumbList } from '@/lib/structured-data';
 import { AuditorClientsTable } from './auditor-clients-table';
+import { AuditorContact } from './auditor-contact';
 
 export const revalidate = 604800; // 7 days — tracks the weekly mirror sync
 export const maxDuration = 30;
@@ -20,13 +21,6 @@ export const maxDuration = 30;
 // searchParams here, so the shell is fully cacheable.
 export function generateStaticParams() {
   return [];
-}
-
-function formatPhone(raw: string | null): string | null {
-  if (!raw) return null;
-  const d = raw.replace(/\D/g, '');
-  if (d.length === 10) return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-  return raw;
 }
 
 export async function generateMetadata(props: {
@@ -69,7 +63,6 @@ export default async function AuditorProfilePage(props: {
   const firm = await getAuditorProfile(ein);
   if (!firm) notFound();
 
-  const phone = formatPhone(firm.phone);
   const stName = stateName(firm.state);
   const canonical = `${SITE_URL}/auditors/${ein}`;
 
@@ -91,7 +84,9 @@ export default async function AuditorProfilePage(props: {
       addressCountry: 'US',
     };
   }
-  if (phone) jsonLd.telephone = phone;
+  // firm.phone is deliberately NOT in the structured data — it's sign-in
+  // gated now (see AuditorContact), so it must not sit in the cached,
+  // anonymously-served page in any form.
 
   const breadcrumb = breadcrumbList([
     { name: 'Single Audit Intelligence', url: SITE_URL },
@@ -148,8 +143,10 @@ export default async function AuditorProfilePage(props: {
           </div>
         </div>
 
-        {/* Contact — all from the firm's FAC filings, public record. */}
-        {(firm.addressLine1 || phone || firm.contactName || firm.email) && (
+        {/* Contact — all from the firm's FAC filings, public record.
+            Phone + email are sign-in gated (AuditorContact); address and
+            contact name stay public. */}
+        {(firm.addressLine1 || firm.city || firm.contactName || firm.phone || firm.email) && (
           <div className="bg-white border border-gray-200 rounded-lg p-5 mb-8">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
               Contact (as reported to the Federal Audit Clearinghouse)
@@ -162,24 +159,12 @@ export default async function AuditorProfilePage(props: {
                     .join(' · ')}
                 </p>
               )}
-              {phone && (
-                <p>
-                  <span className="font-semibold">Phone:</span>{' '}
-                  <a href={`tel:${firm.phone?.replace(/\D/g, '')}`} className="text-blue-600 hover:underline">
-                    {phone}
-                  </a>
-                </p>
-              )}
               {firm.contactName && (
                 <p>
                   <span className="font-semibold">Contact on file:</span> {firm.contactName}
                 </p>
               )}
-              {firm.email && (
-                <p>
-                  <span className="font-semibold">Email on file:</span> {firm.email}
-                </p>
-              )}
+              <AuditorContact ein={ein} hasPhone={!!firm.phone} hasEmail={!!firm.email} />
             </div>
             <p className="text-xs text-gray-400 mt-3">
               From this firm&apos;s Single Audit submissions

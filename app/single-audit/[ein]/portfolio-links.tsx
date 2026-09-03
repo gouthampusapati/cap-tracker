@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 /**
  * The org page's portfolio-trail-aware links, as client components —
@@ -58,17 +59,29 @@ export function BackButton() {
  * "View federal awards & risk assessment →" — carries the portfolio
  * trail onward so the risk-assessment page's own back link can return
  * here with the same params.
+ *
+ * /risk-assessment is sign-in gated (middleware.ts) — its SEFA data is
+ * the one dataset not in the local mirror, so anonymous crawler traffic
+ * kept the FAC budget pinned. For a signed-out visitor this renders a
+ * "Sign in to view" link straight to the sign-in page (with `next` set)
+ * rather than letting them click through to a redirect.
  */
 export function RiskAssessmentLink({ ein, className }: { ein: string; className?: string }) {
   const eins = usePortfolioTrail();
-  const href = eins
+  const { status } = useSession();
+  const target = eins
     ? `/single-audit/${ein}/risk-assessment?from=portfolio&eins=${encodeURIComponent(eins)}`
     : `/single-audit/${ein}/risk-assessment`;
+
+  if (status === 'unauthenticated') {
+    return (
+      <Link href={`/auth/signin?next=${encodeURIComponent(target)}`} className={className} rel="nofollow">
+        Sign in to view federal awards &amp; risk assessment →
+      </Link>
+    );
+  }
   return (
-    // rel="nofollow": this is the crawl path to /risk-assessment, the one
-    // route not backed by the mirror (every uncached hit = a live FAC
-    // fetch). Also disallowed in robots.txt.
-    <Link href={href} className={className} rel="nofollow">
+    <Link href={target} className={className} rel="nofollow">
       View federal awards &amp; risk assessment →
     </Link>
   );

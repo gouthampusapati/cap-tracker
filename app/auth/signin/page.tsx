@@ -22,7 +22,13 @@ function SignInForm() {
   // organization?" / "Do you fund this organization?" CTA, so signing in
   // lands on that org already imported instead of a blank EIN field.
   const ein = searchParams.get('ein');
-  const callbackUrl = ein ? `/dashboard?ein=${encodeURIComponent(ein)}` : '/dashboard';
+  // `next` is set by middleware when it bounces an anonymous visitor off
+  // a gated route (e.g. /single-audit/<ein>/risk-assessment) — send them
+  // back there after sign-in. Only same-origin relative paths: a value
+  // starting with `//` or containing a scheme is an open-redirect vector.
+  const rawNext = searchParams.get('next');
+  const safeNext = rawNext && /^\/(?!\/)/.test(rawNext) ? rawNext : null;
+  const callbackUrl = safeNext ?? (ein ? `/dashboard?ein=${encodeURIComponent(ein)}` : '/dashboard');
 
   const handleGoogleSignIn = () => {
     setLoading(true);
