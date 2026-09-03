@@ -159,6 +159,26 @@ export const publicOrgCache = sqliteTable('public_org_cache', {
 });
 
 /**
+ * Per-EIN cache of the SEFA award detail behind
+ * /single-audit/[ein]/risk-assessment. That page's data (`federal_awards`
+ * + `notes_to_sefa`) is the ONE public dataset not in the local bulk
+ * mirror — the CSVs are ~1.3 GB / ~700 MB — so before this table every
+ * uncached page render was 2 live FAC calls, and crawler traffic walking
+ * the org-page → risk-assessment link (once per ISR window, per URL) kept
+ * the shared FAC budget (lib/fac-budget.ts) pinned. This collapses that
+ * to one fetch per EIN per filing-aware TTL (lib/federal-awards.ts),
+ * exactly like public_org_cache does for the org page. `snapshot` is the
+ * OrgAwardsData shape as JSON; `found` = false caches "this EIN has no
+ * SEFA detail" so repeat crawls of a genuinely-empty EIN also cost 0.
+ */
+export const federalAwardsCache = sqliteTable('federal_awards_cache', {
+  ein: text('ein').primaryKey(),
+  found: integer('found', { mode: 'boolean' }).notNull(),
+  snapshot: text('snapshot'), // JSON OrgAwardsData, null when found = false
+  syncedAt: integer('synced_at', { mode: 'timestamp' }).notNull(),
+});
+
+/**
  * One row per live FAC fetch attempt (not per FAC call — each fetch is
  * ~4 calls, see lib/fac-api.ts). Backs the shared, site-wide throttle in
  * lib/fac-budget.ts: counting rows in the last hour tells every

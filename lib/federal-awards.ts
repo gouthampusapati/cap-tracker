@@ -1,6 +1,10 @@
 import { cache } from 'react';
+import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { federalAwardsCache } from '@/lib/db/schema';
 import { getPublicOrg } from '@/lib/public-org-cache';
 import { hasFacBudget, recordFacFetch } from '@/lib/fac-budget';
+import { effectiveMaxAgeMs } from '@/lib/org-cache-ttl';
 import {
   getFederalAwardsForReports,
   getDeMinimisRateForReports,
@@ -101,6 +105,63 @@ function toAwardYears(
     .sort((a, b) => b.fiscalYearEnd.localeCompare(a.fiscalYearEnd));
 }
 
+/* ---- per-EIN Turso cache (federal_awards_cache) ----
+ *
+ * The award detail behind this page (federal_awards + notes_to_sefa) is
+ * the one public dataset not in the local bulk mirror, so an uncached
+ * render costs 2 live FAC calls. Crawler traffic revisiting the
+ * org-page → risk-assessment link (once per ISR window per URL) is what
+ * repeatedly pinned the shared FAC budget. This cache collapses that to
+ * one fetch per EIN per filing-aware TTL — the same DEFAULT/NEAR_DEADLINE
+ * window public_org_cache uses (lib/org-cache-ttl.ts), since an accepted
+ * SEFA doesn't change retroactively and a new one isn't plausible until
+ * near the next filing deadline. */
+
+interface CachedAwards {
+  found: boolean;
+  data: OrgAwardsData | null;
+  syncedAt: Date;
+}
+
+function reviveAwards(row: {
+  found: boolean;
+  snapshot: string | null;
+  syncedAt: Date;
+}): CachedAwards {
+  if (!row.found || !row.snapshot) return { found: false, data: null, syncedAt: row.syncedAt };
+  const parsed = JSON.parse(row.snapshot) as OrgAwardsData;
+  // syncedAt round-trips through JSON as a string — revive it, the page
+  // calls .toLocaleDateString() on it.
+  parsed.syncedAt = new Date(parsed.syncedAt);
+  return { found: true, data: parsed, syncedAt: row.syncedAt };
+}
+
+async function readAwardsCache(ein: string): Promise<CachedAwards | null> {
+  const [row] = await db
+    .select()
+    .from(federalAwardsCache)
+    .where(eq(federalAwardsCache.ein, ein))
+    .limit(1);
+  return row ? reviveAwards(row) : null;
+}
+
+function isAwardsCacheFresh(cached: CachedAwards): boolean {
+  const fyEnd = cached.data?.years[0]?.fiscalYearEnd;
+  const maxAge = effectiveMaxAgeMs(cached.found, fyEnd, Date.now());
+  return Date.now() - cached.syncedAt.getTime() < maxAge;
+}
+
+async function writeAwardsCache(ein: string, data: OrgAwardsData | null): Promise<void> {
+  const now = new Date();
+  await db
+    .insert(federalAwardsCache)
+    .values({ ein, found: data !== null, snapshot: data ? JSON.stringify(data) : null, syncedAt: now })
+    .onConflictDoUpdate({
+      target: federalAwardsCache.ein,
+      set: { found: data !== null, snapshot: data ? JSON.stringify(data) : null, syncedAt: now },
+    });
+}
+
 /**
  * Wrapped in React `cache()` so generateMetadata and the page render in
  * the same request share ONE lookup — without this the live award fetch
@@ -111,13 +172,31 @@ export const getFederalAwardsForOrg = cache(_getFederalAwardsForOrg);
 async function _getFederalAwardsForOrg(ein: string): Promise<OrgAwardsResult> {
   if (!/^\d{9}$/.test(ein)) return { kind: 'not-found' };
 
+  const cached = await readAwardsCache(ein);
+  if (cached && isAwardsCacheFresh(cached)) {
+    return cached.found && cached.data
+      ? { kind: 'ok', data: cached.data }
+      : { kind: 'not-found' };
+  }
+
   const { org, syncedAt, stale } = await getPublicOrg(ein);
-  if (!org) return { kind: 'not-found' };
+  if (!org) {
+    await writeAwardsCache(ein, null);
+    return { kind: 'not-found' };
+  }
 
   const reportIds = org.reports.map((r) => r.report_id);
-  if (reportIds.length === 0) return { kind: 'not-found' };
+  if (reportIds.length === 0) {
+    await writeAwardsCache(ein, null);
+    return { kind: 'not-found' };
+  }
 
+  // Cache miss / stale and no budget to refresh: serve a stale hit if we
+  // have one (clearly labeled), otherwise a "check back shortly" state.
   if (!(await hasFacBudget())) {
+    if (cached?.found && cached.data) {
+      return { kind: 'ok', data: { ...cached.data, stale: true } };
+    }
     return { kind: 'unavailable' };
   }
 
@@ -132,21 +211,24 @@ async function _getFederalAwardsForOrg(ein: string): Promise<OrgAwardsResult> {
       getDeMinimisRateForReports(reportIds).catch(() => new Map<string, DeMinimisRate>()),
     ]);
   } catch {
-    // The org itself loaded fine; only the award fetch failed. Treat it
-    // like a spent budget — a transient FAC problem, not "no awards".
+    // The org itself loaded fine; only the award fetch failed. Serve a
+    // stale hit if we have one, else "unavailable" — a transient FAC
+    // problem, not "no awards".
+    if (cached?.found && cached.data) {
+      return { kind: 'ok', data: { ...cached.data, stale: true } };
+    }
     return { kind: 'unavailable' };
   }
 
-  return {
-    kind: 'ok',
-    data: {
-      ein: org.ein,
-      name: org.name,
-      uei: org.uei,
-      years: toAwardYears(org.reports, awards, deMinimisByReport),
-      findingAnchorsByAward: buildFindingAnchors(org.findings),
-      syncedAt,
-      stale,
-    },
+  const data: OrgAwardsData = {
+    ein: org.ein,
+    name: org.name,
+    uei: org.uei,
+    years: toAwardYears(org.reports, awards, deMinimisByReport),
+    findingAnchorsByAward: buildFindingAnchors(org.findings),
+    syncedAt,
+    stale,
   };
+  await writeAwardsCache(ein, data);
+  return { kind: 'ok', data };
 }
