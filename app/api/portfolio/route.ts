@@ -5,11 +5,14 @@ import {
   renamePortfolio,
   deletePortfolio,
   setMonitored,
+  listPortfolios,
+  getPortfolio,
 } from '@/lib/portfolio-store';
 
 /**
  * Named monitoring portfolios for a signed-in user with an active
  * monitor_access grant. 401 without a session, 403 without access.
+ *   GET    [?ein=]                           list portfolios (+ which contain the EIN)
  *   POST   {name, eins?:string[]}            create
  *   PATCH  {id, name?, monitored?}           rename / toggle monitoring
  *   DELETE {id}                              delete
@@ -28,6 +31,29 @@ async function gate(): Promise<OK | NextResponse> {
   );
 }
 const body = (req: NextRequest) => req.json().catch(() => ({}) as Record<string, unknown>);
+
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const g = await gate();
+  if (g instanceof NextResponse) return g;
+  const list = await listPortfolios(g.userId);
+  const ein = req.nextUrl.searchParams.get('ein');
+  let containing: string[] = [];
+  if (ein && EIN_RE.test(ein)) {
+    const details = await Promise.all(list.map((p) => getPortfolio(g.userId, p.id)));
+    containing = details
+      .filter((d) => d && d.items.some((i) => i.ein === ein))
+      .map((d) => d!.id);
+  }
+  return NextResponse.json({
+    portfolios: list.map((p) => ({
+      id: p.id,
+      name: p.name,
+      monitored: p.monitored,
+      itemCount: p.itemCount,
+      containsEin: containing.includes(p.id),
+    })),
+  });
+}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const g = await gate();

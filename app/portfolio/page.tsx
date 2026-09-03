@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 import { parseEinList, fetchPortfolio, defaultSort, PORTFOLIO_MAX_EINS } from '@/lib/portfolio';
+import { auth } from '@/auth';
+import { hasActiveMonitorAccess } from '@/lib/monitor-access';
 import { Footer } from '@/app/footer';
 import PortfolioForm from './portfolio-form';
 import PortfolioTable from './portfolio-table';
@@ -40,7 +42,11 @@ export default async function PortfolioPage(props: {
   const overCap = eins.length > PORTFOLIO_MAX_EINS;
   const capped = eins.slice(0, PORTFOLIO_MAX_EINS);
 
-  const rows = capped.length > 0 ? defaultSort(await fetchPortfolio(capped)) : [];
+  const [rows0, canMonitor] = await Promise.all([
+    capped.length > 0 ? fetchPortfolio(capped) : Promise.resolve([]),
+    auth().then((s) => hasActiveMonitorAccess(s?.user?.email)),
+  ]);
+  const rows = defaultSort(rows0);
   const notFoundCount = rows.filter((r) => r.status === 'not-found').length;
   const errorCount = rows.filter((r) => r.status === 'error').length;
   const resolvedCount = rows.filter((r) => r.coveringEin).length;
@@ -54,6 +60,13 @@ export default async function PortfolioPage(props: {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mt-3">{title}</h1>
           <p className="text-gray-600 mt-2 max-w-2xl">{description}</p>
+          {canMonitor && (
+            <p className="mt-3 text-sm">
+              <Link href="/portfolio/watchlist" className="text-accent font-semibold hover:underline">
+                Your monitored portfolios →
+              </Link>
+            </p>
+          )}
         </div>
       </div>
 
@@ -102,6 +115,16 @@ export default async function PortfolioPage(props: {
                 parent entity's audit (a subsidiary, division, or agency rolled into a
                 system-wide filing) — those rows show the covering filing, marked{' '}
                 <span className="font-semibold text-blue-700">filed under</span>.
+              </p>
+            )}
+            {canMonitor && (
+              <p className="text-sm mb-4">
+                <Link
+                  href={`/portfolio/watchlist?eins=${encodeURIComponent(capped.join(','))}`}
+                  className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded"
+                >
+                  Save these as a monitored group →
+                </Link>
               </p>
             )}
             <PortfolioTable initialRows={rows} />
