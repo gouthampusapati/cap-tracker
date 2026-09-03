@@ -90,6 +90,14 @@ jobs:
           # SQLite file. Pass the DB creds through explicitly.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          # NEXTAUTH_URL is a Sensitive Vercel var, so `vercel pull` writes
+          # it as the literal "[SENSITIVE]" here — and Auth.js then does
+          # `new URL("https://[SENSITIVE]")` during the /_not-found static
+          # export and the build dies with ERR_INVALID_URL. It's just the
+          # canonical origin (not a secret — it's the fallback in
+          # lib/site-url.ts); pass the real value so the CI build matches
+          # what Vercel's own build injects at runtime.
+          NEXTAUTH_URL: https://www.singleauditintel.com
 
       - name: Deploy to Vercel
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
