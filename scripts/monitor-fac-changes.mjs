@@ -493,7 +493,9 @@ async function sendDigests() {
   const from = process.env.RESEND_FROM_EMAIL || 'Single Audit Intelligence <onboarding@resend.dev>';
 
   const userIds = (
-    await client.execute('SELECT DISTINCT user_id FROM monitor_alert WHERE digest_sent_at IS NULL')
+    await client.execute(
+      'SELECT DISTINCT user_id FROM monitor_alert WHERE digest_sent_at IS NULL ORDER BY user_id'
+    )
   ).rows.map((r) => r.user_id);
   if (userIds.length === 0) {
     log('no unsent alerts — no digests');
@@ -528,6 +530,7 @@ async function sendDigests() {
   );
 
   let sent = 0;
+  let warnedNoKey = false;
   for (const userId of userIds) {
     const markSent = () =>
       client.execute({
@@ -550,8 +553,15 @@ async function sendDigests() {
       continue;
     }
     if (!apiKey) {
-      log('RESEND_API_KEY not set — leaving alerts unsent for a later run');
-      break;
+      // Can't email this user now — but DON'T break: users later in the
+      // list may be opted-out or guest-email and still need markSent()
+      // (row order here is unspecified — SELECT DISTINCT with no ORDER
+      // BY). Skip just this one; their alerts wait for a run with a key.
+      if (!warnedNoKey) {
+        log('RESEND_API_KEY not set — leaving real-email digests unsent for a later run');
+        warnedNoKey = true;
+      }
+      continue;
     }
 
     const alerts = (
