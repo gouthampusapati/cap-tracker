@@ -41,8 +41,24 @@ export async function sendMagicLinkEmail({ email, url }: { email: string; url: s
       from: fromAddress,
       to: email,
       subject: 'Sign in to Single Audit Intelligence',
-      text: `Click this link to sign in:\n\n${url}\n\nIf you didn't request this, you can safely ignore this email.`,
-      html: `<p>Click the link below to sign in.</p><p><a href="${url}">${url}</a></p><p style="color:#6b6b68;font-size:13px">If you didn't request this, you can safely ignore this email.</p>`,
+      // The link opens a confirmation page (auth.ts sendVerificationRequest)
+      // and needs one more click there to finish — that extra click is
+      // deliberate: it's what an email link scanner won't do, so the
+      // one-time token survives to reach you.
+      text:
+        `Open this link, then click "Finish signing in":\n\n${url}\n\n` +
+        `The link opens a page that asks you to confirm — that second click is expected.\n\n` +
+        `If you didn't request this, you can safely ignore this email.`,
+      html:
+        `<p style="margin:0 0 16px">Click to sign in, then confirm on the next page:</p>` +
+        `<p style="margin:0 0 16px">` +
+        `<a href="${url}" style="display:inline-block;background:#2563eb;color:#fff;font-weight:600;` +
+        `text-decoration:none;padding:10px 20px;border-radius:6px">Sign in to Single Audit Intelligence</a>` +
+        `</p>` +
+        `<p style="color:#6b6b68;font-size:13px;margin:0 0 4px">` +
+        `The link opens a page that asks you to confirm — that second click is expected.</p>` +
+        `<p style="color:#6b6b68;font-size:13px;margin:0">` +
+        `If you didn't request this, you can safely ignore this email.</p>`,
     });
   } catch (error) {
     // Belt-and-suspenders — a network-level failure (fetch itself
