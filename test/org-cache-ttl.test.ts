@@ -36,13 +36,13 @@ describe('effectiveMaxAgeMs', () => {
     expect(effectiveMaxAgeMs(true, undefined, Date.now())).toBe(7 * DAY_MS);
   });
 
-  it('shortens to 24h when now is within 60 days of the next expected filing deadline', () => {
+  it('shortens to the near-deadline TTL (6d) when within 60 days of the next expected filing deadline', () => {
     // Deadline for FY 2024-12-31 is 2026-09-30 (see above).
     const justBeforeDeadline = new Date('2026-08-15T00:00:00Z').getTime();
-    expect(effectiveMaxAgeMs(true, '2024-12-31', justBeforeDeadline)).toBe(1 * DAY_MS);
+    expect(effectiveMaxAgeMs(true, '2024-12-31', justBeforeDeadline)).toBe(6 * DAY_MS);
 
     const justAfterDeadline = new Date('2026-10-20T00:00:00Z').getTime();
-    expect(effectiveMaxAgeMs(true, '2024-12-31', justAfterDeadline)).toBe(1 * DAY_MS);
+    expect(effectiveMaxAgeMs(true, '2024-12-31', justAfterDeadline)).toBe(6 * DAY_MS);
   });
 
   it('stays at the default 7-day TTL when nowhere near the deadline window', () => {

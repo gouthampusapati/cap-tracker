@@ -29,10 +29,19 @@ export const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 export const NOT_FOUND_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // An org whose next filing is plausibly due soon (see
-// nextExpectedFilingDeadline) — shorten back down close to the old flat
-// 24h behavior so a just-accepted report shows up promptly instead of
-// waiting out the long default window.
-export const NEAR_DEADLINE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+// nextExpectedFilingDeadline). This was 24h — but the bulk mirror only
+// refreshes weekly, so between syncs EVERY near-deadline org's mirror
+// copy is >24h old and falls through to a live FAC fetch. In September
+// (12/31 and 9/30 fiscal-year-ends both filing) that cohort is huge, and
+// a crawler walking the sitemap turned it into a sustained ~2k calls/hr
+// against the shared quota (Sep 2026). The 24h window was optimising for
+// a faster path that's too expensive to actually take at scale, and it
+// bought nothing real: the mirror IS the data source and it's weekly, so
+// a just-filed audit for a near-deadline org can't surface faster than
+// the next Monday sync anyway. 6 days keeps the weekly-synced copy
+// trusted for the whole cycle (0 FAC calls) while still re-checking a day
+// sooner than DEFAULT if a sync is ever missed.
+export const NEAR_DEADLINE_MAX_AGE_MS = 6 * 24 * 60 * 60 * 1000; // 6 days
 
 // How far around the computed statutory deadline counts as "plausibly
 // due soon" — wide on both sides: some auditees file early, and FAC
