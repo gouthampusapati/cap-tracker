@@ -69,16 +69,66 @@ async function chunked(ids, fn) {
 
 /* --- read every watched org from the mirror ------------------------- */
 
-async function readWatchedOrgs(eins) {
-  const generalRows = await chunked(eins, async (chunk) =>
+const generalSelect = (chunk) => ({
+  sql: `SELECT report_id, auditee_ein, auditee_name, audit_year, fy_end_date, fac_accepted_date
+        FROM fac_mirror_general WHERE auditee_ein IN (${chunk.map(() => '?').join(',')})`,
+  args: chunk,
+});
+
+/**
+ * Resolve component EINs (in fac_mirror_additional_eins but with no
+ * filing of their own) to the covering filing's EIN — same fallback the
+ * org page and /portfolio use, so a subrecipient EIN a customer adds is
+ * actually monitored via its parent's audit. Returns enteredEin ->
+ * coveringEin for the ones that resolve.
+ */
+async function resolveCovering(missing) {
+  if (missing.length === 0) return new Map();
+  const links = await chunked(missing, async (chunk) =>
     (
       await client.execute({
-        sql: `SELECT report_id, auditee_ein, auditee_name, audit_year, fy_end_date, fac_accepted_date
-              FROM fac_mirror_general WHERE auditee_ein IN (${chunk.map(() => '?').join(',')})`,
+        sql: `SELECT a.additional_ein, g.auditee_ein, g.fy_end_date
+              FROM fac_mirror_additional_eins a
+              JOIN fac_mirror_general g ON g.report_id = a.report_id
+              WHERE a.additional_ein IN (${chunk.map(() => '?').join(',')})`,
         args: chunk,
       })
     ).rows
   );
+  const cand = new Map();
+  for (const l of links) {
+    if (!cand.has(l.additional_ein)) cand.set(l.additional_ein, []);
+    cand.get(l.additional_ein).push({ parent: l.auditee_ein, fy: l.fy_end_date });
+  }
+  const out = new Map();
+  for (const [entered, list] of cand) {
+    if (/^(\d)\1{8}$/.test(entered) || entered === '123456789') continue; // FAC junk placeholders
+    const best = list
+      .filter((x) => x.parent && x.parent !== entered)
+      .sort((a, b) => String(b.fy ?? '').localeCompare(String(a.fy ?? '')))[0];
+    if (best) out.set(entered, best.parent);
+  }
+  return out;
+}
+
+async function readWatchedOrgs(enteredEins) {
+  // Which entered EINs have a filing of their own?
+  const directRows = await chunked(enteredEins, async (chunk) =>
+    (await client.execute(generalSelect(chunk))).rows
+  );
+  const haveDirect = new Set(directRows.map((r) => r.auditee_ein));
+  const missing = enteredEins.filter((e) => !haveDirect.has(e));
+  const coveringByEntered = await resolveCovering(missing);
+
+  const fetchEins = [
+    ...new Set([...enteredEins.filter((e) => haveDirect.has(e)), ...coveringByEntered.values()]),
+  ];
+  const coveringNew = [...coveringByEntered.values()].filter((e) => !haveDirect.has(e));
+  const extraRows = coveringNew.length
+    ? await chunked(coveringNew, async (chunk) => (await client.execute(generalSelect(chunk))).rows)
+    : [];
+
+  const generalRows = [...directRows, ...extraRows];
 
   const reportsByEin = new Map();
   const einByReport = new Map();
@@ -119,21 +169,28 @@ async function readWatchedOrgs(eins) {
     findingsByEin.get(ein).push(row);
   }
 
-  const orgs = new Map();
-  for (const ein of eins) {
-    const reports = reportsByEin.get(ein);
-    if (!reports) continue; // not in the mirror
+  const orgByFetchEin = new Map();
+  for (const fetchEin of fetchEins) {
+    const reports = reportsByEin.get(fetchEin);
+    if (!reports) continue;
     reports.sort((a, b) => String(b.fy_end_date ?? '').localeCompare(String(a.fy_end_date ?? '')));
-    orgs.set(ein, {
-      name: reports[0].auditee_name ?? ein,
+    orgByFetchEin.set(fetchEin, {
+      name: reports[0].auditee_name ?? fetchEin,
       reports: reports.map((r) => ({
         report_id: r.report_id,
         audit_year: r.audit_year,
         fy_end_date: r.fy_end_date,
         fac_accepted_date: r.fac_accepted_date,
       })),
-      findings: findingsByEin.get(ein) ?? [],
+      findings: findingsByEin.get(fetchEin) ?? [],
     });
+  }
+
+  // Key results under the EIN the customer actually added.
+  const orgs = new Map();
+  for (const entered of enteredEins) {
+    const org = orgByFetchEin.get(coveringByEntered.get(entered) ?? entered);
+    if (org) orgs.set(entered, org);
   }
   return orgs;
 }
@@ -207,19 +264,22 @@ function stateUpsert(ein, snap, mdDeadlineAlerted) {
 /* --- the diff pass ------------------------------------------------- */
 
 async function runDiff() {
-  // Only watchlist rows whose user has an unexpired monitor_access grant
-  // are monitored — during validation that's a hand-managed allowlist
-  // (monitor_access, or scripts/grant-monitor-access.mjs). Filter up
-  // front: an EIN watched only by lapsed users is simply not monitored
-  // (and re-baselines cleanly if they're re-granted).
+  // Every item in a MONITORED portfolio whose owner has an unexpired
+  // monitor_access grant — a hand-managed allowlist during validation
+  // (monitor_access / scripts/grant-monitor-access.mjs). An EIN in
+  // portfolios owned only by lapsed users is simply not monitored (and
+  // re-baselines cleanly if they're re-granted).
   const rawRows = (
     await client.execute(
-      `SELECT w.id, w.user_id, w.ein, w.label, lower(u.email) AS email
-       FROM watchlist w JOIN users u ON u.id = w.user_id`
+      `SELECT pi.id, p.user_id, pi.ein, pi.label, p.id AS portfolio_id, p.name AS portfolio_name,
+              lower(u.email) AS email
+       FROM portfolio_item pi
+       JOIN portfolio p ON p.id = pi.portfolio_id AND p.monitored = 1
+       JOIN users u ON u.id = p.user_id`
     )
   ).rows;
   if (rawRows.length === 0) {
-    log('watchlist is empty — nothing to monitor');
+    log('no monitored portfolios — nothing to monitor');
     return { watched: 0, alerts: 0 };
   }
 
@@ -234,18 +294,27 @@ async function runDiff() {
   const watchRows = rawRows.filter((w) => w.email && activeEmails.has(w.email));
   const skipped = rawRows.length - watchRows.length;
   if (watchRows.length === 0) {
-    log(`no watchlist rows with active monitor_access (${rawRows.length} rows skipped) — nothing to monitor`);
+    log(`no monitored portfolio items with active monitor_access (${rawRows.length} skipped) — nothing to monitor`);
     return { watched: 0, alerts: 0 };
   }
 
+  // ein -> watchers. One watcher per (user, portfolio) that contains the
+  // EIN; alerts fan out to each, tagged with the portfolio for digest
+  // grouping.
   const watchersByEin = new Map();
   for (const w of watchRows) {
     if (!watchersByEin.has(w.ein)) watchersByEin.set(w.ein, []);
-    watchersByEin.get(w.ein).push({ userId: w.user_id, watchId: w.id, label: w.label });
+    watchersByEin.get(w.ein).push({
+      userId: w.user_id,
+      itemId: w.id,
+      label: w.label,
+      portfolioId: w.portfolio_id,
+      portfolioName: w.portfolio_name,
+    });
   }
   const eins = [...watchersByEin.keys()];
   log(
-    `${watchRows.length} active watchlist rows${skipped ? ` (${skipped} skipped — no access)` : ''} · ${eins.length} distinct EINs`
+    `${watchRows.length} monitored items${skipped ? ` (${skipped} skipped — no access)` : ''} · ${eins.length} distinct EINs`
   );
 
   const [orgs, states] = await Promise.all([readWatchedOrgs(eins), loadState(eins)]);
@@ -285,10 +354,13 @@ async function runDiff() {
 
     const snap = buildSnapshot(org, now);
 
-    // keep the watchlist label current
+    // keep the portfolio_item label current
     for (const w of watchersByEin.get(ein)) {
       if (w.label !== snap.orgName) {
-        labelFixes.push({ sql: 'UPDATE watchlist SET label = ? WHERE id = ?', args: [snap.orgName, w.watchId] });
+        labelFixes.push({
+          sql: 'UPDATE portfolio_item SET label = ? WHERE id = ?',
+          args: [snap.orgName, w.itemId],
+        });
       }
     }
 
@@ -308,16 +380,23 @@ async function runDiff() {
     let mdAlerted = prev.mdDeadlineAlerted;
     for (const a of alerts) {
       if (a.type === 'deadline') mdAlerted = snap.soonestMdDeadline;
+      // One alert per (user, portfolio) watching this EIN — an EIN in two
+      // of a user's monitored groups shows under both in the digest.
+      const seen = new Set();
       for (const w of watchersByEin.get(ein)) {
+        const dedupe = `${w.userId}::${w.portfolioId}`;
+        if (seen.has(dedupe)) continue;
+        seen.add(dedupe);
         writes.push({
-          sql: `INSERT INTO monitor_alert (id, user_id, ein, type, payload_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)`,
+          sql: `INSERT INTO monitor_alert (id, user_id, ein, type, payload_json, portfolio_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
           args: [
             randomUUID(),
             w.userId,
             ein,
             a.type,
-            JSON.stringify({ ...a.payload, ein, orgName: snap.orgName }),
+            JSON.stringify({ ...a.payload, ein, orgName: snap.orgName, portfolioName: w.portfolioName }),
+            w.portfolioId,
             nowSec,
           ],
         });
@@ -343,40 +422,70 @@ const TYPE_LABEL = {
   deadline: 'Management-decision deadline approaching',
 };
 
-function renderDigest(email, byEin, unsubUrl) {
+const WATCHLIST_URL = `${SITE_URL}/portfolio/watchlist`;
+
+/** alerts (rows: {type, payload_json}) -> { [groupName]: Map<ein, alerts[]> } */
+function groupAlerts(alerts) {
+  const groups = new Map();
+  for (const a of alerts) {
+    const p = JSON.parse(a.payload_json);
+    const g = p.portfolioName || 'Monitored organizations';
+    if (!groups.has(g)) groups.set(g, new Map());
+    const byEin = groups.get(g);
+    if (!byEin.has(p.ein)) byEin.set(p.ein, []);
+    byEin.get(p.ein).push(a);
+  }
+  return groups;
+}
+
+function alertDetail(a) {
+  const p = JSON.parse(a.payload_json);
+  let s = TYPE_LABEL[a.type] ?? a.type;
+  if (a.type === 'new_audit' && p.auditYear) s += ` — FY ${p.auditYear}`;
+  if ((a.type === 'new_finding' || a.type === 'repeat_finding') && p.referenceNumber)
+    s += ` — ${p.referenceNumber}`;
+  if (a.type === 'deadline' && p.deadline)
+    s += ` — due ${p.deadline}${p.state === 'past' ? ' (past due)' : ''}`;
+  return s;
+}
+
+function renderDigest(alerts, unsubUrl) {
+  const groups = groupAlerts(alerts);
+  const multiGroup = groups.size > 1;
   const lines = [];
   const html = [];
-  for (const [ein, alerts] of byEin) {
-    const orgName = JSON.parse(alerts[0].payload_json).orgName || ein;
-    lines.push(`\n${orgName}  (EIN ${ein})`);
-    html.push(
-      `<h3 style="margin:18px 0 4px">${orgName}</h3><div style="color:#666;font-size:13px;margin-bottom:6px">EIN ${ein} · <a href="${SITE_URL}/single-audit/${ein}">audit history</a></div><ul>`
-    );
-    for (const a of alerts) {
-      const p = JSON.parse(a.payload_json);
-      let detail = TYPE_LABEL[a.type] ?? a.type;
-      if (a.type === 'new_audit' && p.auditYear) detail += ` — FY ${p.auditYear}`;
-      if ((a.type === 'new_finding' || a.type === 'repeat_finding') && p.referenceNumber)
-        detail += ` — ${p.referenceNumber}`;
-      if (a.type === 'deadline' && p.deadline)
-        detail += ` — due ${p.deadline}${p.state === 'past' ? ' (past due)' : ''}`;
-      lines.push(`  • ${detail}`);
-      html.push(`<li>${detail}</li>`);
+
+  for (const [groupName, byEin] of groups) {
+    if (multiGroup) {
+      lines.push(`\n### ${groupName}`);
+      html.push(`<h2 style="margin:24px 0 4px;font-size:16px">${groupName}</h2>`);
     }
-    html.push('</ul>');
+    for (const [ein, list] of byEin) {
+      const orgName = JSON.parse(list[0].payload_json).orgName || ein;
+      lines.push(`\n${orgName}  (EIN ${ein})`);
+      html.push(
+        `<h3 style="margin:14px 0 4px;font-size:15px">${orgName}</h3>` +
+          `<div style="color:#666;font-size:13px;margin-bottom:6px">EIN ${ein} · <a href="${SITE_URL}/single-audit/${ein}">audit history</a></div><ul>`
+      );
+      for (const a of list) {
+        lines.push(`  • ${alertDetail(a)}`);
+        html.push(`<li>${alertDetail(a)}</li>`);
+      }
+      html.push('</ul>');
+    }
   }
 
   const text =
-    `Changes to the organizations on your Single Audit Intelligence watchlist:\n${lines.join('\n')}\n\n` +
-    `View your watchlist: ${SITE_URL}/watchlist\n` +
+    `Changes to the organizations you monitor on Single Audit Intelligence:\n${lines.join('\n')}\n\n` +
+    `Manage: ${WATCHLIST_URL}\n` +
     `Stop these emails: ${unsubUrl}\n`;
   const body =
     `<div style="font-family:system-ui,sans-serif;max-width:560px">` +
-    `<p>Changes to the organizations on your <a href="${SITE_URL}/watchlist">Single Audit Intelligence watchlist</a>:</p>` +
+    `<p>Changes to the organizations you monitor on <a href="${WATCHLIST_URL}">Single Audit Intelligence</a>:</p>` +
     html.join('') +
     `<p style="color:#888;font-size:12px;margin-top:24px">` +
-    `<a href="${SITE_URL}/watchlist">Manage watchlist</a> · <a href="${unsubUrl}">Unsubscribe from these emails</a></p></div>`;
-  return { text, body };
+    `<a href="${WATCHLIST_URL}">Manage</a> · <a href="${unsubUrl}">Unsubscribe from these emails</a></p></div>`;
+  return { text, body, groupCount: groups.size };
 }
 
 async function sendDigests() {
@@ -448,23 +557,18 @@ async function sendDigests() {
     const alerts = (
       await client.execute({
         sql: `SELECT type, payload_json FROM monitor_alert
-              WHERE user_id = ? AND digest_sent_at IS NULL ORDER BY ein, created_at`,
+              WHERE user_id = ? AND digest_sent_at IS NULL ORDER BY portfolio_id, ein, created_at`,
         args: [userId],
       })
     ).rows;
-    const byEin = new Map();
-    for (const a of alerts) {
-      const ein = JSON.parse(a.payload_json).ein;
-      if (!byEin.has(ein)) byEin.set(ein, []);
-      byEin.get(ein).push(a);
-    }
+    const distinctEins = new Set(alerts.map((a) => JSON.parse(a.payload_json).ein));
 
     const unsubUrl = `${SITE_URL}/api/monitor/unsubscribe?u=${encodeURIComponent(userId)}&t=${unsubscribeToken(userId)}`;
-    const { text, body } = renderDigest(email, byEin, unsubUrl);
+    const { text, body } = renderDigest(alerts, unsubUrl);
     const subject =
-      byEin.size === 1
+      distinctEins.size === 1
         ? `Watchlist update: ${JSON.parse(alerts[0].payload_json).orgName || 'an organization'}`
-        : `Watchlist update: ${byEin.size} organizations`;
+        : `Watchlist update: ${distinctEins.size} organizations`;
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -485,7 +589,7 @@ async function sendDigests() {
       }
       await markSent();
       sent++;
-      log(`digest sent to ${email} (${byEin.size} orgs, ${alerts.length} changes)`);
+      log(`digest sent to ${email} (${distinctEins.size} orgs, ${alerts.length} changes)`);
     } catch (err) {
       log(`digest to ${email} threw: ${err instanceof Error ? err.message : String(err)} — leaving unsent`);
     }

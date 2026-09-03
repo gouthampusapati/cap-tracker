@@ -40,6 +40,7 @@ beforeAll(() => {
   DB_PATH = join(mkdtempSync(join(tmpdir(), 'monitor-')), 'm.db');
 
   run('create-monitor-tables.mjs');
+  run('create-portfolio-tables.mjs');
   run('sync-fac-mirror.mjs', ['--full'], { FAC_CSV_DIR: FIXTURE });
 
   const db = open();
@@ -65,11 +66,24 @@ beforeAll(() => {
   db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u1', 'a@example.com', t);
   db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u2', 'b@example.com', t);
   db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u4', 'expired@example.com', t);
-  // two users watch the same EIN; both have active monitor_access
-  db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run('w1', 'u1', WATCHED_EIN, t);
-  db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run('w2', 'u2', WATCHED_EIN, t);
-  // u4 watches the same EIN but their access lapsed yesterday
-  db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run('w4', 'u4', WATCHED_EIN, t);
+
+  const pf = (id: string, userId: string, name: string, monitored = 1) =>
+    db
+      .prepare('INSERT INTO portfolio (id, user_id, name, monitored, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(id, userId, name, monitored, t);
+  const item = (pid: string, ein: string) =>
+    db
+      .prepare('INSERT INTO portfolio_item (id, portfolio_id, ein, added_at) VALUES (?, ?, ?, ?)')
+      .run(`${pid}-${ein}`, pid, ein, t);
+
+  // u1 and u2 each monitor a group containing WATCHED_EIN; both have access.
+  pf('p1', 'u1', 'Subrecipients');
+  item('p1', WATCHED_EIN);
+  pf('p2', 'u2', 'My watchlist');
+  item('p2', WATCHED_EIN);
+  // u4 monitors it too but their access lapsed yesterday.
+  pf('p4', 'u4', 'Old list');
+  item('p4', WATCHED_EIN);
   db.prepare('INSERT INTO monitor_access (email, expires_at, granted_at, note) VALUES (?, ?, ?, ?)').run(
     'a@example.com',
     t + 30 * 86400,
@@ -135,8 +149,11 @@ describe('monitor job', () => {
       (d.prepare("SELECT count(*) n FROM monitor_alert WHERE user_id='u4'").get() as any).n
     ).toBe(0);
     // the repeat ref is NOT also reported as new_finding
-    const newFinding = d.prepare("SELECT payload_json FROM monitor_alert WHERE type='new_finding' AND user_id='u1'").get() as any;
+    const newFinding = d.prepare("SELECT payload_json, portfolio_id FROM monitor_alert WHERE type='new_finding' AND user_id='u1'").get() as any;
     expect(JSON.parse(newFinding.payload_json).referenceNumber).toBe('ZZ-NEW-1');
+    // alerts are tagged with the portfolio + carry its name for the digest
+    expect(newFinding.portfolio_id).toBe('p1');
+    expect(JSON.parse(newFinding.payload_json).portfolioName).toBe('Subrecipients');
     d.close();
   });
 
@@ -170,7 +187,7 @@ describe('monitor job', () => {
     d.close();
   });
 
-  it('a watched EIN not in the mirror is baselined with a null-report state', () => {
+  it('a monitored EIN not in the mirror is baselined with a null-report state', () => {
     const db = open();
     const t = Math.floor(Date.now() / 1000);
     db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u3', 'c@example.com', t);
@@ -180,9 +197,15 @@ describe('monitor job', () => {
       t,
       'test'
     );
-    db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run(
-      'w3',
+    db.prepare('INSERT INTO portfolio (id, user_id, name, monitored, created_at) VALUES (?, ?, ?, 1, ?)').run(
+      'p3',
       'u3',
+      'New subs',
+      t
+    );
+    db.prepare('INSERT INTO portfolio_item (id, portfolio_id, ein, added_at) VALUES (?, ?, ?, ?)').run(
+      'p3-x',
+      'p3',
       '999000999',
       t
     );
@@ -192,5 +215,42 @@ describe('monitor job', () => {
     const state = open().prepare('SELECT * FROM monitor_state WHERE ein = ?').get('999000999') as any;
     expect(state).toBeTruthy();
     expect(state.latest_report_id).toBeNull();
+  });
+
+  it('resolves a component EIN to its covering filing', () => {
+    const db = open();
+    const t = Math.floor(Date.now() / 1000);
+    // seed a component EIN: it has an additional_eins row on WATCHED_EIN's
+    // latest report but no fac_mirror_general row of its own.
+    db.prepare(
+      'INSERT INTO fac_mirror_additional_eins (report_id, additional_ein) VALUES (?, ?)'
+    ).run(LATEST_REPORT, '880000001');
+    db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u5', 'e@example.com', t);
+    db.prepare('INSERT INTO monitor_access (email, expires_at, granted_at, note) VALUES (?, ?, ?, ?)').run(
+      'e@example.com',
+      t + 30 * 86400,
+      t,
+      'test'
+    );
+    db.prepare('INSERT INTO portfolio (id, user_id, name, monitored, created_at) VALUES (?, ?, ?, 1, ?)').run(
+      'p5',
+      'u5',
+      'Component test',
+      t
+    );
+    db.prepare('INSERT INTO portfolio_item (id, portfolio_id, ein, added_at) VALUES (?, ?, ?, ?)').run(
+      'p5-x',
+      'p5',
+      '880000001',
+      t
+    );
+    db.close();
+
+    run('monitor-fac-changes.mjs');
+    // baselined via the covering filing's data (findings > 0), keyed under
+    // the component EIN the customer added
+    const state = open().prepare('SELECT * FROM monitor_state WHERE ein = ?').get('880000001') as any;
+    expect(state).toBeTruthy();
+    expect(JSON.parse(state.finding_refs).length).toBeGreaterThan(0);
   });
 });

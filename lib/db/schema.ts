@@ -550,15 +550,56 @@ export const monitorAccess = sqliteTable('monitor_access', {
   note: text('note'),
 });
 
-/** One row per (user, monitored org). userId is users.id. */
+/**
+ * A named group of organizations a monitoring customer tracks together
+ * ("Subrecipients", "Competitors", …). Gated entirely behind
+ * monitor_access — a user with no active grant has no portfolios and
+ * sees none of this surface. `monitored` on = the weekly job diffs its
+ * EINs and the customer gets a digest; off = it's just an organised
+ * list. Lives under /portfolio/watchlist.
+ */
+export const portfolio = sqliteTable(
+  'portfolio',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    monitored: integer('monitored', { mode: 'boolean' }).notNull().default(true),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  },
+  (t) => ({
+    userIdx: index('portfolio_user_idx').on(t.userId),
+  })
+);
+
+/** One org in a portfolio. `label` is the org-name snapshot at add time,
+ * refreshed by the monitor job. */
+export const portfolioItem = sqliteTable(
+  'portfolio_item',
+  {
+    id: text('id').primaryKey(),
+    portfolioId: text('portfolio_id').notNull(),
+    ein: text('ein').notNull(),
+    label: text('label'),
+    addedAt: integer('added_at', { mode: 'timestamp' }).notNull(),
+  },
+  (t) => ({
+    portfolioEinIdx: uniqueIndex('portfolio_item_portfolio_ein_idx').on(t.portfolioId, t.ein),
+    einIdx: index('portfolio_item_ein_idx').on(t.ein),
+  })
+);
+
+/**
+ * DEPRECATED — superseded by portfolio / portfolio_item. Kept so the
+ * create-portfolio-tables migration can move existing rows into a
+ * default "My watchlist" portfolio; dropped in a later PR.
+ */
 export const watchlist = sqliteTable(
   'watchlist',
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     ein: text('ein').notNull(),
-    // Snapshot of the org name when it was added — for the digest and
-    // the /watchlist UI without a join. Refreshed by the monitor job.
     label: text('label'),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   },
@@ -609,6 +650,11 @@ export const monitorAlert = sqliteTable(
     // 'new_audit' | 'new_finding' | 'repeat_finding' | 'deadline'
     type: text('type').notNull(),
     payloadJson: text('payload_json').notNull(),
+    // The monitored portfolio this alert belongs to — for grouping the
+    // digest by group name. Nullable: an EIN can sit in more than one
+    // monitored portfolio (we tag with one), and pre-portfolio rows have
+    // none.
+    portfolioId: text('portfolio_id'),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
     digestSentAt: integer('digest_sent_at', { mode: 'timestamp' }),
   },
