@@ -11,14 +11,17 @@ import { AwardTable } from './award-table';
 import { BackLinks } from './back-links';
 
 // federal_awards is fetched live (not mirrored — see
-// lib/fac-api.ts:getFederalAwardsForReports). ISR caches the rendered
-// page per EIN. 1h: a page that rendered the "couldn't load" state (FAC
-// budget spent) self-heals within the hour instead of being stuck for a
-// day/week, and Vercel Pro lifted the ISR-write ceiling that made a long
-// window necessary. The route is also disallowed in robots.txt now —
-// it's the one route whose data isn't in the local mirror, and crawler
-// traffic walking it was what pinned lib/fac-budget.ts.
-export const revalidate = 3600;
+// lib/fac-api.ts:getFederalAwardsForReports), but now cached per EIN in
+// Turso with a filing-aware TTL (lib/federal-awards.ts:federalAwardsCache)
+// — so a cache-warm render costs 0 FAC calls and the ISR window no longer
+// governs FAC cost, only how often the rendered HTML is rebuilt.
+// Back to 7 days (matching the parent org page): the earlier 1h window
+// meant every crawler revisit re-triggered the 2 live calls once an hour,
+// which is exactly what kept lib/fac-budget.ts pinned. The Turso cache
+// absorbs repeat hits now; a spent-budget "couldn't load" render is rare
+// (only a genuinely-cold EIN during an exhausted window) and self-heals
+// on the next revalidation. Still disallowed in robots.txt + rel=nofollow.
+export const revalidate = 604800;
 
 // Prerender nothing at build, but opt into the ISR / full-route cache:
 // without an explicit generateStaticParams a dynamic segment is rendered

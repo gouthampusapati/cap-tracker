@@ -37,13 +37,18 @@ export const KEY_RATE_FLOOR = 60;
 
 // Backstops on fetch *batches*/hour (each batch is ~2–4 FAC calls):
 //  - HARD:  only meant to bind if FAC stops sending rate headers with a
-//           key still nominally healthy — two keys × ~1,000 calls/hr ÷
-//           ~3 calls/batch ≈ 650, so 700 leaves the rate gate in control
-//           while still catching a genuine runaway.
+//           key still nominally healthy. Dropped from 700 to 300 after
+//           the Sep 2026 spike: with federal_awards now cached per-EIN in
+//           Turso (lib/federal-awards.ts) the legitimate steady-state
+//           batch rate is a small fraction of one key, so a tighter
+//           backstop costs real traffic nothing and caps a runaway
+//           (crawler discovering cold EINs faster than the cache warms)
+//           far lower. 300 batches × ~3 calls ≈ 900/hr, still inside one
+//           key, leaving the rate gate in control in the normal case.
 //  - BLIND: when there's no usable rate signal at all in the lookback
 //           window, fall back to this much tighter cap (~one key's worth).
-export const HARD_HOURLY_BATCH_CEILING = 700;
-export const BLIND_HOURLY_BATCH_CEILING = 150;
+export const HARD_HOURLY_BATCH_CEILING = 300;
+export const BLIND_HOURLY_BATCH_CEILING = 100;
 
 export function fallbackKeyConfigured(): boolean {
   const fb = process.env.FAC_API_KEY_FALLBACK;
