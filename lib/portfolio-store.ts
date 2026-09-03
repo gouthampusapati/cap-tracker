@@ -43,16 +43,23 @@ export interface PortfolioSummary {
 }
 
 export async function listPortfolios(userId: string): Promise<PortfolioSummary[]> {
+  // leftJoin + group, not a correlated subquery: drizzle's `sql` template
+  // drops the table qualifier on a bare column ref, so
+  // `WHERE ${portfolioItem.portfolioId} = ${portfolio.id}` rendered as
+  // `WHERE "portfolio_id" = "id"` — both resolving to portfolio_item —
+  // and itemCount was always 0.
   const rows = await db
     .select({
       id: portfolio.id,
       name: portfolio.name,
       monitored: portfolio.monitored,
       createdAt: portfolio.createdAt,
-      itemCount: sql<number>`(SELECT count(*) FROM ${portfolioItem} WHERE ${portfolioItem.portfolioId} = ${portfolio.id})`,
+      itemCount: sql<number>`count(${portfolioItem.id})`,
     })
     .from(portfolio)
+    .leftJoin(portfolioItem, eq(portfolioItem.portfolioId, portfolio.id))
     .where(eq(portfolio.userId, userId))
+    .groupBy(portfolio.id)
     .orderBy(portfolio.createdAt);
   return rows.map((r) => ({ ...r, monitored: !!r.monitored, itemCount: Number(r.itemCount) }));
 }
