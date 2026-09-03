@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import {
   isRateLimited,
   isHourlyRateLimited,
@@ -6,6 +7,35 @@ import {
   isWaitlistRateLimited,
   isMagicLinkRateLimited,
 } from '@/lib/rate-limit';
+
+/**
+ * Is there a valid Auth.js session on this request? Uses getToken (the
+ * edge-safe JWT reader) rather than the full `auth()` from ../auth.ts —
+ * that one pulls the Drizzle adapter + @libsql/client, which don't run
+ * in the middleware runtime. Tries both cookie names (dev: bare,
+ * prod/https: __Secure- prefixed) so it doesn't depend on protocol
+ * detection behind Vercel's proxy. A missing NEXTAUTH_SECRET returns
+ * true — a misconfigured deploy shouldn't lock every visitor out.
+ */
+async function hasSession(req: NextRequest): Promise<boolean> {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) return true;
+  for (const secureCookie of [true, false]) {
+    const token = await getToken({ req, secret, secureCookie }).catch(() => null);
+    if (token) return true;
+  }
+  return false;
+}
+
+// The one HTML route gated behind sign-in: /single-audit/<ein>/risk-assessment.
+// Its data (SEFA federal_awards + notes_to_sefa) is the only public
+// dataset not in the local mirror, so every cold render is a live FAC
+// fetch — and anonymous crawler traffic walking it kept lib/fac-budget.ts
+// pinned (three separate incidents, Aug–Sep 2026) even with robots.txt
+// Disallow + rel=nofollow, which crawlers ignore. Requiring a session
+// removes the crawler vector entirely; real users (low volume) still get
+// it, served from federal_awards_cache.
+const RISK_ASSESSMENT_RE = /^\/single-audit\/\d{9}\/risk-assessment\/?$/;
 
 /**
  * Rate-limits: (1) the FAC-costing JSON API surfaces — /api/org/[ein]
@@ -29,7 +59,14 @@ import {
  * AND isHourlyRateLimited (per-hour sustained) — see isHourlyRateLimited
  * in lib/rate-limit.ts.
  */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
+  if (RISK_ASSESSMENT_RE.test(req.nextUrl.pathname)) {
+    if (await hasSession(req)) return NextResponse.next();
+    const signin = new URL('/auth/signin', req.url);
+    signin.searchParams.set('next', req.nextUrl.pathname + req.nextUrl.search);
+    return NextResponse.redirect(signin);
+  }
+
   const ip =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('x-real-ip') ||
@@ -108,5 +145,10 @@ export const config = {
     '/portfolio',
     '/api/waitlist',
     '/api/auth/signin/email',
+    // Sign-in gate (see RISK_ASSESSMENT_RE). Matching this here does mean
+    // Vercel serves it uncached, but that's fine now: federal_awards_cache
+    // (Turso) carries the FAC-call cost, and post-gate the only traffic is
+    // authenticated, so per-request render cost is a non-issue.
+    '/single-audit/:ein/risk-assessment',
   ],
 };
