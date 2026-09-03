@@ -58,15 +58,20 @@ export default async function PortfolioPage(props: {
           <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm">
             ← Back to home
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mt-3">{title}</h1>
-          <p className="text-gray-600 mt-2 max-w-2xl">{description}</p>
-          {canMonitor && (
-            <p className="mt-3 text-sm">
-              <Link href="/portfolio/watchlist" className="text-accent font-semibold hover:underline">
-                Your monitored portfolios →
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-bold text-gray-900 mt-3">{title}</h1>
+              <p className="text-gray-600 mt-2 max-w-2xl">{description}</p>
+            </div>
+            {canMonitor && (
+              <Link
+                href="/portfolio/watchlist"
+                className="mt-3 shrink-0 inline-flex items-center gap-2 bg-accent hover:opacity-90 text-white font-semibold px-4 py-2.5 rounded-md"
+              >
+                📋 Your monitored portfolios →
               </Link>
-            </p>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -129,7 +134,9 @@ export default async function PortfolioPage(props: {
             )}
             <PortfolioTable initialRows={rows} />
 
-            <MonitorPortfolioCta einCount={rows.length} />
+            {/* The "onboarding founding customers" pitch — only for
+                visitors who don't already have monitoring access. */}
+            {!canMonitor && <MonitorPortfolioCta einCount={rows.length} />}
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
               <p className="text-sm text-blue-900">
