@@ -31,6 +31,16 @@ const client = createClient({
 // Keep in lockstep with lib/db/schema.ts.
 const TABLES = [
   [
+    'monitor_access',
+    [
+      ['email', 'text PRIMARY KEY NOT NULL'],
+      ['expires_at', 'integer NOT NULL'],
+      ['granted_at', 'integer NOT NULL'],
+      ['note', 'text'],
+    ],
+    [],
+  ],
+  [
     'watchlist',
     [
       ['id', 'text PRIMARY KEY NOT NULL'],

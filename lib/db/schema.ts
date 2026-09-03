@@ -534,6 +534,22 @@ export const foundingSignups = sqliteTable('founding_signups', {
  * path. Timestamps are SECONDS-since-epoch (Drizzle `mode: 'timestamp'`).
  * ---------------------------------------------------------------------- */
 
+/**
+ * Who is allowed to use continuous monitoring, and until when. During
+ * validation this is a hand-managed allowlist (Turso dashboard, or
+ * scripts/grant-monitor-access.mjs) — a pilot customer / test user gets
+ * a row with an expiry. The monitor job and (PR 2) the watchlist UI
+ * check `now < expires_at`; an expired or absent grant means no alerts
+ * and no digest. Keyed on lowercased email so a grant can be created
+ * before the user has ever signed in.
+ */
+export const monitorAccess = sqliteTable('monitor_access', {
+  email: text('email').primaryKey(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+  grantedAt: integer('granted_at', { mode: 'timestamp' }).notNull(),
+  note: text('note'),
+});
+
 /** One row per (user, monitored org). userId is users.id. */
 export const watchlist = sqliteTable(
   'watchlist',

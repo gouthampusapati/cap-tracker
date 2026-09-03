@@ -64,9 +64,30 @@ beforeAll(() => {
   const t = Math.floor(Date.now() / 1000);
   db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u1', 'a@example.com', t);
   db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u2', 'b@example.com', t);
-  // two users watch the same EIN
+  db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u4', 'expired@example.com', t);
+  // two users watch the same EIN; both have active monitor_access
   db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run('w1', 'u1', WATCHED_EIN, t);
   db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run('w2', 'u2', WATCHED_EIN, t);
+  // u4 watches the same EIN but their access lapsed yesterday
+  db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run('w4', 'u4', WATCHED_EIN, t);
+  db.prepare('INSERT INTO monitor_access (email, expires_at, granted_at, note) VALUES (?, ?, ?, ?)').run(
+    'a@example.com',
+    t + 30 * 86400,
+    t,
+    'test'
+  );
+  db.prepare('INSERT INTO monitor_access (email, expires_at, granted_at, note) VALUES (?, ?, ?, ?)').run(
+    'b@example.com',
+    t + 30 * 86400,
+    t,
+    'test'
+  );
+  db.prepare('INSERT INTO monitor_access (email, expires_at, granted_at, note) VALUES (?, ?, ?, ?)').run(
+    'expired@example.com',
+    t - 86400,
+    t - 40 * 86400,
+    'lapsed'
+  );
   db.close();
 });
 
@@ -103,13 +124,16 @@ describe('monitor job', () => {
 
     const d = open();
     const rows = d.prepare('SELECT user_id, type FROM monitor_alert ORDER BY user_id, type').all() as any[];
-    // 2 change types × 2 users
+    // 2 change types × 2 users with active access; u4 (lapsed) gets nothing
     expect(rows).toEqual([
       { user_id: 'u1', type: 'new_finding' },
       { user_id: 'u1', type: 'repeat_finding' },
       { user_id: 'u2', type: 'new_finding' },
       { user_id: 'u2', type: 'repeat_finding' },
     ]);
+    expect(
+      (d.prepare("SELECT count(*) n FROM monitor_alert WHERE user_id='u4'").get() as any).n
+    ).toBe(0);
     // the repeat ref is NOT also reported as new_finding
     const newFinding = d.prepare("SELECT payload_json FROM monitor_alert WHERE type='new_finding' AND user_id='u1'").get() as any;
     expect(JSON.parse(newFinding.payload_json).referenceNumber).toBe('ZZ-NEW-1');
@@ -148,12 +172,19 @@ describe('monitor job', () => {
 
   it('a watched EIN not in the mirror is baselined with a null-report state', () => {
     const db = open();
-    db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u3', 'c@example.com', 0);
+    const t = Math.floor(Date.now() / 1000);
+    db.prepare('INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)').run('u3', 'c@example.com', t);
+    db.prepare('INSERT INTO monitor_access (email, expires_at, granted_at, note) VALUES (?, ?, ?, ?)').run(
+      'c@example.com',
+      t + 30 * 86400,
+      t,
+      'test'
+    );
     db.prepare('INSERT INTO watchlist (id, user_id, ein, created_at) VALUES (?, ?, ?, ?)').run(
       'w3',
       'u3',
       '999000999',
-      0
+      t
     );
     db.close();
 

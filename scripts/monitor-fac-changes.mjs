@@ -207,11 +207,34 @@ function stateUpsert(ein, snap, mdDeadlineAlerted) {
 /* --- the diff pass ------------------------------------------------- */
 
 async function runDiff() {
-  const watchRows = (
-    await client.execute('SELECT id, user_id, ein, label FROM watchlist')
+  // Only watchlist rows whose user has an unexpired monitor_access grant
+  // are monitored — during validation that's a hand-managed allowlist
+  // (monitor_access, or scripts/grant-monitor-access.mjs). Filter up
+  // front: an EIN watched only by lapsed users is simply not monitored
+  // (and re-baselines cleanly if they're re-granted).
+  const rawRows = (
+    await client.execute(
+      `SELECT w.id, w.user_id, w.ein, w.label, lower(u.email) AS email
+       FROM watchlist w JOIN users u ON u.id = w.user_id`
+    )
   ).rows;
-  if (watchRows.length === 0) {
+  if (rawRows.length === 0) {
     log('watchlist is empty — nothing to monitor');
+    return { watched: 0, alerts: 0 };
+  }
+
+  const activeEmails = new Set(
+    (
+      await client.execute({
+        sql: 'SELECT lower(email) AS email FROM monitor_access WHERE expires_at > ?',
+        args: [nowSec],
+      })
+    ).rows.map((r) => r.email)
+  );
+  const watchRows = rawRows.filter((w) => w.email && activeEmails.has(w.email));
+  const skipped = rawRows.length - watchRows.length;
+  if (watchRows.length === 0) {
+    log(`no watchlist rows with active monitor_access (${rawRows.length} rows skipped) — nothing to monitor`);
     return { watched: 0, alerts: 0 };
   }
 
@@ -221,7 +244,9 @@ async function runDiff() {
     watchersByEin.get(w.ein).push({ userId: w.user_id, watchId: w.id, label: w.label });
   }
   const eins = [...watchersByEin.keys()];
-  log(`${watchRows.length} watchlist rows · ${eins.length} distinct EINs`);
+  log(
+    `${watchRows.length} active watchlist rows${skipped ? ` (${skipped} skipped — no access)` : ''} · ${eins.length} distinct EINs`
+  );
 
   const [orgs, states] = await Promise.all([readWatchedOrgs(eins), loadState(eins)]);
 
