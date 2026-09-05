@@ -25,7 +25,9 @@ function useAction() {
           ? 'That would exceed the 100-organization monitoring cap.'
           : j.error === 'name_required'
             ? 'Name required.'
-            : 'Something went wrong.'
+            : j.error === 'portfolio_limit'
+              ? "You've reached the 10-group limit for now. Delete a group to make room, or ask us to raise it."
+              : 'Something went wrong.'
       );
     }
     return res.ok;

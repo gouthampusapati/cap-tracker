@@ -38,7 +38,7 @@ function runScript(script: string) {
 const { db } = await import('@/lib/db');
 const { sql } = await import('drizzle-orm');
 const store = await import('@/lib/portfolio-store');
-const { MAX_ITEMS_PER_PORTFOLIO, MAX_MONITORED_EINS } = store;
+const { MAX_ITEMS_PER_PORTFOLIO, MAX_MONITORED_EINS, MAX_PORTFOLIOS_PER_USER } = store;
 
 const ein = (n: number) => String(100_000_000 + n).padStart(9, '0');
 const einRange = (start: number, count: number) =>
@@ -73,6 +73,20 @@ describe('createPortfolio', () => {
 
     const bad = await store.createPortfolio('u1', '   ');
     expect(bad).toEqual({ error: 'name_required' });
+  });
+
+  it('caps how many groups one user can create', async () => {
+    for (let i = 0; i < MAX_PORTFOLIOS_PER_USER; i++) {
+      const r = await store.createPortfolio('u1', `g${i}`);
+      expect('id' in r).toBe(true);
+    }
+    const over = await store.createPortfolio('u1', 'one too many');
+    expect(over).toEqual({ error: 'portfolio_limit' });
+    expect(await store.listPortfolios('u1')).toHaveLength(MAX_PORTFOLIOS_PER_USER);
+
+    // the limit is per-user, not global
+    const other = await store.createPortfolio('u2', 'still fine');
+    expect('id' in other).toBe(true);
   });
 
   it('seeds initial EINs, ignoring non-9-digit junk', async () => {

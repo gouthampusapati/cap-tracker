@@ -9,6 +9,10 @@ import { hasActiveMonitorAccess } from '@/lib/monitor-access';
 /** During validation: bounds so a bulk import can't blow up the weekly job. */
 export const MAX_ITEMS_PER_PORTFOLIO = 50;
 export const MAX_MONITORED_EINS = 100;
+// Nothing enforced this — a user could create unlimited empty groups.
+// 10 for now, while access is a hand-granted pilot cohort; revisit before
+// a wider rollout.
+export const MAX_PORTFOLIOS_PER_USER = 10;
 
 const EIN_RE = /^\d{9}$/;
 
@@ -122,6 +126,11 @@ export async function createPortfolio(
 ): Promise<{ id: string } | { error: string }> {
   const clean = name.trim().slice(0, 80);
   if (!clean) return { error: 'name_required' };
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)` })
+    .from(portfolio)
+    .where(eq(portfolio.userId, userId));
+  if (Number(n) >= MAX_PORTFOLIOS_PER_USER) return { error: 'portfolio_limit' };
   const id = randomUUID();
   await db.insert(portfolio).values({ id, userId, name: clean, monitored: true, createdAt: new Date() });
   if (eins.length) await addItems(userId, id, eins);
