@@ -7,6 +7,7 @@ import { Footer } from './footer';
 import { HomeSampleCard } from './home-sample-card';
 import { HomePortfolioMockup } from './home-portfolio-mockup';
 import { HomeFacVsMonitoring } from './home-fac-vs-monitoring';
+import { HomeTheProblem } from './home-the-problem';
 import { HomeFeatureGrid } from './home-feature-grid';
 import { SITE_STATS, approxCount } from '@/lib/site-stats';
 import { JsonLd } from './json-ld';
@@ -217,6 +218,11 @@ export default function Home() {
           the target of the hero's "See how monitoring works →" link.
           Static / illustrative (invented org names, labelled). */}
       <HomePortfolioMockup />
+
+      {/* PR-1: names the institutional-memory problem explicitly, mapped
+          honestly to shipped vs planned answers, ahead of the by-hand
+          vs monitored comparison below. */}
+      <HomeTheProblem />
 
       {/* Why FAC alone isn't enough — the manual loop vs. the monitored
           one, then a Free-research-vs-Founding-monitoring capability

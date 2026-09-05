@@ -61,6 +61,15 @@ const INCLUDED: { label: string; body: string }[] = [
     label: 'Founding customer onboarding',
     body: 'We help configure your initial portfolio and make sure the service fits your workflow.',
   },
+  {
+    // "the alert log already exists" — true: monitor_alert.createdAt
+    // persists every alert. Deliberately NOT claiming a logged history
+    // of every check (only the latest checked_at is retained), and NOT
+    // claiming decision tracking (that's planned, not shipped yet — see
+    // the homepage "THE PROBLEM" section's shipped/planned split).
+    label: 'A record that outlives your team',
+    body: 'Every alert is logged with a date, and each group shows when it was last checked. When staff turn over, or your own auditor asks, the record is still there.',
+  },
 ];
 
 export default function PricingPage() {
